@@ -1,24 +1,21 @@
 # JobApp
 
+A minimal job board web app: post jobs and apply to them.
+
+- **Backend/server:** `server.js` — Express (ESM) serving a JSON API and static files.
+- **Frontend:** `public/` — plain HTML/CSS/JS (no build step), served by the same server.
+- **Data:** in-memory (see `jobs` array in `server.js`); resets on restart. Swap for a real database as the app grows.
+
 ## Cursor Cloud specific instructions
 
-Current repository state (as of environment setup): this repo is an **empty scaffold**.
-The only tracked file besides this one is `README.md` (a single `# JobApp` heading).
-There is **no application code, no package manifest, no services, and no build/test/lint tooling yet**.
+Single Node.js service; no database or external services required.
 
-Because of that, there is currently nothing to build, run, lint, or test. Do not
-fabricate an application to satisfy a "run the app" request — first confirm with the
-task what stack/product is intended, or wait for application code to be committed.
+- Install: `npm install` (this is what the startup update script runs).
+- Run (dev): `npm run dev` — starts on `http://localhost:3000` with `node --watch` (auto-reloads on file changes). Override the port with `PORT`.
+- Run (prod-ish): `npm start`.
+- Test: `npm test` — Node's built-in test runner (`node --test`) against `test/`. Tests import `app` from `server.js`; `server.js` only calls `app.listen` when `NODE_ENV !== "test"`, so the runner binds its own ephemeral port.
+- Lint: none configured yet.
 
-Environment runtimes available on the VM (for whenever code is added):
-
-- Node.js `v22.x` + npm `10.x`
-- Python `3.12`
-- Go `1.22`
-- Docker is **not** installed by default (install it explicitly if a future stack needs it).
-
-The startup update script is intentionally minimal and guarded: it installs
-dependencies only if a recognized manifest exists (`package.json` -> `npm install`,
-`requirements.txt` -> `pip install -r requirements.txt`). When you introduce a real
-stack, update the startup update script and this section with the actual
-install/run/test commands.
+Non-obvious notes:
+- The API is under `/api` (`GET /api/health`, `GET/POST /api/jobs`, `POST /api/jobs/:id/apply`). The frontend at `/` calls these.
+- Because the store is in-memory, seeded jobs and any posted jobs/applications disappear on server restart — expected, not a bug.
