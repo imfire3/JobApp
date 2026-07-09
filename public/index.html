@@ -26,7 +26,11 @@
       </section>
 
       <section class="panel wide">
-        <h2>Open positions (<span id="job-count">0</span>)</h2>
+        <div class="panel-head">
+          <h2>Open positions (<span id="job-count">0</span>)</h2>
+          <button id="import-wttj" type="button" class="secondary">Import WTTJ mock jobs</button>
+        </div>
+        <p id="import-msg" class="msg"></p>
         <div id="jobs" class="jobs"></div>
       </section>
     </main>

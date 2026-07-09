@@ -56,3 +56,34 @@ test("posting a job without required fields fails", async () => {
   });
   assert.equal(res.status, 400);
 });
+
+test("WTTJ mock import creates jobs and deduplicates by url", async () => {
+  const firstRes = await fetch(`${base}/api/import/wttj/mock`, {
+    method: "POST",
+  });
+  assert.equal(firstRes.status, 201);
+  const first = await firstRes.json();
+  assert.equal(first.imported, 10);
+  assert.equal(first.duplicates, 0);
+  assert.equal(first.total, 10);
+
+  // A second import should be fully deduplicated by url.
+  const secondRes = await fetch(`${base}/api/import/wttj/mock`, {
+    method: "POST",
+  });
+  const second = await secondRes.json();
+  assert.equal(second.imported, 0);
+  assert.equal(second.duplicates, 10);
+  assert.equal(second.total, 10);
+
+  // Imported jobs carry the new model fields.
+  const jobs = await (await fetch(`${base}/api/jobs`)).json();
+  const wttj = jobs.filter((j) => j.source === "Welcome to the Jungle");
+  assert.equal(wttj.length, 10);
+  for (const job of wttj) {
+    assert.ok(job.url);
+    assert.equal(job.status, "open");
+    const ageMs = Date.now() - new Date(job.postedAt).getTime();
+    assert.ok(ageMs >= 0 && ageMs <= 24 * 60 * 60 * 1000);
+  }
+});

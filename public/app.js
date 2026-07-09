@@ -2,6 +2,8 @@ const jobsEl = document.getElementById("jobs");
 const jobCountEl = document.getElementById("job-count");
 const jobForm = document.getElementById("job-form");
 const jobMsg = document.getElementById("job-msg");
+const importBtn = document.getElementById("import-wttj");
+const importMsg = document.getElementById("import-msg");
 
 async function loadJobs() {
   const res = await fetch("/api/jobs");
@@ -17,6 +19,20 @@ function renderJob(job) {
   const wrap = document.createElement("div");
   wrap.className = "job";
   const count = job.applications.length;
+  const status = job.status || "open";
+  const source = job.source || "Manual";
+  const tags = [
+    `<span class="tag source">${escapeHtml(source)}</span>`,
+    `<span class="tag status status-${escapeHtml(status)}">${escapeHtml(status)}</span>`,
+  ];
+  if (job.postedAt) {
+    tags.push(
+      `<span class="tag time" title="${escapeHtml(job.postedAt)}">posted ${timeAgo(job.postedAt)}</span>`,
+    );
+  }
+  const link = job.url
+    ? `<a class="joblink" href="${escapeHtml(job.url)}" target="_blank" rel="noopener noreferrer">View offer &#8599;</a>`
+    : "";
   wrap.innerHTML = `
     <div class="job-head">
       <div>
@@ -25,7 +41,9 @@ function renderJob(job) {
       </div>
       <span class="badge">${count} applicant${count === 1 ? "" : "s"}</span>
     </div>
+    <div class="tags">${tags.join("")}</div>
     <p class="desc">${escapeHtml(job.description || "")}</p>
+    ${link}
     <form class="apply">
       <input name="name" placeholder="Your name" required />
       <input name="email" type="email" placeholder="Your email" required />
@@ -84,6 +102,42 @@ jobForm.addEventListener("submit", async (e) => {
     jobMsg.className = "msg err";
   }
 });
+
+importBtn.addEventListener("click", async () => {
+  importBtn.disabled = true;
+  importMsg.textContent = "Importing from Welcome to the Jungle...";
+  importMsg.className = "msg";
+  try {
+    const res = await fetch("/api/import/wttj/mock", { method: "POST" });
+    const summary = await res.json();
+    if (res.ok) {
+      importMsg.textContent = `Imported ${summary.imported} job${summary.imported === 1 ? "" : "s"}, ${summary.duplicates} duplicate${summary.duplicates === 1 ? "" : "s"} skipped (out of ${summary.total}).`;
+      importMsg.className = "msg ok";
+      loadJobs();
+    } else {
+      importMsg.textContent = summary.error || "Import failed";
+      importMsg.className = "msg err";
+    }
+  } catch (err) {
+    importMsg.textContent = "Import failed";
+    importMsg.className = "msg err";
+  } finally {
+    importBtn.disabled = false;
+  }
+});
+
+function timeAgo(iso) {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "recently";
+  const diffMs = Date.now() - then;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+}
 
 function escapeHtml(str) {
   return String(str)
