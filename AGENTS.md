@@ -17,5 +17,7 @@ Single Node.js service; no database or external services required.
 - Lint: none configured yet.
 
 Non-obvious notes:
-- The API is under `/api` (`GET /api/health`, `GET/POST /api/jobs`, `POST /api/jobs/:id/apply`). The frontend at `/` calls these.
-- Because the store is in-memory, seeded jobs and any posted jobs/applications disappear on server restart — expected, not a bug.
+- The API is under `/api` (`GET /api/health`, `GET/POST /api/jobs`, `POST /api/jobs/:id/apply`, `POST /api/import/wttj/mock`). The frontend at `/` calls these.
+- `POST /api/import/wttj/mock` inserts 10 hard-coded mock "Welcome to the Jungle" Product Owner/Manager jobs (no scraping, no external calls). It deduplicates by `url`, so calling it repeatedly imports 0 the second time and returns `{ imported, duplicates, total }`.
+- Job model fields: `title`, `company`, `location`, `description`, `source`, `url`, `postedAt`, `status`, plus server-managed `id`, `createdAt`, `applications`.
+- Because the store is in-memory, seeded jobs and any posted/imported jobs/applications disappear on server restart — expected, not a bug.
