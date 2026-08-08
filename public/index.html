@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JobApp</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">JobApp</div>
+      <div class="tagline">Post a job. Find your next hire.</div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <h2>Post a job</h2>
+        <form id="job-form" class="form">
+          <label>Title<input name="title" required placeholder="e.g. Product Designer" /></label>
+          <label>Company<input name="company" required placeholder="e.g. Acme Corp" /></label>
+          <label>Location<input name="location" placeholder="e.g. Remote" /></label>
+          <label>Description<textarea name="description" rows="3" placeholder="What will they do?"></textarea></label>
+          <button type="submit">Post job</button>
+          <p id="job-msg" class="msg"></p>
+        </form>
+      </section>
+
+      <section class="panel wide">
+        <div class="panel-head">
+          <h2>Open positions (<span id="job-count">0</span>)</h2>
+          <div class="button-group">
+            <button id="export-excel" type="button" class="success" title="Export to Excel">📊 Export Excel</button>
+            <button id="export-csv" type="button" class="success" title="Export to CSV">📄 Export CSV</button>
+            <button id="import-wttj" type="button" class="secondary">Import WTTJ</button>
+          </div>
+        </div>
+        <p id="import-msg" class="msg"></p>
+        <p id="export-msg" class="msg"></p>
+        <div id="jobs" class="jobs"></div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
