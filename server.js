@@ -1,6 +1,7 @@
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import XLSX from "xlsx";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -203,6 +204,103 @@ app.post("/api/import/wttj/mock", (_req, res) => {
     duplicates,
     total: imported + duplicates,
   });
+});
+
+// Export jobs to Excel (XLSX format)
+app.get("/api/export/excel", (_req, res) => {
+  try {
+    // Prepare data for Excel
+    const exportData = jobs.map((job) => ({
+      ID: job.id,
+      Title: job.title,
+      Company: job.company,
+      Location: job.location,
+      Description: job.description,
+      Source: job.source,
+      URL: job.url || "",
+      "Posted At": new Date(job.postedAt).toLocaleString(),
+      Status: job.status,
+      "Applications": job.applications.length,
+      "Created At": new Date(job.createdAt).toLocaleString(),
+    }));
+
+    // Create workbook and worksheet
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    // Auto-size columns
+    const colWidths = [
+      { wch: 5 },  // ID
+      { wch: 30 }, // Title
+      { wch: 20 }, // Company
+      { wch: 25 }, // Location
+      { wch: 50 }, // Description
+      { wch: 25 }, // Source
+      { wch: 50 }, // URL
+      { wch: 20 }, // Posted At
+      { wch: 10 }, // Status
+      { wch: 12 }, // Applications
+      { wch: 20 }, // Created At
+    ];
+    worksheet["!cols"] = colWidths;
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Jobs");
+
+    // Generate buffer
+    const excelBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    // Set headers for download
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=JobApp_Export_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+
+    res.send(excelBuffer);
+  } catch (error) {
+    console.error("Excel export error:", error);
+    res.status(500).json({ error: "Failed to export Excel file" });
+  }
+});
+
+// Export jobs to CSV format
+app.get("/api/export/csv", (_req, res) => {
+  try {
+    // Prepare data for CSV
+    const exportData = jobs.map((job) => ({
+      ID: job.id,
+      Title: job.title,
+      Company: job.company,
+      Location: job.location,
+      Description: job.description.replace(/,/g, ";").replace(/\n/g, " "), // Escape commas and newlines
+      Source: job.source,
+      URL: job.url || "",
+      "Posted At": new Date(job.postedAt).toLocaleString(),
+      Status: job.status,
+      Applications: job.applications.length,
+      "Created At": new Date(job.createdAt).toLocaleString(),
+    }));
+
+    // Create workbook and convert to CSV
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const csvContent = XLSX.utils.sheet_to_csv(worksheet);
+
+    // Set headers for download
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=JobApp_Export_${new Date().toISOString().split('T')[0]}.csv`
+    );
+
+    // Add BOM for Excel compatibility with UTF-8
+    res.send("\uFEFF" + csvContent);
+  } catch (error) {
+    console.error("CSV export error:", error);
+    res.status(500).json({ error: "Failed to export CSV file" });
+  }
 });
 
 seed();

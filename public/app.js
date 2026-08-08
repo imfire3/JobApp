@@ -4,6 +4,9 @@ const jobForm = document.getElementById("job-form");
 const jobMsg = document.getElementById("job-msg");
 const importBtn = document.getElementById("import-wttj");
 const importMsg = document.getElementById("import-msg");
+const exportExcelBtn = document.getElementById("export-excel");
+const exportCsvBtn = document.getElementById("export-csv");
+const exportMsg = document.getElementById("export-msg");
 
 async function loadJobs() {
   const res = await fetch("/api/jobs");
@@ -123,6 +126,78 @@ importBtn.addEventListener("click", async () => {
     importMsg.className = "msg err";
   } finally {
     importBtn.disabled = false;
+  }
+});
+
+// Export to Excel
+exportExcelBtn.addEventListener("click", async () => {
+  exportExcelBtn.disabled = true;
+  exportMsg.textContent = "Generating Excel file...";
+  exportMsg.className = "msg";
+  
+  try {
+    const res = await fetch("/api/export/excel");
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `JobApp_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      exportMsg.textContent = `✅ Excel file downloaded successfully!`;
+      exportMsg.className = "msg ok";
+      setTimeout(() => {
+        exportMsg.textContent = "";
+      }, 3000);
+    } else {
+      exportMsg.textContent = "Export failed";
+      exportMsg.className = "msg err";
+    }
+  } catch (err) {
+    exportMsg.textContent = "Export failed: " + err.message;
+    exportMsg.className = "msg err";
+  } finally {
+    exportExcelBtn.disabled = false;
+  }
+});
+
+// Export to CSV
+exportCsvBtn.addEventListener("click", async () => {
+  exportCsvBtn.disabled = true;
+  exportMsg.textContent = "Generating CSV file...";
+  exportMsg.className = "msg";
+  
+  try {
+    const res = await fetch("/api/export/csv");
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `JobApp_Export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      exportMsg.textContent = `✅ CSV file downloaded successfully!`;
+      exportMsg.className = "msg ok";
+      setTimeout(() => {
+        exportMsg.textContent = "";
+      }, 3000);
+    } else {
+      exportMsg.textContent = "Export failed";
+      exportMsg.className = "msg err";
+    }
+  } catch (err) {
+    exportMsg.textContent = "Export failed: " + err.message;
+    exportMsg.className = "msg err";
+  } finally {
+    exportCsvBtn.disabled = false;
   }
 });
 

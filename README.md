@@ -56,13 +56,15 @@ JobApp/
     └── api.test.js         # Tests API
 ```
 
-## 🎯 Fonctionnalités
+## ✨ Fonctionnalités
 
 ### Application Web
 - ✅ Publier des offres d'emploi
 - ✅ Voir toutes les offres
 - ✅ Postuler aux offres
 - ✅ Importer des offres depuis Welcome to the Jungle (mock)
+- ✅ **Exporter vers Excel (.xlsx)**
+- ✅ **Exporter vers CSV (.csv)**
 - ✅ API REST complète
 
 ### Extension Chrome
@@ -79,6 +81,8 @@ JobApp/
 - `POST /api/jobs` - Créer une nouvelle offre
 - `POST /api/jobs/:id/apply` - Postuler à une offre
 - `POST /api/import/wttj/mock` - Importer 10 offres exemple
+- **`GET /api/export/excel` - Exporter toutes les offres en Excel**
+- **`GET /api/export/csv` - Exporter toutes les offres en CSV**
 
 ## 🧪 Tests
 
