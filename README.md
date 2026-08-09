@@ -59,6 +59,7 @@ JobApp/
 ## ✨ Fonctionnalités
 
 ### Application Web
+- ✅ **Authentification Google et Apple** (OAuth 2.0)
 - ✅ Publier des offres d'emploi
 - ✅ Voir toutes les offres
 - ✅ Postuler aux offres
@@ -76,6 +77,7 @@ JobApp/
 
 ## 🌐 API Endpoints
 
+### Emplois
 - `GET /api/health` - Vérifier l'état du serveur
 - `GET /api/jobs` - Liste toutes les offres
 - `POST /api/jobs` - Créer une nouvelle offre
@@ -83,6 +85,15 @@ JobApp/
 - `POST /api/import/wttj/mock` - Importer 10 offres exemple
 - **`GET /api/export/excel` - Exporter toutes les offres en Excel**
 - **`GET /api/export/csv` - Exporter toutes les offres en CSV**
+
+### Authentification
+- `GET /auth/google` - Connexion avec Google
+- `GET /auth/google/callback` - Callback Google OAuth
+- `GET /auth/apple` - Connexion avec Apple
+- `GET /auth/apple/callback` - Callback Apple OAuth
+- `GET /auth/logout` - Déconnexion
+- `GET /api/auth/user` - Récupérer l'utilisateur connecté
+- `GET /api/auth/config` - Configuration des providers d'authentification
 
 ## 🧪 Tests
 
@@ -107,6 +118,46 @@ npm test
    - **Paramètres** : Configurez l'URL du serveur
 
 ## 🔧 Configuration
+
+### Variables d'Environnement
+
+Créez un fichier `.env` à la racine du projet (voir `.env.example`) :
+
+```bash
+# Configuration du serveur
+PORT=3000
+SESSION_SECRET=your-secure-session-secret
+
+# Google OAuth (optionnel)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
+
+# Apple Sign In (optionnel)
+APPLE_CLIENT_ID=your-apple-client-id
+APPLE_TEAM_ID=your-apple-team-id
+APPLE_KEY_ID=your-apple-key-id
+APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour Key\n-----END PRIVATE KEY-----"
+APPLE_CALLBACK_URL=http://localhost:3000/auth/apple/callback
+```
+
+### Configuration OAuth
+
+#### Google OAuth
+1. Allez sur [Google Cloud Console](https://console.cloud.google.com/)
+2. Créez un nouveau projet
+3. Activez l'API "Google+ API"
+4. Créez des identifiants OAuth 2.0
+5. Ajoutez `http://localhost:3000/auth/google/callback` dans les URI de redirection
+
+#### Apple Sign In
+1. Allez sur [Apple Developer](https://developer.apple.com/)
+2. Créez un Service ID
+3. Configurez Sign in with Apple
+4. Créez une clé privée et téléchargez-la
+5. Ajoutez `http://localhost:3000/auth/apple/callback` dans les URI de redirection
+
+**Note** : L'authentification est optionnelle. L'application fonctionne sans configuration OAuth, mais les boutons de connexion ne seront pas affichés.
 
 ### Changer le Port
 ```bash

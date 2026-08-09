@@ -2,6 +2,10 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import XLSX from "xlsx";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import AppleStrategy from "passport-apple";
+import session from "express-session";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -9,9 +13,163 @@ const app = express();
 app.use(express.json());
 app.use(express.static(join(__dirname, "public")));
 
+// Session configuration
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "jobapp-secret-change-in-production",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
+
+// Passport initialization
+app.use(passport.initialize());
+app.use(passport.session());
+
+// User store (in-memory for MVP)
+const users = new Map();
+let nextUserId = 1;
+
+// Serialize/deserialize user
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser((id, done) => {
+  const user = users.get(id);
+  done(null, user || null);
+});
+
+// Google OAuth Strategy
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:3000/auth/google/callback",
+      },
+      (accessToken, refreshToken, profile, done) => {
+        let user = Array.from(users.values()).find(
+          (u) => u.provider === "google" && u.providerId === profile.id
+        );
+
+        if (!user) {
+          user = {
+            id: nextUserId++,
+            provider: "google",
+            providerId: profile.id,
+            email: profile.emails?.[0]?.value || "",
+            name: profile.displayName || "Google User",
+            photo: profile.photos?.[0]?.value || "",
+            createdAt: new Date().toISOString(),
+          };
+          users.set(user.id, user);
+        }
+
+        return done(null, user);
+      }
+    )
+  );
+}
+
+// Apple OAuth Strategy
+if (process.env.APPLE_CLIENT_ID && process.env.APPLE_TEAM_ID && process.env.APPLE_KEY_ID && process.env.APPLE_PRIVATE_KEY) {
+  passport.use(
+    new AppleStrategy(
+      {
+        clientID: process.env.APPLE_CLIENT_ID,
+        teamID: process.env.APPLE_TEAM_ID,
+        keyID: process.env.APPLE_KEY_ID,
+        privateKeyString: process.env.APPLE_PRIVATE_KEY,
+        callbackURL: process.env.APPLE_CALLBACK_URL || "http://localhost:3000/auth/apple/callback",
+      },
+      (accessToken, refreshToken, idToken, profile, done) => {
+        let user = Array.from(users.values()).find(
+          (u) => u.provider === "apple" && u.providerId === profile.id
+        );
+
+        if (!user) {
+          user = {
+            id: nextUserId++,
+            provider: "apple",
+            providerId: profile.id,
+            email: profile.email || "",
+            name: profile.name ? `${profile.name.firstName || ""} ${profile.name.lastName || ""}`.trim() : "Apple User",
+            photo: "",
+            createdAt: new Date().toISOString(),
+          };
+          users.set(user.id, user);
+        }
+
+        return done(null, user);
+      }
+    )
+  );
+}
+
 // In-memory data store. Replace with a real database when the app grows.
 let nextJobId = 1;
 const jobs = [];
+
+// Authentication routes
+app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+
+app.get(
+  "/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/" }),
+  (req, res) => {
+    res.redirect("/");
+  }
+);
+
+app.get("/auth/apple", passport.authenticate("apple"));
+
+app.get(
+  "/auth/apple/callback",
+  passport.authenticate("apple", { failureRedirect: "/" }),
+  (req, res) => {
+    res.redirect("/");
+  }
+);
+
+app.get("/auth/logout", (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ error: "Logout failed" });
+    }
+    res.redirect("/");
+  });
+});
+
+app.get("/api/auth/user", (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({
+      authenticated: true,
+      user: {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        photo: req.user.photo,
+        provider: req.user.provider,
+      },
+    });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+app.get("/api/auth/config", (_req, res) => {
+  res.json({
+    googleEnabled: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    appleEnabled: !!(process.env.APPLE_CLIENT_ID && process.env.APPLE_TEAM_ID && process.env.APPLE_KEY_ID && process.env.APPLE_PRIVATE_KEY),
+  });
+});
 
 function seed() {
   createJob({
