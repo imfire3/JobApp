@@ -7,6 +7,80 @@ const importMsg = document.getElementById("import-msg");
 const exportExcelBtn = document.getElementById("export-excel");
 const exportCsvBtn = document.getElementById("export-csv");
 const exportMsg = document.getElementById("export-msg");
+const userProfileEl = document.getElementById("user-profile");
+
+let authConfig = { googleEnabled: false, appleEnabled: false };
+let currentUser = null;
+
+async function loadAuthConfig() {
+  try {
+    const res = await fetch("/api/auth/config");
+    authConfig = await res.json();
+  } catch (err) {
+    console.error("Failed to load auth config:", err);
+  }
+}
+
+async function loadUser() {
+  try {
+    const res = await fetch("/api/auth/user");
+    const data = await res.json();
+    if (data.authenticated) {
+      currentUser = data.user;
+      renderUserProfile(currentUser);
+    } else {
+      currentUser = null;
+      renderLoginButtons();
+    }
+  } catch (err) {
+    console.error("Failed to load user:", err);
+    renderLoginButtons();
+  }
+}
+
+function renderUserProfile(user) {
+  userProfileEl.innerHTML = `
+    <div class="user-info">
+      ${user.photo ? `<img src="${escapeHtml(user.photo)}" alt="${escapeHtml(user.name)}" class="user-photo" />` : `<div class="user-avatar">${escapeHtml(user.name.charAt(0).toUpperCase())}</div>`}
+      <div class="user-details">
+        <div class="user-name">${escapeHtml(user.name)}</div>
+        <div class="user-email">${escapeHtml(user.email)}</div>
+      </div>
+      <a href="/auth/logout" class="btn-logout">Logout</a>
+    </div>
+  `;
+}
+
+function renderLoginButtons() {
+  const buttons = [];
+  
+  if (authConfig.googleEnabled) {
+    buttons.push(`<a href="/auth/google" class="btn-auth btn-google">
+      <svg width="18" height="18" viewBox="0 0 18 18">
+        <path fill="#4285F4" d="M17.64,9.2c0-0.63-0.06-1.25-0.16-1.84H9v3.49h4.84c-0.21,1.12-0.84,2.07-1.8,2.71v2.26h2.92C16.66,14.09,17.64,11.85,17.64,9.2z"/>
+        <path fill="#34A853" d="M9,18c2.43,0,4.47-0.81,5.96-2.18l-2.92-2.26c-0.81,0.54-1.84,0.86-3.04,0.86c-2.34,0-4.32-1.58-5.03-3.71H0.96v2.33C2.44,15.98,5.48,18,9,18z"/>
+        <path fill="#FBBC05" d="M3.97,10.71c-0.18-0.54-0.28-1.11-0.28-1.71s0.1-1.17,0.28-1.71V4.96H0.96C0.35,6.18,0,7.55,0,9s0.35,2.82,0.96,4.04L3.97,10.71z"/>
+        <path fill="#EA4335" d="M9,3.58c1.32,0,2.51,0.45,3.44,1.35l2.58-2.58C13.46,0.89,11.43,0,9,0C5.48,0,2.44,2.02,0.96,4.96l3.01,2.33C4.68,5.16,6.66,3.58,9,3.58z"/>
+      </svg>
+      Sign in with Google
+    </a>`);
+  }
+  
+  if (authConfig.appleEnabled) {
+    buttons.push(`<a href="/auth/apple" class="btn-auth btn-apple">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+        <path d="M14.94 5.19A4.38 4.38 0 0 0 13 9.5c-.01 1.95 1.11 3.63 2.69 4.5-.32.92-.71 1.78-1.18 2.58-.68 1.11-1.38 2.21-2.48 2.23-1.07.02-1.42-.63-2.65-.63s-1.6.61-2.6.65c-1.07.04-1.87-1.21-2.56-2.33C2.78 14.34 2 11.09 3.5 8.82a4.8 4.8 0 0 1 4.03-2.48c1.05-.02 2.05.71 2.69.71.64 0 1.84-.88 3.11-.75.53.02 2.01.21 2.96 1.59-.08.05-1.76 1.03-1.75 3.07.01 2.43 2.13 3.25 2.15 3.26-.02.07-.34 1.14-1.11 2.27-.67.98-1.37 1.96-2.47 1.98-1.07.02-1.42-.63-2.65-.63s-1.6.61-2.6.65c-1.07.04-1.87-1.21-2.56-2.33C2.78 14.34 2 11.09 3.5 8.82a4.8 4.8 0 0 1 4.03-2.48c1.05-.02 2.05.71 2.69.71.64 0 1.84-.88 3.11-.75.53.02 2.01.21 2.96 1.59M12.16 2.56c.56.68.99 1.62.88 2.57-1.04-.04-2.28-.7-3.02-1.58-.66-.77-1.24-2-1.02-3.18 1.07.08 2.16.73 2.88 1.57"/>
+      </svg>
+      Sign in with Apple
+    </a>`);
+  }
+  
+  if (buttons.length === 0) {
+    userProfileEl.innerHTML = `<div class="auth-notice">Authentication not configured</div>`;
+  } else {
+    userProfileEl.innerHTML = `<div class="auth-buttons">${buttons.join("")}</div>`;
+  }
+}
 
 async function loadJobs() {
   const res = await fetch("/api/jobs");
@@ -222,4 +296,9 @@ function escapeHtml(str) {
     .replaceAll('"', "&quot;");
 }
 
-loadJobs();
+// Initialize authentication and load jobs
+(async function init() {
+  await loadAuthConfig();
+  await loadUser();
+  loadJobs();
+})();
