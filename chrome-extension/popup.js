@@ -1,17 +1,28 @@
 let serverUrl = 'http://localhost:3000';
 
-document.addEventListener('DOMContentLoaded', async () => {
-  // Load saved settings
-  const settings = await chrome.storage.local.get(['serverUrl']);
-  if (settings.serverUrl) {
-    serverUrl = settings.serverUrl;
-    document.getElementById('serverUrl').value = serverUrl;
+function chromeStorage() {
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+    return chrome.storage.local;
   }
-  
-  // Check server status
+  return null;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const storage = chromeStorage();
+    if (storage) {
+      const settings = await storage.get(['serverUrl']);
+      if (settings.serverUrl) {
+        serverUrl = settings.serverUrl;
+        document.getElementById('serverUrl').value = serverUrl;
+      }
+    }
+  } catch {
+    // Missing or blocked extension APIs — keep the default localhost URL.
+  }
+
   checkServerStatus();
-  
-  // Setup tabs
+
   const tabs = document.querySelectorAll('.tab');
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -19,16 +30,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       switchTab(targetTab);
     });
   });
-  
-  // Form submission
+
   document.getElementById('jobForm').addEventListener('submit', handleJobSubmit);
-  
-  // Extract buttons
   document.getElementById('extractBtn').addEventListener('click', extractFromPage);
   document.getElementById('extractPageBtn').addEventListener('click', extractFromPage);
   document.getElementById('importWTTJBtn').addEventListener('click', importWTTJJobs);
-  
-  // Settings
   document.getElementById('saveSettings').addEventListener('click', saveSettings);
   document.getElementById('openApp').addEventListener('click', openApp);
 });
@@ -50,7 +56,9 @@ async function checkServerStatus() {
   const statusText = document.getElementById('statusText');
   
   try {
-    const response = await fetch(`${serverUrl}/api/health`);
+    const response = await fetch(`${serverUrl}/api/health`, {
+      signal: AbortSignal.timeout(4000),
+    });
     if (response.ok) {
       statusDot.classList.add('online');
       statusText.textContent = 'Serveur en ligne';
@@ -98,28 +106,39 @@ async function handleJobSubmit(e) {
 }
 
 async function extractFromPage() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  
-  chrome.tabs.sendMessage(tab.id, { action: 'extractJobInfo' }, (response) => {
-    if (chrome.runtime.lastError) {
-      showMessage('Impossible d\'extraire les données de cette page', 'error');
+  try {
+    if (typeof chrome === 'undefined' || !chrome.tabs) {
+      showMessage('Ouvrez le popup depuis l\'extension Chrome', 'error');
       return;
     }
-    
-    if (response && response.data) {
-      // Fill form with extracted data
-      const data = response.data;
-      document.getElementById('title').value = data.title || '';
-      document.getElementById('company').value = data.company || '';
-      document.getElementById('location').value = data.location || '';
-      document.getElementById('description').value = data.description || '';
-      
-      switchTab('post');
-      showMessage('Données extraites! Vérifiez et publiez.', 'success');
-    } else {
-      showMessage('Aucune donnée trouvée sur cette page', 'error');
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.id) {
+      showMessage('Aucun onglet actif', 'error');
+      return;
     }
-  });
+
+    chrome.tabs.sendMessage(tab.id, { action: 'extractJobInfo' }, (response) => {
+      if (chrome.runtime.lastError) {
+        showMessage('Impossible d\'extraire les données de cette page', 'error');
+        return;
+      }
+
+      if (response && response.data) {
+        const data = response.data;
+        document.getElementById('title').value = data.title || '';
+        document.getElementById('company').value = data.company || '';
+        document.getElementById('location').value = data.location || '';
+        document.getElementById('description').value = data.description || '';
+
+        switchTab('post');
+        showMessage('Données extraites! Vérifiez et publiez.', 'success');
+      } else {
+        showMessage('Aucune donnée trouvée sur cette page', 'error');
+      }
+    });
+  } catch {
+    showMessage('Impossible d\'extraire les données de cette page', 'error');
+  }
 }
 
 async function importWTTJJobs() {
@@ -141,19 +160,33 @@ async function importWTTJJobs() {
 
 async function saveSettings() {
   const newServerUrl = document.getElementById('serverUrl').value;
-  await chrome.storage.local.set({ serverUrl: newServerUrl });
+  const storage = chromeStorage();
+  if (storage) {
+    await storage.set({ serverUrl: newServerUrl });
+  }
   serverUrl = newServerUrl;
   showMessage('Paramètres enregistrés', 'success');
   checkServerStatus();
 }
 
 function openApp() {
-  chrome.tabs.create({ url: serverUrl });
+  if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
+    chrome.tabs.create({ url: serverUrl });
+    return;
+  }
+  window.open(serverUrl, '_blank');
 }
 
 async function getCurrentPageUrl() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  return tab.url;
+  try {
+    if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.query) {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      return tab && tab.url ? tab.url : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function showMessage(text, type) {

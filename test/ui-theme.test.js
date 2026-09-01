@@ -31,6 +31,7 @@ test("web app serves the original dark JobApp theme", async () => {
   assert.doesNotMatch(css, /#667eea/);
   assert.doesNotMatch(css, /#764ba2/);
   assert.doesNotMatch(css, /linear-gradient\(90deg,\s*#10b981/);
+  assert.match(css, /\.apply input[\s\S]{0,120}background:\s*var\(--panel-2\)/);
 
   const html = await (await fetch(`${base}/`)).text();
   assert.match(html, /class="brand"/);
@@ -48,6 +49,14 @@ test("chrome extension popup uses the original dark JobApp theme", async () => {
     html,
     /background:\s*linear-gradient\(135deg,\s*#667eea/,
   );
+});
+
+test("chrome extension popup does not hang if chrome APIs are missing", async () => {
+  const js = await readFile(join(root, "chrome-extension/popup.js"), "utf8");
+  assert.match(js, /typeof chrome/);
+  assert.match(js, /function chromeStorage/);
+  assert.match(js, /AbortSignal\.timeout/);
+  assert.match(js, /checkServerStatus\(\)/);
 });
 
 test("chrome extension page badge uses the original dark JobApp theme", async () => {

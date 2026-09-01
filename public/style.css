@@ -154,5 +154,15 @@ button:disabled { opacity: 0.6; cursor: default; }
   white-space: nowrap;
 }
 .apply { display: flex; gap: 8px; flex-wrap: wrap; }
-.apply input { flex: 1; min-width: 120px; }
+.apply input {
+  flex: 1;
+  min-width: 120px;
+  background: var(--panel-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+}
+.apply input:focus { outline: 2px solid var(--accent); }
 .apply button { padding: 8px 12px; }
