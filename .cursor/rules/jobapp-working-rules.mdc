@@ -1,0 +1,154 @@
+---
+description: Working rules for the JobApp repository
+alwaysApply: true
+---
+
+# Project context
+
+This repository contains JobApp, a personal job-search application focused on:
+
+- importing jobs from external sources such as Apify and Welcome to the Jungle
+- storing normalized jobs in Supabase
+- displaying jobs in a board
+- selecting jobs with checkboxes
+- analyzing a CV
+- generating personalized cover letters with AI
+- tracking applications
+
+Before modifying code, inspect the repository and identify the actual architecture, existing patterns, database schema, API conventions, and test commands.
+
+Do not assume the stack or file structure from previous conversations. The repository is the source of truth.
+
+# Working method
+
+For any task involving more than one file:
+
+1. Inspect the relevant files first.
+2. Summarize the current implementation.
+3. Identify risks, inconsistencies, and unknowns.
+4. Produce a short implementation plan with exact file paths.
+5. Do not modify code until the plan is coherent.
+6. Implement the smallest complete change.
+7. Run validation commands.
+8. Fix failures caused by the change.
+9. Review the final diff.
+10. Report only verified results.
+
+If the request is ambiguous, incomplete, unsafe, or conflicts with the current architecture, explain the issue before implementing.
+
+Do not blindly agree with the requested implementation if a safer or simpler approach already exists in the repository.
+
+# Scope control
+
+- Modify only files required for the task.
+- Do not redesign the UI unless explicitly requested.
+- Do not refactor unrelated code.
+- Do not rename public APIs, database fields, routes, or components unless required.
+- Preserve existing CSV, Excel, JSON import, authentication, job selection, and cover-letter flows unless the task explicitly replaces them.
+- Reuse existing components, utilities, Supabase clients, validation helpers, and design-system patterns.
+- Do not duplicate logic that already exists.
+
+# Database rules
+
+- Supabase PostgreSQL is the source of truth for persistent application data.
+- Keep Row Level Security enabled.
+- Verify user ownership in server routes.
+- Never expose the Supabase service-role key to the browser.
+- Prefer migrations over manual schema assumptions.
+- Preserve raw external payloads in `raw_data` when importing third-party jobs.
+- Deduplicate jobs using the existing repository constraint, preferably `user_id + url`.
+- Database migrations must be safe for existing data where possible.
+
+# External data rules
+
+For Welcome to the Jungle and Apify imports:
+
+- Never invent missing values.
+- Normalize external fields into the existing internal jobs schema.
+- Preserve the original item in `raw_data`.
+- Handle missing and variant field names gracefully.
+- Treat external HTML as untrusted input.
+- Sanitize or convert HTML before rendering.
+- Log invalid, duplicate, ignored, and imported counts.
+- A single malformed item must not fail the whole batch.
+
+# AI rules
+
+- All AI provider calls must run server-side.
+- Never expose API keys in client code.
+- The CV and job description are source data.
+- Do not invent candidate experience, skills, results, education, or company facts.
+- Store prompt versions when generated content is persisted.
+- AI failure must not corrupt job or application records.
+- Batch operations must return individual success and failure results.
+
+# Code quality
+
+Follow the repository's existing:
+
+- TypeScript configuration
+- ESLint configuration
+- formatting
+- naming conventions
+- API response patterns
+- error-handling patterns
+- component patterns
+
+Prefer explicit types at system boundaries:
+
+- external API payloads
+- Supabase records
+- route inputs
+- route outputs
+- AI structured responses
+
+Avoid `any` unless the external input is first validated or narrowed.
+
+# Validation
+
+Before claiming completion, run the commands available in `package.json`.
+
+At minimum, when available:
+
+- typecheck
+- lint
+- unit tests
+- build
+
+Prefer targeted tests first, then the broader suite.
+
+If a command cannot run, report:
+
+- the exact command
+- the exact failure
+- whether it appears related to the change
+- what remains unverified
+
+Never say that the implementation works, is production-ready, or is complete unless validation has actually passed.
+
+# Testing expectations
+
+For new business logic, add tests for:
+
+- normal case
+- missing required data
+- malformed external data
+- duplicate data
+- partial batch failure
+- authorization or ownership where relevant
+
+Do not weaken or delete existing tests just to make the implementation pass.
+
+# Final response format
+
+After implementation, provide:
+
+1. Summary of what changed
+2. Files modified
+3. Database migration added or changed
+4. Validation commands executed
+5. Results of each command
+6. Known limitations or remaining risks
+7. Manual test steps
+
+Do not advertise success without evidence.

@@ -1,33 +1,7 @@
-# Dependencies
-node_modules/
-
-# Build outputs
-dist/
-build/
-
-# Logs
-logs/
+node_modules
+.next
+out
+.DS_Store
 *.log
-npm-debug.log*
-
-# Environment
 .env
 .env.local
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Test coverage
-coverage/
-
-# Temporary files
-tmp/
-temp/
-*.tmp
