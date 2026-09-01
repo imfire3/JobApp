@@ -102,8 +102,9 @@ function showIndicator() {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      background: #1e293b;
+      border: 1px solid rgba(99, 102, 241, 0.45);
+      color: #e2e8f0;
       padding: 12px 20px;
       border-radius: 8px;
       font-family: system-ui, -apple-system, sans-serif;

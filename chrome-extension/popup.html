@@ -5,187 +5,213 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JobApp Assistant</title>
   <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-2: #273449;
+      --accent: #6366f1;
+      --accent-2: #818cf8;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --ok: #22c55e;
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     body {
       width: 400px;
       min-height: 500px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #fff;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 20% -10%, #1e293b, var(--bg));
+      color: var(--text);
     }
-    
+
     .container {
       padding: 20px;
     }
-    
+
     .header {
       text-align: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
-    
+
     .header h1 {
       font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
       margin-bottom: 5px;
+      background: linear-gradient(90deg, var(--accent-2), #c7d2fe);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
-    
+
     .header p {
       font-size: 14px;
-      opacity: 0.9;
+      color: var(--muted);
     }
-    
+
     .server-status {
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       padding: 12px;
-      border-radius: 8px;
+      border-radius: 10px;
       margin-bottom: 20px;
       display: flex;
       align-items: center;
       gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
     }
-    
+
     .status-dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: #ef4444;
+      background: #f87171;
       animation: pulse 2s infinite;
     }
-    
+
     .status-dot.online {
-      background: #10b981;
+      background: var(--ok);
     }
-    
+
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
-    
+
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
-    
+
     label {
       display: block;
-      margin-bottom: 5px;
-      font-size: 14px;
-      font-weight: 500;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--muted);
     }
-    
+
     input, textarea, select {
       width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
       font-size: 14px;
-      background: rgba(255, 255, 255, 0.9);
-      color: #333;
+      background: var(--panel-2);
+      color: var(--text);
     }
-    
+
+    input:focus, textarea:focus, select:focus {
+      outline: 2px solid var(--accent);
+    }
+
     textarea {
       resize: vertical;
       min-height: 80px;
       font-family: inherit;
     }
-    
+
     button {
       width: 100%;
-      padding: 12px;
+      padding: 11px 14px;
       border: none;
-      border-radius: 6px;
-      font-size: 16px;
+      border-radius: 10px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
       margin-bottom: 10px;
     }
-    
+
     .btn-primary {
-      background: #fff;
-      color: #667eea;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: white;
     }
-    
+
     .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      filter: brightness(1.08);
     }
-    
+
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.2);
-      color: #fff;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent-2);
     }
-    
+
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(99, 102, 241, 0.15);
     }
-    
+
     .message {
       padding: 10px;
-      border-radius: 6px;
+      border-radius: 10px;
       margin-top: 15px;
-      font-size: 14px;
+      font-size: 13px;
       display: none;
     }
-    
+
     .message.success {
-      background: rgba(16, 185, 129, 0.2);
-      border: 1px solid rgba(16, 185, 129, 0.5);
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      color: #4ade80;
     }
-    
+
     .message.error {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.5);
+      background: rgba(248, 113, 113, 0.15);
+      border: 1px solid rgba(248, 113, 113, 0.25);
+      color: #f87171;
     }
-    
+
     .message.show {
       display: block;
     }
-    
+
     .tabs {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 20px;
     }
-    
+
     .tab {
       flex: 1;
       padding: 10px;
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      border-radius: 6px;
-      color: #fff;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      color: var(--muted);
       cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      transition: all 0.2s;
+      font-size: 13px;
+      font-weight: 600;
     }
-    
+
     .tab.active {
-      background: rgba(255, 255, 255, 0.9);
-      color: #667eea;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      border-color: transparent;
+      color: white;
     }
-    
+
     .tab-content {
       display: none;
     }
-    
+
     .tab-content.active {
       display: block;
     }
-    
+
     .settings-group {
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       padding: 15px;
-      border-radius: 8px;
+      border-radius: 16px;
       margin-bottom: 15px;
     }
-    
+
     .settings-group h3 {
       font-size: 16px;
       margin-bottom: 10px;
@@ -195,7 +221,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>💼 JobApp</h1>
+      <h1>JobApp</h1>
       <p>Assistant de gestion d'emplois</p>
     </div>
     
@@ -239,7 +265,7 @@
     </div>
     
     <div class="tab-content" id="extract-tab">
-      <p style="margin-bottom: 15px; font-size: 14px; opacity: 0.9;">
+      <p style="margin-bottom: 15px; font-size: 14px; color: var(--muted);">
         Cette fonctionnalité extrait automatiquement les informations d'offres d'emploi depuis la page web actuelle.
       </p>
       <button id="extractPageBtn" class="btn-primary">Extraire les infos</button>

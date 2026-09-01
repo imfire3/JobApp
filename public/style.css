@@ -101,15 +101,6 @@ button.secondary {
 }
 button.secondary:hover { background: rgba(99, 102, 241, 0.15); filter: none; }
 
-button.success {
-  background: linear-gradient(90deg, #10b981, #059669);
-  color: white;
-  padding: 8px 14px;
-  font-size: 13px;
-  border: none;
-}
-button.success:hover { filter: brightness(1.1); }
-
 .button-group {
   display: flex;
   gap: 8px;

@@ -78,7 +78,7 @@ async function updateBadge() {
       const jobs = await response.json();
       const count = jobs.length.toString();
       chrome.action.setBadgeText({ text: count });
-      chrome.action.setBadgeBackgroundColor({ color: '#667eea' });
+      chrome.action.setBadgeBackgroundColor({ color: '#6366f1' });
     }
   } catch (error) {
     chrome.action.setBadgeText({ text: '' });
