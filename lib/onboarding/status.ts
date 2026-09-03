@@ -1,10 +1,4 @@
-export type OnboardingStep =
-  | "cv"
-  | "targets"
-  | "analysis"
-  | "search"
-  | "collect"
-  | "done";
+export type OnboardingStep = "cv" | "done";
 
 export type OnboardingFlags = {
   hasCv: boolean;
@@ -14,31 +8,18 @@ export type OnboardingFlags = {
   completed: boolean;
 };
 
+/** Simplified onboarding: only CV import is required before entering the app. */
 export function deriveOnboardingStep(flags: OnboardingFlags): OnboardingStep {
-  if (flags.completed) return "done";
-  if (!flags.hasCv) return "cv";
-  if (!flags.hasTargets) return "targets";
-  if (!flags.hasAnalysis) return "analysis";
-  if (!flags.hasTrackedSearch) return "search";
-  return "collect";
+  if (flags.completed || flags.hasCv) return "done";
+  return "cv";
 }
 
 export function canCompleteOnboarding(flags: OnboardingFlags): boolean {
-  return (
-    flags.hasCv &&
-    flags.hasTargets &&
-    flags.hasAnalysis &&
-    flags.hasTrackedSearch
-  );
+  return flags.hasCv;
 }
 
 export function shouldAutoComplete(
   flags: Omit<OnboardingFlags, "completed">
 ): boolean {
-  return (
-    flags.hasCv &&
-    flags.hasTargets &&
-    flags.hasAnalysis &&
-    flags.hasTrackedSearch
-  );
+  return flags.hasCv;
 }

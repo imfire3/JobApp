@@ -4,6 +4,7 @@ import {
   SESSION_COOKIE,
   verifySessionToken,
 } from "@/lib/local-auth";
+import { ONBOARDING_COOKIE } from "@/lib/onboarding/cookie";
 
 function isPublicRoute(pathname: string) {
   return (
@@ -16,6 +17,15 @@ function isPublicRoute(pathname: string) {
   );
 }
 
+function isOnboardingAllowed(pathname: string) {
+  return (
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/api/onboarding") ||
+    pathname.startsWith("/api/profile") ||
+    pathname.startsWith("/api/auth")
+  );
+}
+
 function getLocalUser(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -24,20 +34,43 @@ function getLocalUser(request: NextRequest) {
 
 export async function updateSession(request: NextRequest) {
   const localUser = getLocalUser(request);
+  const pathname = request.nextUrl.pathname;
   const isAuthRoute =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/auth");
+    pathname.startsWith("/login") || pathname.startsWith("/auth");
+  const onboardingCookie = request.cookies.get(ONBOARDING_COOKIE)?.value;
+  const onboardingDone = onboardingCookie === "done";
+  // Missing cookie = treat as pending for new signups; existing sessions without
+  // cookie can still hit /api/onboarding which may auto-complete.
+  const onboardingPending = !onboardingDone;
 
   if (localUser) {
     if (isAuthRoute) {
+      if (onboardingDone) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
+      }
+      // Pending: stay on login/signup to import CV on the same page
+      return NextResponse.next({ request });
+    }
+
+    if (onboardingPending && !isOnboardingAllowed(pathname) && !isPublicRoute(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("cv", "1");
+      return NextResponse.redirect(url);
+    }
+
+    if (onboardingDone && pathname.startsWith("/onboarding")) {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
       return NextResponse.redirect(url);
     }
+
     return NextResponse.next({ request });
   }
 
-  if (!isPublicRoute(request.nextUrl.pathname)) {
+  if (!isPublicRoute(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

@@ -8,6 +8,10 @@ import {
   SESSION_COOKIE,
 } from "@/lib/local-auth";
 import { ensureLocalAuthUserInSupabase } from "@/lib/supabase/ensure-local-user";
+import {
+  ONBOARDING_COOKIE,
+  getOnboardingCookieOptions,
+} from "@/lib/onboarding/cookie";
 
 const loginSchema = z.object({
   identifier: z.string().optional(),
@@ -38,5 +42,7 @@ export async function POST(request: Request) {
     createSessionToken(result.user, getAuthSecret()),
     getSessionCookieOptions()
   );
+  // Pending until /api/onboarding auto-completes (existing CV) or user finishes wizard
+  response.cookies.set(ONBOARDING_COOKIE, "pending", getOnboardingCookieOptions());
   return response;
 }
