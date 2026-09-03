@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import {
   buildCvAnalysisUserPrompt,
+  CV_ANALYSIS_PROMPT_VERSION,
   CV_ANALYSIS_SYSTEM_PROMPT,
 } from "@/lib/ai/prompts/cv-analysis";
 import {
@@ -21,12 +22,19 @@ function getModel() {
   return process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 }
 
-export async function analyzeCvForAts(cvText: string): Promise<{
+export async function analyzeCvForAts(
+  cvText: string,
+  options?: { systemPrompt?: string | null }
+): Promise<{
   analysis: CvAtsAnalysis;
   model: string;
+  promptVersion: string;
 }> {
   const client = getOpenAIClient();
   const model = getModel();
+  const customPrompt = options?.systemPrompt?.trim();
+  const systemPrompt = customPrompt || CV_ANALYSIS_SYSTEM_PROMPT;
+  const promptVersion = customPrompt ? "custom" : CV_ANALYSIS_PROMPT_VERSION;
 
   let response: OpenAI.Chat.Completions.ChatCompletion;
   try {
@@ -35,7 +43,7 @@ export async function analyzeCvForAts(cvText: string): Promise<{
       temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: CV_ANALYSIS_SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: buildCvAnalysisUserPrompt(cvText) },
       ],
     });
@@ -57,5 +65,5 @@ export async function analyzeCvForAts(cvText: string): Promise<{
   }
 
   const analysis = parseCvAtsAnalysis(parsed);
-  return { analysis, model };
+  return { analysis, model, promptVersion };
 }

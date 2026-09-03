@@ -11,12 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JobFiltersBar } from "@/components/dashboard/job-filters";
 import { JobCard } from "@/components/dashboard/job-card";
 import { JobTable } from "@/components/dashboard/job-table";
+import { JobBulkActions } from "@/components/dashboard/job-bulk-actions";
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { filterJobs } from "@/lib/jobs/utils";
 import type { Job, JobFilters, JobStatus, TrackedSearch } from "@/types";
-import { Copy, FileText, List, Play, Plus, RefreshCw, Trash2, LayoutGrid } from "lucide-react";
+import { Copy, List, Play, Plus, RefreshCw, Trash2, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useRouter } from "next/navigation";
 
 const defaultFilters: JobFilters = { postedWithinHours: 24 };
 
@@ -69,6 +71,7 @@ function parseCsv(value: string): string[] {
 }
 
 export function TrackedJobsPage() {
+  const router = useRouter();
   const [trackedSearches, setTrackedSearches] = useState<TrackedSearch[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
@@ -83,6 +86,7 @@ export function TrackedJobsPage() {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{
     total: number;
     current: number;
@@ -305,6 +309,51 @@ export function TrackedJobsPage() {
     setJobs((prev) =>
       prev.map((job) => (job.id === id ? ((data.job as Job | undefined) ?? job) : job))
     );
+  }
+
+  async function handleBulkStatusUpdate(
+    updates: Partial<Pick<Job, "status" | "selected">>
+  ) {
+    const selected = jobs.filter((job) => job.selected);
+    if (selected.length === 0) {
+      toast.error("Sélectionne au moins une offre");
+      return;
+    }
+
+    setBulkStatusLoading(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: selected.map((job) => job.id),
+          ...updates,
+        }),
+      });
+      const data = await readJsonSafe(res);
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Mise à jour groupée échouée"
+        );
+      }
+      const updatedJobs = Array.isArray(data.jobs) ? (data.jobs as Job[]) : [];
+      if (updatedJobs.length) {
+        const byId = new Map(updatedJobs.map((job) => [job.id, job]));
+        setJobs((prev) => prev.map((job) => byId.get(job.id) ?? job));
+      } else {
+        await loadAll();
+      }
+      const label = updates.status
+        ? `Statut « ${updates.status.replace(/_/g, " ")} »`
+        : updates.selected === false
+          ? "Désélection"
+          : "Mise à jour";
+      toast.success(`${label} appliqué à ${selected.length} offre(s)`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Mise à jour groupée échouée");
+    } finally {
+      setBulkStatusLoading(false);
+    }
   }
 
   async function handleAnalyze(jobId: string) {
@@ -557,25 +606,21 @@ export function TrackedJobsPage() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-semibold tracking-tight">Collected jobs</h2>
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            onClick={handleBulkGenerateCoverLetters}
-            disabled={bulkLoading || jobs.filter((job) => job.selected).length === 0}
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            {bulkLoading
-              ? "Generating..."
-              : `Generate cover letters (${jobs.filter((job) => job.selected).length})`}
-          </Button>
-          <Button variant="outline" onClick={loadAll}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
+        <Button variant="outline" onClick={loadAll}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
       </div>
+
+      <JobBulkActions
+        selectedCount={jobs.filter((job) => job.selected).length}
+        loading={bulkStatusLoading}
+        coverLetterLoading={bulkLoading}
+        onBulkUpdate={handleBulkStatusUpdate}
+        onGenerateCoverLetters={handleBulkGenerateCoverLetters}
+      />
 
       {bulkProgress && (
         <Card>
@@ -622,6 +667,7 @@ export function TrackedJobsPage() {
                   onAnalyze={handleAnalyze}
                   onGenerateCoverLetter={handleGenerateCoverLetter}
                   onViewCoverLetter={setCoverLetterJob}
+                  onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
                   isAnalyzing={analyzingId === job.id}
                   isGenerating={generatingId === job.id}
                 />
@@ -637,6 +683,7 @@ export function TrackedJobsPage() {
             onStatusChange={(id, status) => updateJob(id, { status })}
             onAnalyze={handleAnalyze}
             onViewCoverLetter={setCoverLetterJob}
+            onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
           />
         </TabsContent>
       </Tabs>

@@ -5,12 +5,20 @@ import { mapJobRows, toJobViewModel } from "@/lib/jobs/mapper";
 import { JOB_STATUSES } from "@/types";
 import { z } from "zod";
 
-const patchSchema = z.object({
-  id: z.string().uuid(),
-  status: z.enum(JOB_STATUSES).optional(),
-  selected: z.boolean().optional(),
-  cover_letter: z.string().optional(),
-});
+const patchSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    ids: z.array(z.string().uuid()).min(1).max(100).optional(),
+    status: z.enum(JOB_STATUSES).optional(),
+    selected: z.boolean().optional(),
+    cover_letter: z.string().optional(),
+  })
+  .refine((body) => Boolean(body.id) || Boolean(body.ids?.length), {
+    message: "id or ids is required",
+  })
+  .refine((body) => !(body.ids && body.cover_letter !== undefined), {
+    message: "cover_letter updates must use a single id",
+  });
 
 /**
  * GET /api/jobs — list all jobs for the authenticated user
@@ -66,19 +74,28 @@ export async function PATCH(request: Request) {
   }
   if (body.cover_letter !== undefined) updates.cover_letter = body.cover_letter;
 
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+  }
+
+  const targetIds = body.ids?.length ? body.ids : body.id ? [body.id] : [];
+
   const { data, error } = await supabase
     .from("jobs")
     .update(updates)
-    .eq("id", body.id)
+    .in("id", targetIds)
     .eq("user_id", user.id)
-    .select()
-    .single();
+    .select();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  if (body.cover_letter !== undefined) {
+  if (!data?.length) {
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  }
+
+  if (body.cover_letter !== undefined && body.id) {
     const { error: coverLetterError } = await supabase
       .from("cover_letters")
       .upsert(
@@ -95,7 +112,14 @@ export async function PATCH(request: Request) {
     }
   }
 
-  return NextResponse.json({ job: toJobViewModel(data) });
+  if (targetIds.length === 1) {
+    return NextResponse.json({ job: toJobViewModel(data[0]), jobs: mapJobRows(data) });
+  }
+
+  return NextResponse.json({
+    jobs: mapJobRows(data),
+    updated: data.length,
+  });
 }
 
 /**

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,59 +10,33 @@ import { Briefcase } from "lucide-react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [supabaseConfigured, setSupabaseConfigured] = useState<boolean | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    fetch("/api/setup/status")
-      .then((res) => res.json())
-      .then((data: { configured?: boolean }) => setSupabaseConfigured(Boolean(data.configured)))
-      .catch(() => setSupabaseConfigured(false));
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (!supabaseConfigured) {
-        throw new Error(
-          "Supabase is not configured. Add your real NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart npm run dev."
-        );
+      const response = await fetch(isSignUp ? "/api/auth/signup" : "/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Authentication failed");
       }
 
-      const supabase = createClient();
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
-        if (error) throw error;
-        toast.success("Check your email to confirm your account");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        router.push("/dashboard");
-        router.refresh();
-      }
+      toast.success(isSignUp ? "Account created" : "Signed in");
+      router.push("/dashboard");
+      router.refresh();
     } catch (error) {
-      const message =
-        error instanceof TypeError && error.message === "Failed to fetch"
-          ? "Cannot reach Supabase. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local, then restart the dev server."
-          : error instanceof Error
-            ? error.message
-            : "Authentication failed";
-      toast.error(message);
+      toast.error(error instanceof Error ? error.message : "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -82,43 +55,20 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {supabaseConfigured === false ? (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-              <p className="font-medium">Supabase not configured</p>
-              <ol className="mt-2 list-decimal space-y-1 pl-4 text-amber-900/90">
-                <li>
-                  Create a project at{" "}
-                  <a
-                    href="https://supabase.com/dashboard"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline"
-                  >
-                    supabase.com/dashboard
-                  </a>
-                </li>
-                <li>
-                  Copy <strong>Project URL</strong> and <strong>anon public key</strong> from
-                  Settings → API
-                </li>
-                <li>
-                  Paste them into <code className="rounded bg-amber-100 px-1">.env.local</code>
-                </li>
-                <li>
-                  Restart <code className="rounded bg-amber-100 px-1">npm run dev</code>
-                </li>
-              </ol>
-            </div>
-          ) : null}
+          <div className="mb-4 rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
+            Demo account: <span className="font-medium text-foreground">admin</span> /{" "}
+            <span className="font-medium text-foreground">admin</span>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">Email or username</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                autoComplete="username"
+                placeholder="admin"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
               />
             </div>
@@ -127,18 +77,15 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                autoComplete={isSignUp ? "new-password" : "current-password"}
+                placeholder="admin"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={5}
               />
             </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || supabaseConfigured === false}
-            >
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Please wait..." : isSignUp ? "Create account" : "Sign in"}
             </Button>
           </form>

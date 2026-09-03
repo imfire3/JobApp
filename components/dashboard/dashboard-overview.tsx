@@ -35,7 +35,13 @@ export function DashboardOverview() {
   useEffect(() => {
     fetch("/api/dashboard/summary")
       .then((res) => res.json())
-      .then((payload) => setData(payload))
+      .then((payload) => {
+        if (!payload || payload.error || !Array.isArray(payload.jobs)) {
+          setData(null);
+          return;
+        }
+        setData(payload);
+      })
       .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);

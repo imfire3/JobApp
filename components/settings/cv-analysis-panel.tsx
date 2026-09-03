@@ -1,11 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { getMatchScoreColor } from "@/lib/jobs/utils";
 import type { CvAnalysisResponse, CvAnalysisSeverity } from "@/types";
-import { AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, RefreshCw, Save, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 interface CvAnalysisPanelProps {
   analysis: CvAnalysisResponse | null;
@@ -58,6 +62,90 @@ export function CvAnalysisPanel({
   hasSavedCv,
   onAnalyze,
 }: CvAnalysisPanelProps) {
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [savedPrompt, setSavedPrompt] = useState("");
+  const [defaultPrompt, setDefaultPrompt] = useState("");
+  const [isCustomPrompt, setIsCustomPrompt] = useState(false);
+  const [promptLoading, setPromptLoading] = useState(false);
+  const [promptSaving, setPromptSaving] = useState(false);
+
+  useEffect(() => {
+    async function loadPrompt() {
+      setPromptLoading(true);
+      try {
+        const res = await fetch("/api/profile/cv-analysis-prompt");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          prompt?: string;
+          default_prompt?: string;
+          is_custom?: boolean;
+          cv_analysis?: {
+            prompt?: string;
+            default_prompt?: string;
+            is_custom?: boolean;
+          };
+        };
+        const next = data.cv_analysis?.prompt ?? data.prompt ?? "";
+        setPrompt(next);
+        setSavedPrompt(next);
+        setDefaultPrompt(data.cv_analysis?.default_prompt ?? data.default_prompt ?? "");
+        setIsCustomPrompt(Boolean(data.cv_analysis?.is_custom ?? data.is_custom));
+      } catch {
+        // keep empty — analysis still works with server default
+      } finally {
+        setPromptLoading(false);
+      }
+    }
+    void loadPrompt();
+  }, []);
+
+  async function handleSavePrompt() {
+    setPromptSaving(true);
+    try {
+      const res = await fetch("/api/profile/cv-analysis-prompt", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to save prompt");
+      const next = data.prompt ?? prompt;
+      setPrompt(next);
+      setSavedPrompt(next);
+      setDefaultPrompt(data.default_prompt ?? defaultPrompt);
+      setIsCustomPrompt(Boolean(data.is_custom));
+      toast.success(data.is_custom ? "Custom prompt saved" : "Using default prompt");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save prompt");
+    } finally {
+      setPromptSaving(false);
+    }
+  }
+
+  async function handleResetPrompt() {
+    setPromptSaving(true);
+    try {
+      const res = await fetch("/api/profile/cv-analysis-prompt", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to reset prompt");
+      const next = data.prompt ?? data.default_prompt ?? "";
+      setPrompt(next);
+      setSavedPrompt(next);
+      setDefaultPrompt(data.default_prompt ?? defaultPrompt);
+      setIsCustomPrompt(false);
+      toast.success("Prompt reset to default");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to reset prompt");
+    } finally {
+      setPromptSaving(false);
+    }
+  }
+
   const sortedRecommendations = analysis
     ? [...analysis.analysis.recommendations].sort(
         (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]
@@ -65,6 +153,7 @@ export function CvAnalysisPanel({
     : [];
 
   const analyzeDisabled = analyzing || hasUnsavedCv || !hasSavedCv;
+  const promptUnsaved = prompt !== savedPrompt;
 
   return (
     <Card>
@@ -92,6 +181,66 @@ export function CvAnalysisPanel({
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="rounded-lg border">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium"
+            onClick={() => setPromptOpen((open) => !open)}
+          >
+            <span className="flex items-center gap-2">
+              Prompt template
+              {isCustomPrompt ? (
+                <Badge variant="secondary">Custom</Badge>
+              ) : (
+                <Badge variant="outline">Default</Badge>
+              )}
+            </span>
+            {promptOpen ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </button>
+          {promptOpen ? (
+            <div className="space-y-3 border-t px-4 py-4">
+              <Label htmlFor="cv-analysis-prompt">System prompt used for Analyze CV</Label>
+              <Textarea
+                id="cv-analysis-prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                rows={12}
+                disabled={promptLoading || promptSaving}
+                className="font-mono text-xs"
+                placeholder={promptLoading ? "Loading prompt..." : "System prompt…"}
+              />
+              <p className="text-xs text-muted-foreground">
+                Keep the JSON field requirements if you edit this. The CV text is still injected
+                separately as the user message.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSavePrompt}
+                  disabled={promptLoading || promptSaving || !prompt.trim() || !promptUnsaved}
+                >
+                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                  {promptSaving ? "Saving..." : "Save prompt"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleResetPrompt}
+                  disabled={promptLoading || promptSaving || (!isCustomPrompt && !promptUnsaved)}
+                >
+                  Reset to default
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
         {hasUnsavedCv && (
           <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800">
             Save your CV context before running analysis.
@@ -227,11 +376,11 @@ export function CvAnalysisPanel({
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">Missing product keywords</p>
+              <p className="text-sm font-medium">Mots-clés ATS manquants (produit)</p>
               <div className="flex flex-wrap gap-1">
                 {analysis.analysis.missing_product_keywords.length > 0 ? (
                   analysis.analysis.missing_product_keywords.map((keyword) => (
-                    <Badge key={keyword} variant="outline">
+                    <Badge key={keyword} variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-800">
                       {keyword}
                     </Badge>
                   ))

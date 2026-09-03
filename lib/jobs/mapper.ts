@@ -137,6 +137,17 @@ export function toJobViewModel(row: JobRow): Job {
   const matchScore = resolveMatchScore(row);
   const matchReasons = resolveStrengths(row);
   const matchGaps = resolveGaps(row);
+  const jobFit =
+    row.raw_data &&
+    typeof row.raw_data === "object" &&
+    !Array.isArray(row.raw_data) &&
+    row.raw_data.job_fit &&
+    typeof row.raw_data.job_fit === "object"
+      ? (row.raw_data.job_fit as Record<string, unknown>)
+      : null;
+
+  const asStringArray = (value: unknown): string[] | null =>
+    Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : null;
 
   return {
     id: row.id,
@@ -202,6 +213,11 @@ export function toJobViewModel(row: JobRow): Job {
       typeof row.tracked_searches === "object" && row.tracked_searches
         ? row.tracked_searches.name ?? null
         : null,
+    keywords_matched: asStringArray(jobFit?.keywords_matched),
+    keywords_missing: asStringArray(jobFit?.keywords_missing),
+    cv_improvements: asStringArray(jobFit?.cv_improvements),
+    job_posting_summary:
+      typeof jobFit?.job_posting_summary === "string" ? jobFit.job_posting_summary : null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

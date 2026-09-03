@@ -1,12 +1,20 @@
 import OpenAI from "openai";
 import { z } from "zod";
+import {
+  buildJobMatchUserPrompt,
+  JOB_MATCH_SYSTEM_PROMPT,
+} from "@/lib/ai/prompts/job-match";
 import type { JobAnalysis, ParsedCvProfile } from "@/types";
 
 const analysisSchema = z.object({
   match_score: z.number().min(0).max(100),
-  match_reasons: z.array(z.string()).length(5),
-  match_gaps: z.array(z.string()).length(3),
+  match_reasons: z.array(z.string()).min(3).max(8),
+  match_gaps: z.array(z.string()).min(2).max(6),
   cover_letter_angle: z.string(),
+  keywords_matched: z.array(z.string()).min(1).max(20),
+  keywords_missing: z.array(z.string()).min(1).max(20),
+  cv_improvements: z.array(z.string()).min(3).max(8),
+  job_posting_summary: z.string().min(1),
 });
 
 const parsedCvSchema = z.object({
@@ -28,17 +36,21 @@ function getOpenAIClient() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
-export async function analyzeJobMatch(params: {
-  cvText: string;
-  targetRoles: string[];
-  targetLocations: string[];
-  jobTitle: string;
-  company: string;
-  jobDescription: string;
-  location?: string;
-  remote?: boolean;
-}): Promise<JobAnalysis> {
+export async function analyzeJobMatch(
+  params: {
+    cvText: string;
+    targetRoles: string[];
+    targetLocations: string[];
+    jobTitle: string;
+    company: string;
+    jobDescription: string;
+    location?: string;
+    remote?: boolean;
+  },
+  options?: { systemPrompt?: string | null }
+): Promise<JobAnalysis> {
   const client = getOpenAIClient();
+  const systemPrompt = options?.systemPrompt?.trim() || JOB_MATCH_SYSTEM_PROMPT;
 
   const response = await client.chat.completions.create({
     model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
@@ -47,25 +59,11 @@ export async function analyzeJobMatch(params: {
     messages: [
       {
         role: "system",
-        content: `You are a senior career coach specializing in Product Owner and Product Manager roles in France.
-Analyze how well a job fits a candidate's CV and preferences.
-Return JSON with: match_score (0-100 integer), match_reasons (exactly 5 concise bullets), match_gaps (exactly 3 risks or missing points), cover_letter_angle (one paragraph suggesting the best angle for a cover letter).
-Be honest and specific — avoid generic praise.`,
+        content: systemPrompt,
       },
       {
         role: "user",
-        content: JSON.stringify({
-          cv: params.cvText,
-          target_roles: params.targetRoles,
-          target_locations: params.targetLocations,
-          job: {
-            title: params.jobTitle,
-            company: params.company,
-            location: params.location,
-            remote: params.remote,
-            description: params.jobDescription,
-          },
-        }),
+        content: buildJobMatchUserPrompt(params),
       },
     ],
   });

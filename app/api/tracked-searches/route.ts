@@ -35,7 +35,12 @@ export async function GET() {
     .select("*")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
-  if (queryError) return NextResponse.json({ error: queryError.message }, { status: 500 });
+  if (queryError) {
+    if (queryError.code === "42P01") {
+      return NextResponse.json({ tracked_searches: [] });
+    }
+    return NextResponse.json({ error: queryError.message }, { status: 500 });
+  }
 
   return NextResponse.json({ tracked_searches: data ?? [] });
 }

@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "JobTracker — WTTJ Parser",
+  "version": "1.2.3",
+  "description": "Parse Welcome to the Jungle job pages and keep one base Excel/CSV file updated.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://www.welcometothejungle.com/*",
+    "https://welcometothejungle.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Afficher / masquer JobTracker",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["panel.css"],
+      "matches": [
+        "https://www.welcometothejungle.com/*",
+        "https://welcometothejungle.com/*"
+      ]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.welcometothejungle.com/*/companies/*/jobs/*",
+        "https://welcometothejungle.com/*/companies/*/jobs/*"
+      ],
+      "js": ["content.js", "panel.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -48,8 +48,25 @@ export interface ParsedImportFile {
 const TRUE_VALUES = new Set(["true", "1", "yes", "y", "remote", "on"]);
 const FALSE_VALUES = new Set(["false", "0", "no", "n", "onsite", "on-site", "off"]);
 
+function parseRemote(value: string): boolean | null {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return false;
+  if (TRUE_VALUES.has(normalized)) return true;
+  if (FALSE_VALUES.has(normalized)) return false;
+  return null;
+}
+
+function parsePostedAt(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const timestamp = Date.parse(trimmed);
+  if (Number.isNaN(timestamp)) return null;
+  return new Date(timestamp).toISOString();
+}
+
 function normalizeHeader(value: unknown): string {
   return String(value ?? "")
+    .replace(/^\uFEFF/, "")
     .trim()
     .toLowerCase();
 }
@@ -57,19 +74,6 @@ function normalizeHeader(value: unknown): string {
 function asCellText(value: unknown): string {
   if (value === null || value === undefined) return "";
   return String(value).trim();
-}
-
-function parseRemote(value: string): boolean | null {
-  const normalized = value.trim().toLowerCase();
-  if (TRUE_VALUES.has(normalized)) return true;
-  if (FALSE_VALUES.has(normalized)) return false;
-  return null;
-}
-
-function parsePostedAt(value: string): string | null {
-  const timestamp = Date.parse(value);
-  if (Number.isNaN(timestamp)) return null;
-  return new Date(timestamp).toISOString();
 }
 
 export function parseJobsImportFile(
@@ -139,7 +143,7 @@ export function parseJobsImportFile(
     let remote = parseRemote(rowValues.remote);
     if (remote === null) {
       rowErrors.push(
-        "remote must be one of true/false/yes/no/1/0/remote/onsite"
+        "remote must be one of true/false/yes/no/1/0/remote/onsite (empty allowed)"
       );
       remote = false;
     }

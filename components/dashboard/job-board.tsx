@@ -7,10 +7,11 @@ import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { JobFiltersBar } from "@/components/dashboard/job-filters";
 import { JobCard } from "@/components/dashboard/job-card";
 import { JobTable } from "@/components/dashboard/job-table";
+import { JobBulkActions } from "@/components/dashboard/job-bulk-actions";
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { computeKpis, filterJobs } from "@/lib/jobs/utils";
 import type { Job, JobFilters, JobStatus } from "@/types";
-import { Download, FileText, LayoutGrid, List, RefreshCw } from "lucide-react";
+import { Download, LayoutGrid, List, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,6 +37,7 @@ export function JobBoard() {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{
     total: number;
     current: number;
@@ -155,6 +157,47 @@ export function JobBoard() {
     setJobs((prev) => prev.map((j) => (j.id === id ? data.job : j)));
     if (coverLetterJob?.id === id) {
       setCoverLetterJob(data.job);
+    }
+  }
+
+  async function handleBulkStatusUpdate(
+    updates: Partial<Pick<Job, "status" | "selected">>
+  ) {
+    const selected = jobs.filter((j) => j.selected);
+    if (selected.length === 0) {
+      toast.error("Sélectionne au moins une offre");
+      return;
+    }
+
+    setBulkStatusLoading(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: selected.map((job) => job.id),
+          ...updates,
+        }),
+      });
+      const data = (await readJsonSafe(res)) as {
+        jobs?: Job[];
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(data.error ?? "Mise à jour groupée échouée");
+      }
+      const updatedJobs = data.jobs ?? [];
+      if (updatedJobs.length) {
+        const byId = new Map(updatedJobs.map((job) => [job.id, job]));
+        setJobs((prev) => prev.map((job) => byId.get(job.id) ?? job));
+      } else {
+        await fetchJobs();
+      }
+      toast.success(`Mise à jour appliquée à ${selected.length} offre(s)`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Mise à jour groupée échouée");
+    } finally {
+      setBulkStatusLoading(false);
     }
   }
 
@@ -303,18 +346,16 @@ export function JobBoard() {
             <Download className="mr-2 h-4 w-4" />
             {importing ? "Importing..." : "Import 10 sample jobs"}
           </Button>
-          <Button
-            variant="secondary"
-            onClick={handleBulkGenerateCoverLetters}
-            disabled={bulkLoading || selectedCount === 0}
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            {bulkLoading
-              ? "Generating..."
-              : `Generate cover letters (${selectedCount})`}
-          </Button>
         </div>
       </div>
+
+      <JobBulkActions
+        selectedCount={selectedCount}
+        loading={bulkStatusLoading}
+        coverLetterLoading={bulkLoading}
+        onBulkUpdate={handleBulkStatusUpdate}
+        onGenerateCoverLetters={handleBulkGenerateCoverLetters}
+      />
 
       <KpiCards kpis={kpis} />
       {bulkProgress && (
@@ -376,6 +417,7 @@ export function JobBoard() {
                   onAnalyze={handleAnalyze}
                   onGenerateCoverLetter={handleGenerateCoverLetter}
                   onViewCoverLetter={setCoverLetterJob}
+                  onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
                   isAnalyzing={analyzingId === job.id}
                   isGenerating={generatingId === job.id}
                 />
@@ -396,6 +438,7 @@ export function JobBoard() {
               onStatusChange={(id, status) => updateJob(id, { status })}
               onAnalyze={handleAnalyze}
               onViewCoverLetter={setCoverLetterJob}
+              onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
             />
           )}
         </TabsContent>

@@ -33,6 +33,7 @@ interface JobCardProps {
   onAnalyze: (jobId: string) => void;
   onGenerateCoverLetter: (jobId: string) => void;
   onViewCoverLetter: (job: Job) => void;
+  onOpen?: (job: Job) => void;
   isAnalyzing?: boolean;
   isGenerating?: boolean;
 }
@@ -44,16 +45,40 @@ export function JobCard({
   onAnalyze,
   onGenerateCoverLetter,
   onViewCoverLetter,
+  onOpen,
   isAnalyzing,
   isGenerating,
 }: JobCardProps) {
+  const handleOpen = () => {
+    onOpen?.(job);
+  };
+
   return (
-    <Card className="flex flex-col shadow-sm transition-shadow hover:shadow-md">
+    <Card
+      className={`flex flex-col shadow-sm transition-shadow hover:shadow-md ${
+        onOpen ? "cursor-pointer" : ""
+      }`}
+      role={onOpen ? "link" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      aria-label={onOpen ? `Ouvrir l’analyse pour ${job.title}` : undefined}
+      onClick={onOpen ? handleOpen : undefined}
+      onKeyDown={
+        onOpen
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleOpen();
+              }
+            }
+          : undefined
+      }
+    >
       <CardHeader className="space-y-3 pb-3">
         <div className="flex items-start gap-3">
           <Checkbox
             checked={job.selected}
             onCheckedChange={(checked) => onSelect(job.id, checked === true)}
+            onClick={(event) => event.stopPropagation()}
             className="mt-1"
           />
           <div className="min-w-0 flex-1">
@@ -128,7 +153,11 @@ export function JobCard({
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-wrap gap-2 border-t pt-4">
+      <CardFooter
+        className="flex flex-wrap gap-2 border-t pt-4"
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
         <a
           href={job.url}
           target="_blank"

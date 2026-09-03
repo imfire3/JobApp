@@ -46,6 +46,25 @@ export async function loadSavedCvText(
   return { cvText, updatedAt: data?.updated_at ?? null };
 }
 
+export async function loadCvAnalysisSystemPrompt(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("user_settings")
+    .select("cv_analysis_system_prompt")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "42P01" || error.code === "42703") return null;
+    throw new CvAnalysisError(error.message, 500);
+  }
+
+  const prompt = data?.cv_analysis_system_prompt;
+  return typeof prompt === "string" && prompt.trim() ? prompt : null;
+}
+
 function assertCvReady(cvText: string): void {
   if (!cvText) {
     throw new CvAnalysisError(
@@ -114,11 +133,15 @@ export async function runCvAnalysis(
   assertCvReady(cvText);
 
   const cvContentHash = hashCvContent(cvText);
+  const customPrompt = await loadCvAnalysisSystemPrompt(supabase, userId);
 
   let analysis: CvAtsAnalysis;
   let model: string;
+  let promptVersion: string;
   try {
-    ({ analysis, model } = await analyzeCvForAts(cvText));
+    ({ analysis, model, promptVersion } = await analyzeCvForAts(cvText, {
+      systemPrompt: customPrompt,
+    }));
   } catch (error) {
     if (error instanceof CvAnalysisValidationError) {
       throw new CvAnalysisError(error.message, 422);
@@ -134,7 +157,7 @@ export async function runCvAnalysis(
         user_id: userId,
         analysis,
         model,
-        prompt_version: CV_ANALYSIS_PROMPT_VERSION,
+        prompt_version: promptVersion || CV_ANALYSIS_PROMPT_VERSION,
         cv_content_hash: cvContentHash,
       },
       { onConflict: "user_id" }

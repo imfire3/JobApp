@@ -121,6 +121,14 @@ export interface JobAnalysis {
   match_reasons: string[];
   match_gaps: string[];
   cover_letter_angle: string;
+  /** Keywords present in both CV and job posting */
+  keywords_matched: string[];
+  /** Important job keywords missing from the CV */
+  keywords_missing: string[];
+  /** Actionable CV edits for this specific job */
+  cv_improvements: string[];
+  /** Short synthesis of the job posting requirements */
+  job_posting_summary: string;
 }
 
 /** UI-facing job view model (mapped from JobRecord). */
@@ -172,6 +180,10 @@ export interface Job extends ImportedJob {
   imported_at: string;
   tracked_search_id?: string | null;
   tracked_search_name?: string | null;
+  keywords_matched?: string[] | null;
+  keywords_missing?: string[] | null;
+  cv_improvements?: string[] | null;
+  job_posting_summary?: string | null;
   created_at: string;
   updated_at: string;
 }

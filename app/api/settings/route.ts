@@ -14,6 +14,7 @@ const settingsSchema = z.object({
   resume_defaults: z.record(z.string(), z.unknown()).optional(),
   cover_letter_defaults: z.record(z.string(), z.unknown()).optional(),
   automation_defaults: z.record(z.string(), z.unknown()).optional(),
+  cv_analysis_system_prompt: z.string().max(20_000).nullable().optional(),
 });
 
 export async function GET() {
@@ -25,7 +26,12 @@ export async function GET() {
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
-  if (queryError) return NextResponse.json({ error: queryError.message }, { status: 500 });
+  if (queryError) {
+    if (queryError.code === "42P01") {
+      return NextResponse.json({ settings: { theme: "dark" } });
+    }
+    return NextResponse.json({ error: queryError.message }, { status: 500 });
+  }
 
   if (data) return NextResponse.json({ settings: data });
 

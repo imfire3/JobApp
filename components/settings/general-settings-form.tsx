@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
+import { useTheme } from "next-themes";
 
 type SettingsState = {
   theme: "light" | "dark" | "system";
@@ -26,7 +27,7 @@ type SettingsState = {
 };
 
 const defaultSettings: SettingsState = {
-  theme: "system",
+  theme: "dark",
   notifications_enabled: true,
   timezone: "Europe/Paris",
   default_language: "fr",
@@ -40,6 +41,7 @@ const defaultSettings: SettingsState = {
 };
 
 export function GeneralSettingsForm() {
+  const { setTheme } = useTheme();
   const [settings, setSettings] = useState<SettingsState>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,8 +53,9 @@ export function GeneralSettingsForm() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to load settings");
         const payload = data.settings ?? {};
+        const theme = payload.theme ?? "dark";
         setSettings({
-          theme: payload.theme ?? "system",
+          theme,
           notifications_enabled: payload.notifications_enabled ?? true,
           timezone: payload.timezone ?? "Europe/Paris",
           default_language: payload.default_language ?? "fr",
@@ -64,8 +67,10 @@ export function GeneralSettingsForm() {
           cover_letter_defaults: JSON.stringify(payload.cover_letter_defaults ?? {}, null, 2),
           automation_defaults: JSON.stringify(payload.automation_defaults ?? {}, null, 2),
         });
+        setTheme(theme);
       } catch {
         setSettings(defaultSettings);
+        setTheme(defaultSettings.theme);
       } finally {
         setLoading(false);
       }
@@ -92,6 +97,7 @@ export function GeneralSettingsForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to save settings");
+      setTheme(settings.theme);
       toast.success("Settings saved");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save settings");
@@ -122,9 +128,11 @@ export function GeneralSettingsForm() {
             <Label>Theme</Label>
             <Select
               value={settings.theme}
-              onValueChange={(value) =>
-                setSettings((prev) => ({ ...prev, theme: value as SettingsState["theme"] }))
-              }
+              onValueChange={(value) => {
+                const theme = value as SettingsState["theme"];
+                setSettings((prev) => ({ ...prev, theme }));
+                setTheme(theme);
+              }}
             >
               <SelectTrigger>
                 <SelectValue />

@@ -45,7 +45,7 @@ function KpiCard({
 
 export function KpiCards({ kpis }: KpiCardsProps) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <KpiCard label="Jobs found today" value={String(kpis.jobsFoundToday)} icon={Briefcase} />
       <KpiCard label="New jobs" value={String(kpis.newJobs)} icon={Target} />
       <KpiCard label="Cover letters" value={String(kpis.coverLettersGenerated)} icon={FileText} />

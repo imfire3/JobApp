@@ -9,9 +9,20 @@ import { importParsedJobs } from "@/lib/imports/run-import";
  * Upload CSV, XLSX or Apify JSON and import jobs into Supabase.
  */
 export async function POST(request: Request) {
-  const { supabase, user, error: authError } = await getAuthenticatedUser();
+  const { supabase, user, error: authError, unreachable } =
+    await getAuthenticatedUser();
   if (!user) {
     return NextResponse.json({ error: authError }, { status: 401 });
+  }
+  if (unreachable) {
+    return NextResponse.json(
+      {
+        error:
+          authError ??
+          "Supabase is unreachable. Check NEXT_PUBLIC_SUPABASE_URL in .env.local, then restart the app.",
+      },
+      { status: 503 }
+    );
   }
 
   let formData: FormData;
@@ -56,9 +67,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const summary = await importParsedJobs(supabase, user.id, parsed);
+    const result = await importParsedJobs(supabase, user.id, parsed);
     return NextResponse.json({
-      summary,
+      summary: result.summary,
+      jobs: result.jobs,
       preview: parsed.rows.slice(0, 50),
       message: "Import complete",
     });

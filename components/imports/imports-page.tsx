@@ -10,6 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImportJobsTable } from "@/components/imports/import-jobs-table";
+import {
+  ImportAnalysisPanel,
+  type ImportJobCard,
+} from "@/components/imports/import-analysis-panel";
 import { EXPECTED_IMPORT_COLUMNS } from "@/lib/imports/jobs-file";
 import type { ParsedImportRow } from "@/lib/imports/jobs-file";
 
@@ -30,6 +34,25 @@ type WttjImportSummary = {
   errors: Array<{ index: number; message: string }>;
 };
 
+type ImportedJobRef = {
+  id: string;
+  url: string;
+  title: string;
+  company: string;
+  was_duplicate: boolean;
+};
+
+function rowsToPreviewCards(rows: ParsedImportRow[]): ImportJobCard[] {
+  return rows.map((row) => ({
+    key: `${row.rowNumber}-${row.url}`,
+    title: row.title,
+    company: row.company,
+    location: row.location,
+    url: row.url,
+    status: "preview",
+  }));
+}
+
 export function ImportsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewRows, setPreviewRows] = useState<ParsedImportRow[]>([]);
@@ -37,8 +60,14 @@ export function ImportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [previewing, setPreviewing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"json" | "sheet">("json");
+  const [activeTab, setActiveTab] = useState<"json" | "sheet">("sheet");
   const [replaceExisting, setReplaceExisting] = useState(true);
+  const [analysisCards, setAnalysisCards] = useState<ImportJobCard[]>([]);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzedCount, setAnalyzedCount] = useState(0);
+  const [previewInvalid, setPreviewInvalid] = useState<
+    Array<{ rowNumber: number; errors: string[] }>
+  >([]);
 
   const invalidPreview = useMemo(() => {
     if (!summary) return [];
@@ -50,6 +79,29 @@ export function ImportsPage() {
       errors: [err.message],
     }));
   }, [summary]);
+
+  const totalAnalysis = analysisCards.length;
+  const finishedCount = analysisCards.filter(
+    (card) => card.status === "done" || card.status === "error"
+  ).length;
+  const hasAnalyzing = analysisCards.some((card) => card.status === "analyzing");
+  const allPreview = analysisCards.every((card) => card.status === "preview");
+
+  const progressPercent =
+    totalAnalysis === 0 || allPreview
+      ? 0
+      : hasAnalyzing
+        ? Math.min(
+            99,
+            Math.round(((finishedCount + 0.5) / totalAnalysis) * 100)
+          )
+        : Math.round((finishedCount / totalAnalysis) * 100);
+
+  const canValidate =
+    !analyzing &&
+    analysisCards.length > 0 &&
+    analysisCards.every((card) => card.status === "done" || card.status === "error") &&
+    analysisCards.some((card) => card.status === "done");
 
   function downloadCsvTemplate() {
     const header = EXPECTED_IMPORT_COLUMNS.join(",");
@@ -142,6 +194,9 @@ export function ImportsPage() {
     setPreviewing(true);
     setError(null);
     setSummary(null);
+    setAnalysisCards([]);
+    setAnalyzedCount(0);
+    setPreviewInvalid([]);
 
     try {
       const formData = new FormData();
@@ -154,16 +209,33 @@ export function ImportsPage() {
       const payload = (await response.json()) as {
         error?: string;
         rows?: ParsedImportRow[];
+        invalid_rows?: Array<{ rowNumber: number; errors: string[] }>;
+        valid_count?: number;
+        invalid_count?: number;
       };
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Preview failed");
       }
 
-      setPreviewRows(payload.rows ?? []);
+      const rows = payload.rows ?? [];
+      const invalid = (payload.invalid_rows ?? []).filter((row) => row.rowNumber > 0);
+      setPreviewRows(rows);
+      setPreviewInvalid(invalid);
+      if (activeTab === "sheet") {
+        setAnalysisCards(rowsToPreviewCards(rows));
+      }
+
+      if (rows.length === 0 && invalid.length > 0) {
+        setError(
+          `Aucune offre valide. ${invalid.length} ligne(s) rejetée(s) — ex: ${invalid[0]?.errors.join("; ")}`
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Preview failed");
       setPreviewRows([]);
+      setAnalysisCards([]);
+      setPreviewInvalid([]);
     } finally {
       setPreviewing(false);
     }
@@ -175,6 +247,9 @@ export function ImportsPage() {
     setPreviewRows([]);
     setSummary(null);
     setError(null);
+    setAnalysisCards([]);
+    setAnalyzedCount(0);
+    setPreviewInvalid([]);
 
     if (selected) {
       await handlePreview(selected);
@@ -220,6 +295,101 @@ export function ImportsPage() {
     }
   }
 
+  async function analyzeImportedJobs(jobs: ImportedJobRef[]) {
+    setAnalyzing(true);
+    setAnalyzedCount(0);
+    setAnalysisCards(
+      jobs.map((job, index) => ({
+        key: job.id,
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        url: job.url,
+        status: index === 0 ? "analyzing" : "queued",
+        progress: index === 0 ? 15 : 5,
+      }))
+    );
+
+    let done = 0;
+    for (let i = 0; i < jobs.length; i += 1) {
+      const job = jobs[i];
+      setAnalysisCards((prev) =>
+        prev.map((card) => {
+          if (card.id === job.id) {
+            return { ...card, status: "analyzing", progress: 25, error: null };
+          }
+          if (card.status === "queued") {
+            return card;
+          }
+          return card;
+        })
+      );
+
+      try {
+        const res = await fetch("/api/analyze-job", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId: job.id }),
+        });
+        const payload = (await res.json()) as {
+          error?: string;
+          analysis?: { match_score?: number };
+          job?: { match_score?: number | null };
+        };
+
+        if (!res.ok) {
+          throw new Error(payload.error ?? "Analysis failed");
+        }
+
+        const score = payload.job?.match_score ?? payload.analysis?.match_score ?? null;
+        setAnalysisCards((prev) =>
+          prev.map((card) =>
+            card.id === job.id
+              ? {
+                  ...card,
+                  status: "done",
+                  progress: 100,
+                  matchScore: score,
+                  error: null,
+                }
+              : card
+          )
+        );
+      } catch (err) {
+        setAnalysisCards((prev) =>
+          prev.map((card) =>
+            card.id === job.id
+              ? {
+                  ...card,
+                  status: "error",
+                  progress: 100,
+                  error: err instanceof Error ? err.message : "Analysis failed",
+                }
+              : card
+          )
+        );
+      }
+
+      done += 1;
+      setAnalyzedCount(done);
+
+      // Mark next as analyzing preview progress
+      if (i + 1 < jobs.length) {
+        const nextId = jobs[i + 1].id;
+        setAnalysisCards((prev) =>
+          prev.map((card) =>
+            card.id === nextId && card.status === "queued"
+              ? { ...card, status: "analyzing", progress: 15 }
+              : card
+          )
+        );
+      }
+
+    }
+
+    setAnalyzing(false);
+  }
+
   async function handleSheetSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!file) {
@@ -243,6 +413,7 @@ export function ImportsPage() {
         error?: string;
         summary?: ImportSummary;
         preview?: ParsedImportRow[];
+        jobs?: ImportedJobRef[];
       };
 
       if (!response.ok) {
@@ -253,27 +424,48 @@ export function ImportsPage() {
       if (payload.preview?.length) {
         setPreviewRows(payload.preview);
       }
+
+      const jobs = payload.jobs ?? [];
+      if (jobs.length === 0) {
+        setError("Aucune offre importée à analyser (doublons ou fichier vide).");
+        setAnalysisCards([]);
+        return;
+      }
+
+      setUploading(false);
+      await analyzeImportedJobs(jobs);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import failed");
+      setUploading(false);
+      setAnalyzing(false);
     } finally {
       setUploading(false);
     }
   }
 
   const accept =
-    activeTab === "json" ? ".json,application/json" : ".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    activeTab === "json"
+      ? ".json,application/json"
+      : ".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Imports</h1>
         <p className="text-sm text-muted-foreground">
-          Import your Apify scrape as JSON, preview the jobs in a table, then save them to your
-          board.
+          Importe un CSV/Excel, analyse chaque offre avec une barre de progression, puis valide
+          vers le board.
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "json" | "sheet")}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setActiveTab(value as "json" | "sheet");
+          setAnalysisCards([]);
+          setAnalyzedCount(0);
+        }}
+      >
         <TabsList>
           <TabsTrigger value="json" className="gap-2">
             <Braces className="h-4 w-4" />
@@ -375,8 +567,17 @@ export function ImportsPage() {
                   />
                 </div>
 
-                <Button type="submit" disabled={uploading || !file || previewRows.length === 0}>
-                  {uploading ? "Importing..." : `Import ${previewRows.length} jobs`}
+                <Button
+                  type="submit"
+                  disabled={
+                    uploading || analyzing || !file || previewRows.length === 0
+                  }
+                >
+                  {uploading
+                    ? "Importing..."
+                    : analyzing
+                      ? `Analyse ${progressPercent}%`
+                      : `Importer et analyser (${previewRows.length})`}
                 </Button>
               </form>
             </CardContent>
@@ -387,11 +588,12 @@ export function ImportsPage() {
       <div className="rounded-lg border bg-muted/40 p-4">
         <p className="flex items-center gap-2 text-sm font-medium">
           <AppWindow className="h-4 w-4" />
-          Apify workflow
+          {activeTab === "sheet" ? "CSV workflow" : "Apify workflow"}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Run your Apify actor → export dataset as JSON → upload here → preview in the table →
-          import into Jobs.
+          {activeTab === "sheet"
+            ? "Upload CSV → cards en aperçu → Importer et analyser (barre 0–100%) → Valider vers Jobs."
+            : "Run your Apify actor → export dataset as JSON → upload here → preview → import into Jobs."}
         </p>
       </div>
 
@@ -401,7 +603,18 @@ export function ImportsPage() {
         </p>
       ) : null}
 
-      {(previewing || previewRows.length > 0) && (
+      {activeTab === "sheet" ? (
+        <ImportAnalysisPanel
+          cards={analysisCards}
+          analyzing={analyzing || previewing}
+          analyzedCount={Math.max(analyzedCount, finishedCount)}
+          totalCount={Math.max(totalAnalysis, previewRows.length)}
+          progressPercent={previewing ? 0 : progressPercent}
+          canValidate={canValidate}
+        />
+      ) : null}
+
+      {activeTab === "json" && (previewing || previewRows.length > 0) ? (
         <Card>
           <CardHeader>
             <CardTitle>
@@ -416,7 +629,7 @@ export function ImportsPage() {
             )}
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {summary ? (
         <Card>
@@ -447,7 +660,7 @@ export function ImportsPage() {
               )}
             </div>
 
-            {summary.imported > 0 ? (
+            {summary.imported > 0 && activeTab === "json" ? (
               <Link href="/jobs" className={buttonVariants({ variant: "outline" })}>
                 View imported jobs in table
               </Link>

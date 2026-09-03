@@ -32,6 +32,7 @@ interface JobTableProps {
   onStatusChange: (jobId: string, status: JobStatus) => void;
   onAnalyze: (jobId: string) => void;
   onViewCoverLetter: (job: Job) => void;
+  onOpen?: (job: Job) => void;
 }
 
 export function JobTable({
@@ -40,8 +41,13 @@ export function JobTable({
   onStatusChange,
   onAnalyze,
   onViewCoverLetter,
+  onOpen,
 }: JobTableProps) {
   const cellBorder = "border-r border-border/50 last:border-r-0";
+
+  const handleOpen = (job: Job) => {
+    onOpen?.(job);
+  };
 
   return (
     <div className="rounded-xl border">
@@ -63,8 +69,15 @@ export function JobTable({
         </TableHeader>
         <TableBody>
           {jobs.map((job) => (
-            <TableRow key={job.id}>
-              <TableCell className={cellBorder}>
+            <TableRow
+              key={job.id}
+              className={onOpen ? "cursor-pointer" : undefined}
+              onClick={onOpen ? () => handleOpen(job) : undefined}
+            >
+              <TableCell
+                className={cellBorder}
+                onClick={(event) => event.stopPropagation()}
+              >
                 <Checkbox
                   checked={job.selected}
                   onCheckedChange={(checked) =>
@@ -126,7 +139,10 @@ export function JobTable({
                   {job.status.replace(/_/g, " ")}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell
+                className="text-right"
+                onClick={(event) => event.stopPropagation()}
+              >
                 <div className="flex justify-end gap-1">
                   <a
                     href={job.url}

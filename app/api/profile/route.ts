@@ -80,15 +80,22 @@ export async function PUT(request: Request) {
 
   const { data, error } = await supabase
     .from("cv_contexts")
-    .upsert({
-      id: user.id,
-      cv_text: body.cv_text,
-    })
+    .upsert(
+      {
+        id: user.id,
+        cv_text: body.cv_text,
+      },
+      { onConflict: "id" }
+    )
     .select("id,cv_text,updated_at,created_at")
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const hint =
+      /cv_contexts_id_fkey|foreign key/i.test(error.message)
+        ? " Local admin missing in auth.users — re-login or run supabase/bootstrap_local_admin.sql."
+        : "";
+    return NextResponse.json({ error: `${error.message}${hint}` }, { status: 500 });
   }
 
   return NextResponse.json({ profile: data });

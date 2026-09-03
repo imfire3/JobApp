@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>JobTracker WTTJ</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f1419;
+        --card: #1a222c;
+        --text: #e8eef4;
+        --muted: #8b9aab;
+        --accent: #3d8bfd;
+        --ok: #3ecf8e;
+        --danger: #f07178;
+        --border: #2a3542;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        width: 340px;
+        padding: 14px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 650;
+      }
+      p.sub {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      button {
+        flex: 1;
+        border: 0;
+        border-radius: 8px;
+        padding: 9px 10px;
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+        background: var(--accent);
+        color: white;
+      }
+      button.secondary {
+        background: var(--card);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      button.danger {
+        background: transparent;
+        color: var(--danger);
+        border: 1px solid var(--border);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .status {
+        margin: 8px 0;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        min-height: 36px;
+        word-break: break-word;
+      }
+      .status.ok { color: var(--ok); }
+      .status.err { color: var(--danger); }
+      .list {
+        max-height: 180px;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--card);
+      }
+      .item {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border);
+      }
+      .item:last-child { border-bottom: 0; }
+      .item strong {
+        display: block;
+        margin-bottom: 2px;
+      }
+      .item span {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .hint {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>JobTracker — WTTJ</h1>
+    <p class="sub">Parse l’offre ouverte → Excel (lien + description)</p>
+
+    <div class="row">
+      <button id="btn-parse" type="button">Ajouter cette offre</button>
+    </div>
+    <div class="row">
+      <button id="btn-export" class="secondary" type="button">Exporter Excel/CSV</button>
+      <button id="btn-clear" class="danger" type="button">Vider</button>
+    </div>
+
+    <div id="status" class="status">Ouvre une page offre WTTJ, puis clique « Ajouter ».</div>
+    <div id="count" class="sub"></div>
+    <div id="list" class="list"></div>
+    <p class="hint">
+      Colonnes : source, title, company, location, remote, salary, posted_at, url, apply_url, description.
+      Compatible import JobTracker.
+    </p>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

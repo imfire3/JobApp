@@ -27,12 +27,26 @@ A personal SaaS-style dashboard to track Product Owner and Product Manager job o
 npm install
 ```
 
-### 2. Supabase
+### 2. Supabase (nouveau projet)
 
-1. Create a project at [supabase.com](https://supabase.com)
-2. Run the SQL migration in `supabase/migrations/001_initial_schema.sql` via the SQL editor
-3. Enable Email auth (Authentication → Providers → Email)
-4. Copy your project URL and anon key
+1. Crée un projet sur [supabase.com](https://supabase.com)
+2. **Settings → API** : copie
+   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
+   - `anon` `public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` `secret` → `SUPABASE_SERVICE_ROLE_KEY` (serveur uniquement)
+3. **SQL Editor** : exécute dans l’ordre les fichiers
+   `supabase/migrations/001_*.sql` … `012_*.sql`
+4. Puis exécute `supabase/bootstrap_local_admin.sql` (crée l’utilisateur local `admin`)
+5. Redémarre `npm run dev`
+6. Login : `admin` / `admin` (ou `admin@gmail.com` / `admin`)
+
+Alternative CLI (après `npx supabase login`) :
+
+```bash
+npx supabase link --project-ref <TON_PROJECT_REF>
+npx supabase db push
+# puis SQL Editor → bootstrap_local_admin.sql
+```
 
 ### 3. Environment
 
@@ -46,6 +60,7 @@ Fill in:
 |----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (required with local-auth) |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `OPENAI_MODEL` | Optional, defaults to `gpt-4o-mini` |
 
