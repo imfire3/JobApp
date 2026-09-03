@@ -435,6 +435,8 @@ export interface UserSettings {
   resume_defaults: Record<string, unknown>;
   cover_letter_defaults: Record<string, unknown>;
   automation_defaults: Record<string, unknown>;
+  onboarding_completed: boolean;
+  onboarding_completed_at: string | null;
   created_at: string;
   updated_at: string;
 }

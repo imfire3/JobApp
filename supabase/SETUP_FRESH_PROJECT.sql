@@ -1069,6 +1069,19 @@ comment on column public.user_settings.job_match_system_prompt is
   'Optional custom system prompt for job posting match analysis. Null = built-in default.';
 
 
+-- >>> 013_onboarding.sql
+-- Editable onboarding completion flag per user
+alter table public.user_settings
+  add column if not exists onboarding_completed boolean not null default false,
+  add column if not exists onboarding_completed_at timestamptz;
+
+comment on column public.user_settings.onboarding_completed is
+  'True after the post-signup onboarding wizard is finished.';
+
+comment on column public.user_settings.onboarding_completed_at is
+  'Timestamp when onboarding was marked complete.';
+
+
 -- >>> bootstrap_local_admin.sql
 -- Bootstrap for JobApp local-auth (admin@gmail.com / admin)
 -- Run AFTER all migrations 001→012 on a fresh Supabase project.
