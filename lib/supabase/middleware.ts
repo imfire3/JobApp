@@ -22,6 +22,7 @@ function isOnboardingAllowed(pathname: string) {
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/api/onboarding") ||
     pathname.startsWith("/api/profile") ||
+    pathname.startsWith("/api/tracked-searches") ||
     pathname.startsWith("/api/auth")
   );
 }

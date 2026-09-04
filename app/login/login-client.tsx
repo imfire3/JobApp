@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, FileUp } from "lucide-react";
+import { Briefcase, CheckCircle2, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,9 +15,16 @@ const MIN_CV_LENGTH = 200;
 
 type Mode = "login" | "signup" | "cv";
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
 export default function LoginPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<Mode>(
     searchParams.get("cv") === "1" ? "cv" : "login"
   );
@@ -33,19 +40,32 @@ export default function LoginPageClient() {
   const [cvText, setCvText] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
 
-  async function completeOnboarding() {
-    const res = await fetch("/api/onboarding", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: true }),
-    });
-    const data = (await res.json()) as { error?: string };
-    if (!res.ok) {
-      throw new Error(data.error ?? "Impossible de finaliser l’inscription");
+  const canSubmitSignup =
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    email.trim().length > 0 &&
+    signupPassword.trim().length >= 5;
+
+  const canSubmitCv = Boolean(pdfFile) || cvText.trim().length >= MIN_CV_LENGTH;
+
+  function handleFileChange(file: File | null) {
+    if (!file) {
+      setPdfFile(null);
+      return;
     }
+    const isPdf =
+      file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      toast.error("Choisis un fichier PDF");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setPdfFile(null);
+      return;
+    }
+    setPdfFile(file);
+    toast.success(`Fichier sélectionné : ${file.name}`);
   }
 
-  async function saveCvAndEnterApp() {
+  async function saveCvOnly() {
     if (pdfFile) {
       const formData = new FormData();
       formData.append("file", pdfFile);
@@ -77,11 +97,6 @@ export default function LoginPageClient() {
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Sauvegarde CV échouée");
     }
-
-    await completeOnboarding();
-    toast.success("CV enregistré — bienvenue");
-    router.replace("/dashboard");
-    router.refresh();
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -103,10 +118,17 @@ export default function LoginPageClient() {
       const status = (await statusRes.json().catch(() => ({}))) as {
         completed?: boolean;
         has_cv?: boolean;
+        has_tracked_search?: boolean;
       };
 
-      if (status.completed || status.has_cv) {
-        router.push("/dashboard");
+      if (status.completed) {
+        router.push(status.has_tracked_search ? "/jobs?extension=1" : "/dashboard");
+        router.refresh();
+        return;
+      }
+
+      if (status.has_cv) {
+        router.push("/onboarding/metiers");
         router.refresh();
         return;
       }
@@ -152,7 +174,10 @@ export default function LoginPageClient() {
     e.preventDefault();
     setLoading(true);
     try {
-      await saveCvAndEnterApp();
+      await saveCvOnly();
+      toast.success("CV importé");
+      router.push("/onboarding/metiers");
+      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Import CV échoué");
     } finally {
@@ -168,12 +193,105 @@ export default function LoginPageClient() {
         : "Connexion";
   const description =
     mode === "cv"
-      ? "Dernière étape avant le dashboard."
+      ? "Ensuite tu choisiras ton métier pour créer ta première alerte."
       : "Track PO/PM offers, score matches, generate cover letters.";
 
+  if (mode === "cv") {
+    return (
+      <div className="flex h-dvh flex-col bg-muted/30">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-4">
+          <Card className="mx-auto w-full max-w-2xl shadow-lg">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <Briefcase className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-2xl">{title}</CardTitle>
+              <CardDescription>{description}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <input
+                  ref={fileInputRef}
+                  id="cv-pdf"
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="sr-only"
+                  disabled={loading}
+                  onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
+                />
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-4 text-center touch-manipulation transition-colors disabled:opacity-50 ${
+                    pdfFile
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-muted/20 hover:border-primary hover:bg-muted/40 active:bg-muted/60"
+                  }`}
+                >
+                  {pdfFile ? (
+                    <CheckCircle2 className="h-7 w-7 text-primary" />
+                  ) : (
+                    <FileUp className="h-6 w-6 text-foreground" />
+                  )}
+                  <span className="break-all text-base font-semibold text-foreground">
+                    {pdfFile ? pdfFile.name : "Importer un fichier PDF"}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {pdfFile
+                      ? `${formatFileSize(pdfFile.size)} · Appuie pour changer`
+                      : "CV au format PDF"}
+                  </span>
+                </button>
+                {pdfFile ? (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+                    <p className="font-medium text-foreground">Fichier prêt</p>
+                    <p className="mt-1 break-all text-muted-foreground">{pdfFile.name}</p>
+                    <p className="mt-1 text-muted-foreground">{formatFileSize(pdfFile.size)}</p>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cv-text">Ou colle ton CV</Label>
+                <Textarea
+                  id="cv-text"
+                  value={cvText}
+                  onChange={(e) => setCvText(e.target.value)}
+                  rows={10}
+                  disabled={loading || Boolean(pdfFile)}
+                  placeholder="Expérience, compétences, outils, résultats…"
+                  className="min-h-[180px] font-mono text-base md:text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {pdfFile
+                    ? "Le texte sera extrait du PDF à l’import."
+                    : `${cvText.trim().length} / ${MIN_CV_LENGTH} caractères minimum`}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="sticky bottom-0 z-20 border-t border-border/80 bg-background/95 px-4 py-4 backdrop-blur supports-backdrop-filter:bg-background/85 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <form onSubmit={handleCv} className="mx-auto w-full max-w-2xl">
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={loading || !canSubmitCv}
+            >
+              {loading ? "Patiente…" : "Importer mon CV"}
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      <Card className={`w-full shadow-lg ${mode === "cv" ? "max-w-2xl" : "max-w-md"}`}>
+    <div className="flex min-h-dvh items-center justify-center bg-muted/30 p-4">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <Briefcase className="h-6 w-6" />
@@ -182,21 +300,33 @@ export default function LoginPageClient() {
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
-          {mode !== "cv" ? (
-            <div className="mb-4 rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
-              Demo: <span className="font-medium text-foreground">admin</span> /{" "}
-              <span className="font-medium text-foreground">admin</span>
-            </div>
-          ) : null}
+          <button
+            type="button"
+            className="mb-4 w-full rounded-lg border bg-muted/50 p-3 text-left text-sm text-muted-foreground touch-manipulation active:bg-muted"
+            onClick={() => {
+              if (mode === "login") {
+                setIdentifier("admin");
+                setPassword("admin");
+              }
+            }}
+          >
+            Demo : <span className="font-medium text-foreground">admin</span> /{" "}
+            <span className="font-medium text-foreground">admin</span>
+            {mode === "login" ? (
+              <span className="mt-1 block text-xs">Appuie ici pour remplir</span>
+            ) : null}
+          </button>
 
           {mode === "login" ? (
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="identifier">Email or username</Label>
                 <Input
                   id="identifier"
                   type="text"
+                  inputMode="email"
                   autoComplete="username"
+                  enterKeyHint="next"
                   placeholder="admin"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
@@ -209,6 +339,7 @@ export default function LoginPageClient() {
                   id="password"
                   type="password"
                   autoComplete="current-password"
+                  enterKeyHint="go"
                   placeholder="admin"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -216,14 +347,21 @@ export default function LoginPageClient() {
                   minLength={5}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Patiente…" : "Se connecter"}
-              </Button>
+              <div className="relative z-10 pt-1">
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="relative z-10 w-full"
+                  disabled={loading}
+                >
+                  {loading ? "Patiente…" : "Se connecter"}
+                </Button>
+              </div>
             </form>
           ) : null}
 
           {mode === "signup" ? (
-            <form onSubmit={handleSignup} className="space-y-4">
+            <form onSubmit={handleSignup} className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="first-name">Prénom</Label>
@@ -250,12 +388,16 @@ export default function LoginPageClient() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  type="email"
+                  type="text"
+                  inputMode="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value.trim())}
                   required
                   autoComplete="email"
-                  placeholder="toi@email.com"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  placeholder="toi@gmail.com"
                 />
               </div>
               <div className="space-y-2">
@@ -270,66 +412,33 @@ export default function LoginPageClient() {
                   autoComplete="new-password"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Patiente…" : "Continuer"}
-              </Button>
+              <div className="relative z-10 pt-1">
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="relative z-10 w-full"
+                  disabled={loading || !canSubmitSignup}
+                >
+                  {loading ? "Patiente…" : "S'inscrire"}
+                </Button>
+              </div>
             </form>
           ) : null}
 
-          {mode === "cv" ? (
-            <form onSubmit={handleCv} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="cv-pdf">Import PDF</Label>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    id="cv-pdf"
-                    type="file"
-                    accept=".pdf,application/pdf"
-                    onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
-                    className="sm:flex-1"
-                    disabled={loading}
-                  />
-                  {pdfFile ? (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <FileUp className="h-3.5 w-3.5" />
-                      {pdfFile.name}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cv-text">Ou colle ton CV</Label>
-                <Textarea
-                  id="cv-text"
-                  value={cvText}
-                  onChange={(e) => setCvText(e.target.value)}
-                  rows={12}
-                  disabled={loading}
-                  placeholder="Expérience, compétences, outils, résultats…"
-                  className="font-mono text-sm"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {cvText.trim().length} / {MIN_CV_LENGTH} caractères minimum
-                </p>
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Patiente…" : "Enregistrer et ouvrir le dashboard"}
-              </Button>
-            </form>
-          ) : null}
-
-          {mode !== "cv" ? (
-            <p className="mt-4 text-center text-sm text-muted-foreground">
-              {mode === "signup" ? "Already have an account?" : "No account yet?"}{" "}
-              <button
-                type="button"
-                className="font-medium text-foreground underline-offset-4 hover:underline"
-                onClick={() => setMode(mode === "signup" ? "login" : "signup")}
-              >
-                {mode === "signup" ? "Sign in" : "Create one"}
-              </button>
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <p className="text-center text-sm text-muted-foreground">
+              {mode === "signup" ? "Tu as déjà un compte ?" : "Pas encore de compte ?"}
             </p>
-          ) : null}
+            <Button
+              type="button"
+              variant="link"
+              size="lg"
+              className="w-full text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              onClick={() => setMode(mode === "signup" ? "login" : "signup")}
+            >
+              {mode === "signup" ? "Se connecter" : "Créer un compte"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

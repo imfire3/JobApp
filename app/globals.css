@@ -124,11 +124,20 @@
   html {
     @apply font-sans;
     color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
   }
   html.dark {
     color-scheme: dark;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  button,
+  [role="button"],
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
   }
 }

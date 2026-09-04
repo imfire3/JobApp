@@ -15,7 +15,7 @@ import { JobBulkActions } from "@/components/dashboard/job-bulk-actions";
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { filterJobs } from "@/lib/jobs/utils";
 import type { Job, JobFilters, JobStatus, TrackedSearch } from "@/types";
-import { Copy, List, Play, Plus, RefreshCw, Trash2, LayoutGrid } from "lucide-react";
+import { List, Play, Plus, RefreshCw, Trash2, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
@@ -86,6 +86,7 @@ export function TrackedJobsPage() {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [selectedSearchId, setSelectedSearchId] = useState<string>("all");
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{
     total: number;
@@ -141,7 +142,17 @@ export function TrackedJobsPage() {
     loadAll();
   }, []);
 
-  const filteredJobs = useMemo(() => filterJobs(jobs, filters), [jobs, filters]);
+  const filteredJobs = useMemo(() => {
+    const bySearch =
+      selectedSearchId === "all"
+        ? jobs
+        : jobs.filter((job) => job.tracked_search_id === selectedSearchId);
+    return filterJobs(bySearch, filters);
+  }, [jobs, filters, selectedSearchId]);
+  const selectedSearch = useMemo(
+    () => trackedSearches.find((search) => search.id === selectedSearchId) ?? null,
+    [trackedSearches, selectedSearchId]
+  );
   const sources = useMemo(() => [...new Set(jobs.map((job) => job.source))].sort(), [jobs]);
   const lastSyncAt = useMemo(() => {
     const timestamps = trackedSearches
@@ -196,7 +207,10 @@ export function TrackedJobsPage() {
       toast.error(typeof data.error === "string" ? data.error : "Failed to delete search");
       return;
     }
-    toast.success("Search deleted");
+    toast.success("Alerte supprimée");
+    if (selectedSearchId === searchId) {
+      setSelectedSearchId("all");
+    }
     await loadAll();
   }
 
@@ -241,29 +255,6 @@ export function TrackedJobsPage() {
     } finally {
       setSyncingAll(false);
     }
-  }
-
-  async function duplicateSearch(search: TrackedSearch) {
-    const payload: TrackedSearchPayload = {
-      ...search,
-      name: `${search.name} (Copy)`,
-      company_size: search.company_size ?? null,
-      company_culture: search.company_culture ?? null,
-      minimum_salary: search.minimum_salary ?? null,
-      minimum_match_score: search.minimum_match_score ?? null,
-    };
-    const res = await fetch("/api/tracked-searches", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await readJsonSafe(res);
-    if (!res.ok) {
-      toast.error(typeof data.error === "string" ? data.error : "Failed to duplicate search");
-      return;
-    }
-    toast.success("Search duplicated");
-    await loadAll();
   }
 
   function editSearch(search: TrackedSearch) {
@@ -487,19 +478,19 @@ export function TrackedJobsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Jobs</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Offres suivies</h1>
           <p className="text-sm text-muted-foreground">
-            Define tracked searches once, automatic collection runs every day at 08:00.
+            Choisis une alerte pour voir ses offres. Collecte auto tous les jours à 08:00.
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Last sync: {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Never"} · Next sync:{" "}
-            {nextSyncAt ? new Date(nextSyncAt).toLocaleString() : "Not scheduled"}
+            Dernière sync : {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Jamais"} ·
+            Prochaine : {nextSyncAt ? new Date(nextSyncAt).toLocaleString() : "Non planifiée"}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={syncAllEnabled} disabled={syncingAll}>
             <RefreshCw className={`mr-2 h-4 w-4 ${syncingAll ? "animate-spin" : ""}`} />
-            {syncingAll ? "Syncing..." : "Sync all enabled searches"}
+            {syncingAll ? "Sync…" : "Sync toutes"}
           </Button>
           <Button
             onClick={() => {
@@ -509,108 +500,101 @@ export function TrackedJobsPage() {
             }}
           >
             <Plus className="mr-2 h-4 w-4" />
-            New Search
+            Nouvelle alerte
           </Button>
         </div>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Tracked Searches</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <Card key={index} className="h-44 animate-pulse" />
-              ))}
+        <CardContent className="space-y-4 pt-5">
+          <div className="space-y-2">
+            <label htmlFor="tracked-search-select" className="text-sm font-medium">
+              Alerte
+            </label>
+            {loading ? (
+              <div className="h-11 animate-pulse rounded-lg bg-muted" />
+            ) : trackedSearches.length === 0 ? (
+              <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                Aucune alerte pour l’instant. Crée-en une pour suivre des offres, ou importe via
+                Imports.
+              </p>
+            ) : (
+              <select
+                id="tracked-search-select"
+                className="flex h-11 w-full touch-manipulation rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+                value={selectedSearchId}
+                onChange={(e) => setSelectedSearchId(e.target.value)}
+              >
+                <option value="all">Toutes les offres ({jobs.length})</option>
+                {trackedSearches.map((search) => {
+                  const count = jobs.filter((job) => job.tracked_search_id === search.id).length;
+                  return (
+                    <option key={search.id} value={search.id}>
+                      {search.name} · {count} offre{count === 1 ? "" : "s"}
+                      {!search.enabled ? " (désactivée)" : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            )}
+          </div>
+
+          {selectedSearch ? (
+            <div className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 text-sm text-muted-foreground">
+                <p className="truncate font-medium text-foreground">{selectedSearch.name}</p>
+                <p className="truncate">
+                  {(selectedSearch.job_titles.join(", ") || "Tous postes") +
+                    " · " +
+                    (selectedSearch.locations.join(", ") || "Tous lieux")}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => runNow(selectedSearch.id)}
+                  disabled={runningSearchId === selectedSearch.id}
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  {runningSearchId === selectedSearch.id ? "…" : "Lancer"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => editSearch(selectedSearch)}>
+                  Modifier
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    fetch(`/api/tracked-searches/${selectedSearch.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ enabled: !selectedSearch.enabled }),
+                    }).then(loadAll)
+                  }
+                >
+                  {selectedSearch.enabled ? "Désactiver" : "Activer"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => deleteSearch(selectedSearch.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          ) : trackedSearches.length === 0 ? (
-            <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-              No tracked searches yet. Create one to start automatic job collection, or import jobs
-              manually from the Imports page.
-            </p>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {trackedSearches.map((search) => (
-                <Card key={search.id}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{search.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-muted-foreground">
-                    <p>{search.job_titles.join(", ") || "No job title"}</p>
-                    <p>{search.locations.join(", ") || "Any location"}</p>
-                    <p>
-                      {search.minimum_salary
-                        ? `${search.minimum_salary.toLocaleString()}${search.currency}`
-                        : "No salary floor"}{" "}
-                      · {search.remote_preference.replace(/_/g, " ")}
-                    </p>
-                    <p>
-                      Last run:{" "}
-                      {search.last_run ? new Date(search.last_run).toLocaleString() : "Never"}
-                    </p>
-                    <p>
-                      Next sync:{" "}
-                      {search.next_run ? new Date(search.next_run).toLocaleString() : "Not scheduled"}
-                    </p>
-                    <p>Jobs found: {search.jobs_found_today}</p>
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => runNow(search.id)}
-                        disabled={runningSearchId === search.id}
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        {runningSearchId === search.id ? "Running..." : "Run now"}
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => editSearch(search)}>
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => duplicateSearch(search)}
-                      >
-                        <Copy className="mr-2 h-4 w-4" />
-                        Duplicate
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          fetch(`/api/tracked-searches/${search.id}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ enabled: !search.enabled }),
-                          }).then(loadAll)
-                        }
-                      >
-                        {search.enabled ? "Disable" : "Enable"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => deleteSearch(search.id)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-semibold tracking-tight">Collected jobs</h2>
+        <h2 className="text-xl font-semibold tracking-tight">
+          {selectedSearch ? `Offres · ${selectedSearch.name}` : "Toutes les offres"}
+        </h2>
         <Button variant="outline" onClick={loadAll}>
           <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
+          Rafraîchir
         </Button>
       </div>
 
@@ -653,8 +637,7 @@ export function TrackedJobsPage() {
         <TabsContent value="cards" className="mt-4">
           {filteredJobs.length === 0 ? (
             <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-              No collected jobs yet. Use &quot;Run now&quot; on a tracked search or import a CSV from
-              Imports.
+              Aucune offre pour cette alerte. Lance la collecte ou importe un CSV depuis Imports.
             </p>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
