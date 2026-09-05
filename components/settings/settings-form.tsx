@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CvAnalysisPanel } from "@/components/settings/cv-analysis-panel";
+import { CvExperiencesCard } from "@/components/settings/cv-experiences-card";
+import { mergeExperiencesIntoCvText, type CvExperience } from "@/lib/cv/experiences";
 import { FileUp, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +19,7 @@ export function SettingsForm() {
   const router = useRouter();
   const [cvText, setCvText] = useState("");
   const [savedCvText, setSavedCvText] = useState("");
+  const [experiences, setExperiences] = useState<CvExperience[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [importingPdf, setImportingPdf] = useState(false);
@@ -66,17 +69,19 @@ export function SettingsForm() {
     void loadAnalysis();
   }, [loadAnalysis]);
 
-  const hasUnsavedCv = cvText !== savedCvText;
+  const composedCvText = mergeExperiencesIntoCvText(cvText, experiences);
+  const hasUnsavedCv = composedCvText !== savedCvText;
   const hasSavedCv = savedCvText.trim().length > 0;
 
   async function handleSave() {
     setSaving(true);
     try {
+      const nextText = mergeExperiencesIntoCvText(cvText, experiences);
       const res = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cv_text: cvText,
+          cv_text: nextText,
         }),
       });
       if (!res.ok) {
@@ -84,9 +89,10 @@ export function SettingsForm() {
         throw new Error(data.error ?? "Save failed");
       }
       const data = await res.json();
-      const text = data.profile?.cv_text ?? cvText;
+      const text = data.profile?.cv_text ?? nextText;
       setCvText(text);
       setSavedCvText(text);
+      setExperiences([]);
       setLastUpdatedAt(data.profile?.updated_at ?? new Date().toISOString());
       await loadAnalysis();
       toast.success("CV context saved");
@@ -118,6 +124,7 @@ export function SettingsForm() {
       const text = data.extracted_text ?? "";
       setCvText(text);
       setSavedCvText(text);
+      setExperiences([]);
       setLastUpdatedAt(data.profile?.updated_at ?? new Date().toISOString());
       setPdfFile(null);
       await loadAnalysis();
@@ -158,7 +165,7 @@ export function SettingsForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">CV Context</h1>
         <p className="text-sm text-muted-foreground">
@@ -212,6 +219,8 @@ export function SettingsForm() {
           )}
         </CardContent>
       </Card>
+
+      <CvExperiencesCard experiences={experiences} onChange={setExperiences} />
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving}>

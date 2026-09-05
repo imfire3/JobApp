@@ -14,20 +14,40 @@ import {
 } from "@/lib/onboarding/cookie";
 import { createServiceClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 
+const passwordSchema = z
+  .string()
+  .min(8, "Le mot de passe doit contenir au moins 8 caractères")
+  .regex(/[A-Z]/, "Le mot de passe doit contenir une majuscule")
+  .regex(/[^A-Za-z0-9]/, "Le mot de passe doit contenir un caractère spécial")
+
 const signupSchema = z.object({
   first_name: z.string().trim().min(1).max(80),
   last_name: z.string().trim().min(1).max(80),
   email: z.string().trim().email(),
-  password: z.string().min(5),
+  password: passwordSchema,
 });
 
 export async function POST(request: Request) {
   let body: z.infer<typeof signupSchema>;
   try {
     body = signupSchema.parse(await request.json());
-  } catch {
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const first = error.issues[0]?.message;
+      return NextResponse.json(
+        {
+          error:
+            first ??
+            "Prénom, nom, email et mot de passe (8+ caractères, 1 majuscule, 1 spécial) requis",
+        },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
-      { error: "Prénom, nom, email et mot de passe (5+ caractères) requis" },
+      {
+        error:
+          "Prénom, nom, email et mot de passe (8+ caractères, 1 majuscule, 1 spécial) requis",
+      },
       { status: 400 }
     );
   }

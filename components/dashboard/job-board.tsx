@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
-import { JobFiltersBar } from "@/components/dashboard/job-filters";
+import { JobFiltersBar, JobDateFilter } from "@/components/dashboard/job-filters";
 import { JobCard } from "@/components/dashboard/job-card";
 import { JobTable } from "@/components/dashboard/job-table";
 import { JobBulkActions } from "@/components/dashboard/job-bulk-actions";
@@ -375,18 +375,21 @@ export function JobBoard() {
       <JobFiltersBar filters={filters} onChange={setFilters} sources={sources} />
 
       <Tabs value={view} onValueChange={(v) => setView(v as "cards" | "table")}>
-        <TabsList>
-          <TabsTrigger value="cards" className="gap-2">
-            <LayoutGrid className="h-4 w-4" />
-            Cards
-          </TabsTrigger>
-          <TabsTrigger value="table" className="gap-2">
-            <List className="h-4 w-4" />
-            Table
-          </TabsTrigger>
-        </TabsList>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+          <TabsList>
+            <TabsTrigger value="cards" className="gap-2">
+              <LayoutGrid className="h-4 w-4" />
+              Cards
+            </TabsTrigger>
+            <TabsTrigger value="table" className="gap-2">
+              <List className="h-4 w-4" />
+              Table
+            </TabsTrigger>
+          </TabsList>
+          <JobDateFilter filters={filters} onChange={setFilters} />
+        </div>
 
-        <TabsContent value="cards" className="mt-4">
+        <TabsContent value="cards" className="mt-0">
           {filteredJobs.length === 0 ? (
             <Card>
               <CardContent className="space-y-4 py-10 text-center">
@@ -426,7 +429,7 @@ export function JobBoard() {
           )}
         </TabsContent>
 
-        <TabsContent value="table" className="mt-4">
+        <TabsContent value="table" className="mt-0">
           {filteredJobs.length === 0 ? (
             <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
               No jobs match your filters.

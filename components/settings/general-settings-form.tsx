@@ -40,6 +40,12 @@ const defaultSettings: SettingsState = {
   automation_defaults: '{"daily_sync_time":"08:00"}',
 };
 
+/** App is dark-first; DB default `system` must not flip the UI to light. */
+function resolveTheme(value: unknown): SettingsState["theme"] {
+  if (value === "light" || value === "dark") return value;
+  return "dark";
+}
+
 export function GeneralSettingsForm() {
   const { setTheme } = useTheme();
   const [settings, setSettings] = useState<SettingsState>(defaultSettings);
@@ -53,7 +59,7 @@ export function GeneralSettingsForm() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to load settings");
         const payload = data.settings ?? {};
-        const theme = payload.theme ?? "dark";
+        const theme = resolveTheme(payload.theme);
         setSettings({
           theme,
           notifications_enabled: payload.notifications_enabled ?? true,
@@ -70,23 +76,25 @@ export function GeneralSettingsForm() {
         setTheme(theme);
       } catch {
         setSettings(defaultSettings);
-        setTheme(defaultSettings.theme);
+        setTheme("dark");
       } finally {
         setLoading(false);
       }
     }
 
     load();
-  }, []);
+  }, [setTheme]);
 
   async function saveSettings() {
     setSaving(true);
     try {
+      const theme = resolveTheme(settings.theme);
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...settings,
+          theme,
           openai_key: settings.openai_key || null,
           anthropic_key: settings.anthropic_key || null,
           gemini_key: settings.gemini_key || null,
@@ -97,7 +105,8 @@ export function GeneralSettingsForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to save settings");
-      setTheme(settings.theme);
+      setSettings((prev) => ({ ...prev, theme }));
+      setTheme(theme);
       toast.success("Settings saved");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save settings");
@@ -111,7 +120,7 @@ export function GeneralSettingsForm() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
@@ -127,20 +136,19 @@ export function GeneralSettingsForm() {
           <div className="space-y-2">
             <Label>Theme</Label>
             <Select
-              value={settings.theme}
+              value={settings.theme === "system" ? "dark" : settings.theme}
               onValueChange={(value) => {
-                const theme = value as SettingsState["theme"];
+                const theme = resolveTheme(value);
                 setSettings((prev) => ({ ...prev, theme }));
                 setTheme(theme);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="system">System</SelectItem>
-                <SelectItem value="light">Light</SelectItem>
                 <SelectItem value="dark">Dark</SelectItem>
+                <SelectItem value="light">Light</SelectItem>
               </SelectContent>
             </Select>
           </div>

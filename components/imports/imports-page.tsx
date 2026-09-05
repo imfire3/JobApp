@@ -520,7 +520,7 @@ export function ImportsPage() {
                     onCheckedChange={(checked) => setReplaceExisting(checked === true)}
                   />
                   <div className="space-y-1">
-                    <Label htmlFor="replace-existing" className="cursor-pointer">
+                    <Label htmlFor="replace-existing" className="mb-0 cursor-pointer">
                       Replace all my existing jobs
                     </Label>
                     <p className="text-xs text-muted-foreground">

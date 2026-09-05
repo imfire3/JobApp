@@ -68,8 +68,8 @@ export async function updateSession(request: NextRequest) {
 
     if (onboardingPending && !isOnboardingAllowed(pathname) && !isPublicRoute(pathname)) {
       const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("cv", "1");
+      // Resume at métiers; that page sends users without a CV back to /login?cv=1
+      url.pathname = "/onboarding/metiers";
       return NextResponse.redirect(url);
     }
 

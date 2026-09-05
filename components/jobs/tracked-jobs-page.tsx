@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Field } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { JobFiltersBar } from "@/components/dashboard/job-filters";
+import { JobFiltersBar, JobDateFilter } from "@/components/dashboard/job-filters";
 import { JobCard } from "@/components/dashboard/job-card";
 import { JobTable } from "@/components/dashboard/job-table";
 import { JobBulkActions } from "@/components/dashboard/job-bulk-actions";
@@ -18,6 +19,7 @@ import type { Job, JobFilters, JobStatus, TrackedSearch } from "@/types";
 import { List, Play, Plus, RefreshCw, Trash2, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { nativeSelectClassName, nativeSelectChevronStyle } from "@/components/ui/native-select";
 import { useRouter } from "next/navigation";
 
 const defaultFilters: JobFilters = { postedWithinHours: 24 };
@@ -506,11 +508,11 @@ export function TrackedJobsPage() {
       </div>
 
       <Card>
-        <CardContent className="space-y-4 pt-5">
-          <div className="space-y-2">
-            <label htmlFor="tracked-search-select" className="text-sm font-medium">
+        <CardContent className="space-y-4 pt-2">
+          <Field>
+            <Label htmlFor="tracked-search-select" className="mb-0">
               Alerte
-            </label>
+            </Label>
             {loading ? (
               <div className="h-11 animate-pulse rounded-lg bg-muted" />
             ) : trackedSearches.length === 0 ? (
@@ -521,7 +523,8 @@ export function TrackedJobsPage() {
             ) : (
               <select
                 id="tracked-search-select"
-                className="flex h-11 w-full touch-manipulation rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+                className={nativeSelectClassName}
+                style={nativeSelectChevronStyle}
                 value={selectedSearchId}
                 onChange={(e) => setSelectedSearchId(e.target.value)}
               >
@@ -537,7 +540,7 @@ export function TrackedJobsPage() {
                 })}
               </select>
             )}
-          </div>
+          </Field>
 
           {selectedSearch ? (
             <div className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
@@ -623,18 +626,21 @@ export function TrackedJobsPage() {
       <JobFiltersBar filters={filters} onChange={setFilters} sources={sources} />
 
       <Tabs value={view} onValueChange={(value) => setView(value as "cards" | "table")}>
-        <TabsList>
-          <TabsTrigger value="cards">
-            <LayoutGrid className="mr-2 h-4 w-4" />
-            Cards
-          </TabsTrigger>
-          <TabsTrigger value="table">
-            <List className="mr-2 h-4 w-4" />
-            Table
-          </TabsTrigger>
-        </TabsList>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+          <TabsList>
+            <TabsTrigger value="cards">
+              <LayoutGrid className="mr-2 h-4 w-4" />
+              Cards
+            </TabsTrigger>
+            <TabsTrigger value="table">
+              <List className="mr-2 h-4 w-4" />
+              Table
+            </TabsTrigger>
+          </TabsList>
+          <JobDateFilter filters={filters} onChange={setFilters} />
+        </div>
 
-        <TabsContent value="cards" className="mt-4">
+        <TabsContent value="cards" className="mt-0">
           {filteredJobs.length === 0 ? (
             <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
               Aucune offre pour cette alerte. Lance la collecte ou importe un CSV depuis Imports.
@@ -659,7 +665,7 @@ export function TrackedJobsPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="table" className="mt-4">
+        <TabsContent value="table" className="mt-0">
           <JobTable
             jobs={filteredJobs}
             onSelect={(id, selected) => updateJob(id, { selected })}
@@ -867,21 +873,21 @@ export function TrackedJobsPage() {
               />
             </div>
             <div className="flex items-center gap-3 rounded-md border px-3 py-2">
-              <Label>Enabled</Label>
+              <Label className="mb-0">Enabled</Label>
               <Switch
                 checked={searchForm.enabled}
                 onCheckedChange={(checked) =>
                   setSearchForm((prev) => ({ ...prev, enabled: checked }))
                 }
               />
-              <Label>Hybrid</Label>
+              <Label className="mb-0">Hybrid</Label>
               <Switch
                 checked={searchForm.hybrid}
                 onCheckedChange={(checked) =>
                   setSearchForm((prev) => ({ ...prev, hybrid: checked }))
                 }
               />
-              <Label>On-site</Label>
+              <Label className="mb-0">On-site</Label>
               <Switch
                 checked={searchForm.on_site}
                 onCheckedChange={(checked) =>

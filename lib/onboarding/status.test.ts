@@ -20,13 +20,26 @@ describe("deriveOnboardingStep", () => {
     );
   });
 
-  it("is done once CV is present", () => {
+  it("moves to metiers once CV is present", () => {
     assert.equal(
       deriveOnboardingStep({
         hasCv: true,
         hasTargets: false,
         hasAnalysis: false,
         hasTrackedSearch: false,
+        completed: false,
+      }),
+      "metiers"
+    );
+  });
+
+  it("is done once CV and tracked search exist", () => {
+    assert.equal(
+      deriveOnboardingStep({
+        hasCv: true,
+        hasTargets: true,
+        hasAnalysis: false,
+        hasTrackedSearch: true,
         completed: false,
       }),
       "done"
@@ -48,13 +61,23 @@ describe("deriveOnboardingStep", () => {
 });
 
 describe("canCompleteOnboarding", () => {
-  it("requires only a CV", () => {
+  it("requires a CV and a tracked search", () => {
     assert.equal(
       canCompleteOnboarding({
         hasCv: true,
         hasTargets: false,
         hasAnalysis: false,
         hasTrackedSearch: false,
+        completed: false,
+      }),
+      false
+    );
+    assert.equal(
+      canCompleteOnboarding({
+        hasCv: true,
+        hasTargets: true,
+        hasAnalysis: false,
+        hasTrackedSearch: true,
         completed: false,
       }),
       true
@@ -73,13 +96,22 @@ describe("canCompleteOnboarding", () => {
 });
 
 describe("shouldAutoComplete", () => {
-  it("is true when a CV already exists", () => {
+  it("is true only when CV and tracked search already exist", () => {
     assert.equal(
       shouldAutoComplete({
         hasCv: true,
         hasTargets: false,
         hasAnalysis: false,
         hasTrackedSearch: false,
+      }),
+      false
+    );
+    assert.equal(
+      shouldAutoComplete({
+        hasCv: true,
+        hasTargets: true,
+        hasAnalysis: false,
+        hasTrackedSearch: true,
       }),
       true
     );

@@ -276,7 +276,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
             <Link

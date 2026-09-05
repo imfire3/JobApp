@@ -4,7 +4,7 @@ import { ChromeExtensionPanel } from "@/components/imports/chrome-extension-pane
 export default function ExtensionPage() {
   return (
     <AppShell>
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Extension Chrome</h1>
           <p className="text-sm text-muted-foreground">

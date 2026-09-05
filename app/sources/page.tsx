@@ -1,7 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { FakeSourcesPanel } from "@/components/sources/fake-sources-panel";
 
 export default function SourcesRoutePage() {
   return (
@@ -10,22 +8,11 @@ export default function SourcesRoutePage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Sources</h1>
           <p className="text-sm text-muted-foreground">
-            Connectors are optional in this MVP. Use Imports to add jobs from CSV/Excel.
+            Connecteurs démo — active ou désactive chaque source. Les imports CSV restent
+            disponibles.
           </p>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Coming soon</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              Live connectors (Apify/Browse AI/Octoparse/custom scrapers) will be plugged later.
-            </p>
-            <Link href="/imports" className={buttonVariants({ variant: "outline" })}>
-              Go to Imports
-            </Link>
-          </CardContent>
-        </Card>
+        <FakeSourcesPanel />
       </div>
     </AppShell>
   );
