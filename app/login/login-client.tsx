@@ -15,6 +15,21 @@ import { AuthCardShell } from "@/components/auth/auth-card-shell";
 const MIN_CV_LENGTH = 200;
 const MIN_PASSWORD_LENGTH = 8;
 
+async function readApiJson<T extends Record<string, unknown>>(res: Response): Promise<T> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(
+      res.status === 401
+        ? "Session expirée — reconnecte-toi"
+        : res.status >= 500
+          ? "Serveur indisponible — réessaie dans un instant"
+          : "Réponse serveur invalide"
+    );
+  }
+}
+
 /** Common email TLDs — reject unknown / incomplete extensions */
 const KNOWN_EMAIL_TLDS = new Set([
   "com",
@@ -255,10 +270,10 @@ export default function LoginPageClient() {
         method: "POST",
         body: formData,
       });
-      const data = (await res.json()) as {
+      const data = await readApiJson<{
         extracted_text?: string;
         error?: string;
-      };
+      }>(res);
       if (!res.ok) {
         throw new Error(data.error ?? "Impossible d’extraire le texte du PDF");
       }
@@ -288,7 +303,7 @@ export default function LoginPageClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cv_text: cvText }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = await readApiJson<{ error?: string }>(res);
       if (!res.ok) throw new Error(data.error ?? "Sauvegarde CV échouée");
       return;
     }
@@ -300,10 +315,10 @@ export default function LoginPageClient() {
         method: "POST",
         body: formData,
       });
-      const data = (await res.json()) as {
+      const data = await readApiJson<{
         extracted_text?: string;
         error?: string;
-      };
+      }>(res);
       if (!res.ok) throw new Error(data.error ?? "Import PDF échoué");
       const text = data.extracted_text ?? "";
       setCvText(text);
@@ -323,7 +338,7 @@ export default function LoginPageClient() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cv_text: cvText }),
     });
-    const data = (await res.json()) as { error?: string };
+    const data = await readApiJson<{ error?: string }>(res);
     if (!res.ok) throw new Error(data.error ?? "Sauvegarde CV échouée");
   }
 

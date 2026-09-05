@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import {
+  clearSupabaseUnreachable,
   isSupabaseMarkedUnreachable,
   markSupabaseUnreachable,
   resetSupabaseReachabilityForTests,
@@ -19,6 +20,13 @@ describe("supabase reachability cache", () => {
 
   it("expires after the ttl", () => {
     markSupabaseUnreachable(-1);
+    assert.equal(isSupabaseMarkedUnreachable(), false);
+  });
+
+  it("clears the sticky mark so health can recover", () => {
+    markSupabaseUnreachable(60_000);
+    assert.equal(isSupabaseMarkedUnreachable(), true);
+    clearSupabaseUnreachable();
     assert.equal(isSupabaseMarkedUnreachable(), false);
   });
 });

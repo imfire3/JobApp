@@ -7,7 +7,7 @@ const offlineResult = {
   data: null,
   error: {
     message:
-      "Supabase is unreachable. Check NEXT_PUBLIC_SUPABASE_URL in .env.local (project paused, deleted, or wrong host), then restart the app.",
+      "Supabase is unreachable. Check NEXT_PUBLIC_SUPABASE_URL (project paused, deleted, or wrong host), then retry.",
     code: "SUPABASE_UNREACHABLE",
   } satisfies OfflineError,
   count: null,

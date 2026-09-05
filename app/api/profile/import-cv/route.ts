@@ -9,9 +9,19 @@ const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
  * Upload CV (PDF for MVP) and store text as AI context for cover letters.
  */
 export async function POST(request: Request) {
-  const { supabase, user, error } = await getAuthenticatedUser();
+  const { supabase, user, error, unreachable } = await getAuthenticatedUser();
   if (!user) {
     return NextResponse.json({ error }, { status: 401 });
+  }
+  if (unreachable) {
+    return NextResponse.json(
+      {
+        error:
+          error ??
+          "Supabase is unreachable. Check NEXT_PUBLIC_SUPABASE_URL, then retry.",
+      },
+      { status: 503 }
+    );
   }
 
   const formData = await request.formData();

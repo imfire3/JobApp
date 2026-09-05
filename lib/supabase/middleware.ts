@@ -84,6 +84,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!isPublicRoute(pathname)) {
+    // API clients must get JSON, not an HTML login redirect.
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

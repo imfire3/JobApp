@@ -152,7 +152,17 @@ export function SettingsForm() {
         method: "POST",
         body: formData,
       })
-      const data = await res.json()
+      const raw = await res.text()
+      let data: { extracted_text?: string; error?: string; profile?: { updated_at?: string } }
+      try {
+        data = JSON.parse(raw) as typeof data
+      } catch {
+        throw new Error(
+          res.status === 401
+            ? "Session expirée — reconnecte-toi"
+            : "Serveur indisponible — réessaie dans un instant"
+        )
+      }
       if (!res.ok) throw new Error(data.error ?? "Import PDF échoué")
 
       const text = data.extracted_text ?? ""

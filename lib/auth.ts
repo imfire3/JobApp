@@ -34,7 +34,7 @@ export async function getAuthenticatedUser() {
         supabase: createOfflineClient() as never,
         user: localUser,
         error:
-          "Supabase is unreachable. Check NEXT_PUBLIC_SUPABASE_URL in .env.local (project paused, deleted, or wrong host), then restart npm run dev.",
+          "Supabase is unreachable. Check NEXT_PUBLIC_SUPABASE_URL (project paused, deleted, or wrong host), then retry.",
         unreachable: true as const,
       };
     }
