@@ -191,3 +191,91 @@ export function parseJobsImportFile(
     invalidRows,
   };
 }
+
+export const WEBSITE_PASTE_SOURCE = "website_paste";
+
+function escapeCsvCell(value: string): string {
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+/** Build one import row from a pasted job-page URL and/or page text. */
+export function buildWebsitePasteRow(
+  urlInput: string,
+  content: string,
+  rowNumber = 1
+): ParsedImportRow | null {
+  const contentTrimmed = content.trim();
+  if (!contentTrimmed) return null;
+
+  const urlTrimmed = urlInput.trim();
+  const lines = contentTrimmed
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const title = (lines[0] ?? "Offre collée").slice(0, 160);
+
+  let company = "Site web";
+  let url = urlTrimmed;
+  if (urlTrimmed) {
+    try {
+      const hostname = new URL(urlTrimmed).hostname.replace(/^www\./, "");
+      if (hostname) company = hostname;
+    } catch {
+      // Keep the raw URL string even if it is not a valid absolute URL.
+    }
+  }
+  if (!url) {
+    url = `https://paste.local/job-${rowNumber}`;
+  }
+
+  return {
+    rowNumber,
+    source: WEBSITE_PASTE_SOURCE,
+    title,
+    company,
+    location: null,
+    remote: false,
+    salary: null,
+    posted_at: new Date().toISOString(),
+    url,
+    description: contentTrimmed,
+    raw_data: {
+      pasted_url: urlTrimmed || null,
+      pasted_text: contentTrimmed,
+    },
+  };
+}
+
+/** Serialize preview rows to a CSV File for the existing import-jobs upload API. */
+export function rowsToCsvFile(
+  rows: ParsedImportRow[],
+  fileName = "website-paste-import.csv"
+): File {
+  const header = EXPECTED_IMPORT_COLUMNS.join(",");
+  const lines = rows.map((row) =>
+    EXPECTED_IMPORT_COLUMNS.map((column) => {
+      if (column === "remote") return row.remote ? "true" : "false";
+      const value = row[column];
+      return escapeCsvCell(value == null ? "" : String(value));
+    }).join(",")
+  );
+
+  return new File([`${header}\n${lines.join("\n")}`], fileName, {
+    type: "text/csv;charset=utf-8",
+  });
+}
+
+export function mergeWebsitePasteRow(
+  rows: ParsedImportRow[],
+  pasteRow: ParsedImportRow | null
+): ParsedImportRow[] {
+  const withoutPaste = rows.filter((row) => row.source !== WEBSITE_PASTE_SOURCE);
+  if (!pasteRow) return withoutPaste;
+  return [
+    ...withoutPaste,
+    { ...pasteRow, rowNumber: withoutPaste.length + 1 },
+  ];
+}

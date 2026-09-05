@@ -96,11 +96,16 @@ export async function POST(request: Request) {
         raw_data: {
           ...existingRaw,
           job_fit: {
+            keywords_from_job: analysis.keywords_from_job,
             keywords_matched: analysis.keywords_matched,
             keywords_missing: analysis.keywords_missing,
             cv_improvements: analysis.cv_improvements,
             job_posting_summary: analysis.job_posting_summary,
-            prompt_version: "v2",
+            score_confidence: analysis.score_confidence ?? null,
+            score_explanation: analysis.score_explanation ?? null,
+            limitations: analysis.limitations ?? [],
+            status: analysis.status ?? "ok",
+            prompt_version: "v3",
           },
         },
       })

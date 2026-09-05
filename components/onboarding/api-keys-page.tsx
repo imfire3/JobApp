@@ -49,12 +49,11 @@ export function ApiKeysPageClient() {
         const status = (await statusRes.json().catch(() => ({}))) as {
           completed?: boolean
           has_cv?: boolean
-          has_tracked_search?: boolean
         }
 
         if (cancelled) return
 
-        if (status.completed || status.has_tracked_search) {
+        if (status.completed) {
           router.replace("/dashboard")
           return
         }
@@ -92,6 +91,18 @@ export function ApiKeysPageClient() {
     }
   }, [router])
 
+  async function finishOnboarding() {
+    const res = await fetch("/api/onboarding", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: true }),
+    })
+    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) {
+      throw new Error(data.error ?? "Impossible de finaliser l’inscription")
+    }
+  }
+
   async function handleContinue(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -109,8 +120,9 @@ export function ApiKeysPageClient() {
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) throw new Error(data.error ?? "Impossible d’enregistrer les clés")
 
+      await finishOnboarding()
       toast.success("Clés enregistrées")
-      router.push("/onboarding/metiers")
+      router.push("/dashboard")
       router.refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Échec de l’enregistrement")
@@ -119,8 +131,18 @@ export function ApiKeysPageClient() {
     }
   }
 
-  function handleSkip() {
-    router.push("/onboarding/metiers")
+  async function handleSkip() {
+    setLoading(true)
+    try {
+      await finishOnboarding()
+      toast.success("Onboarding terminé")
+      router.push("/dashboard")
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Échec de l’inscription")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -141,6 +163,7 @@ export function ApiKeysPageClient() {
               <CardTitle className="text-2xl">AI provider</CardTitle>
               <CardDescription className="pb-4">
                 Configure tes clés API pour l’analyse CV et les lettres de motivation.
+                Tu pourras les modifier plus tard dans Settings.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -220,14 +243,14 @@ export function ApiKeysPageClient() {
               </p>
 
               <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                {loading ? "Enregistrement…" : "Continuer"}
+                {loading ? "Enregistrement…" : "Aller au dashboard"}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 className="w-full"
                 disabled={loading}
-                onClick={handleSkip}
+                onClick={() => void handleSkip()}
               >
                 Passer pour l’instant
               </Button>

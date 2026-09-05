@@ -3,8 +3,7 @@ import assert from "node:assert/strict";
 import {
   canCompleteOnboarding,
   deriveOnboardingStep,
-  shouldAutoComplete,
-} from "@/lib/onboarding/status";
+} from "./status";
 
 describe("deriveOnboardingStep", () => {
   it("starts at cv when nothing is ready", () => {
@@ -20,7 +19,7 @@ describe("deriveOnboardingStep", () => {
     );
   });
 
-  it("moves to metiers once CV is present", () => {
+  it("moves to api-keys once CV is present", () => {
     assert.equal(
       deriveOnboardingStep({
         hasCv: true,
@@ -29,11 +28,11 @@ describe("deriveOnboardingStep", () => {
         hasTrackedSearch: false,
         completed: false,
       }),
-      "metiers"
+      "api-keys"
     );
   });
 
-  it("is done once CV and tracked search exist", () => {
+  it("stays on api-keys until the user finishes the keys step", () => {
     assert.equal(
       deriveOnboardingStep({
         hasCv: true,
@@ -42,7 +41,7 @@ describe("deriveOnboardingStep", () => {
         hasTrackedSearch: true,
         completed: false,
       }),
-      "done"
+      "api-keys"
     );
   });
 
@@ -61,23 +60,13 @@ describe("deriveOnboardingStep", () => {
 });
 
 describe("canCompleteOnboarding", () => {
-  it("requires a CV and a tracked search", () => {
+  it("requires only a CV", () => {
     assert.equal(
       canCompleteOnboarding({
         hasCv: true,
         hasTargets: false,
         hasAnalysis: false,
         hasTrackedSearch: false,
-        completed: false,
-      }),
-      false
-    );
-    assert.equal(
-      canCompleteOnboarding({
-        hasCv: true,
-        hasTargets: true,
-        hasAnalysis: false,
-        hasTrackedSearch: true,
         completed: false,
       }),
       true
@@ -91,29 +80,6 @@ describe("canCompleteOnboarding", () => {
         completed: false,
       }),
       false
-    );
-  });
-});
-
-describe("shouldAutoComplete", () => {
-  it("is true only when CV and tracked search already exist", () => {
-    assert.equal(
-      shouldAutoComplete({
-        hasCv: true,
-        hasTargets: false,
-        hasAnalysis: false,
-        hasTrackedSearch: false,
-      }),
-      false
-    );
-    assert.equal(
-      shouldAutoComplete({
-        hasCv: true,
-        hasTargets: true,
-        hasAnalysis: false,
-        hasTrackedSearch: true,
-      }),
-      true
     );
   });
 });

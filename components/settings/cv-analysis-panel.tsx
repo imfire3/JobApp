@@ -32,26 +32,30 @@ function severityBadgeClass(severity: CvAnalysisSeverity): string {
   return "bg-muted text-muted-foreground";
 }
 
-function ScoreCard({ label, score }: { label: string; score: number }) {
+function ScoreCard({ label, score }: { label: string; score: number | null }) {
   return (
-    <div className="rounded-lg border p-3">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`text-2xl font-semibold ${getMatchScoreColor(score)}`}>{score}</p>
+    <div className="rounded-2xl border p-4">
+      <p className="text-sm uppercase tracking-wide text-muted-foreground">{label}</p>
+      {typeof score === "number" ? (
+        <p className={`mt-2 text-3xl font-semibold ${getMatchScoreColor(score)}`}>{score}</p>
+      ) : (
+        <p className="mt-2 text-3xl font-semibold text-muted-foreground">n/a</p>
+      )}
     </div>
-  );
+  )
 }
 
 function BulletList({ items, emptyLabel }: { items: string[]; emptyLabel: string }) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyLabel}</p>;
+    return <p className="text-base text-muted-foreground">{emptyLabel}</p>
   }
   return (
-    <ul className="space-y-1 text-sm text-muted-foreground">
+    <ul className="space-y-2 text-base leading-7 text-muted-foreground">
       {items.map((item, index) => (
         <li key={`${item}-${index}`}>• {item}</li>
       ))}
     </ul>
-  );
+  )
 }
 
 export function CvAnalysisPanel({
@@ -156,43 +160,45 @@ export function CvAnalysisPanel({
   const promptUnsaved = prompt !== savedPrompt;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              CV analysis
+    <Card className="rounded-2xl">
+      <CardHeader className="p-6 md:p-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
+            <CardTitle className="flex items-center gap-2 text-xl font-semibold">
+              <Sparkles className="h-5 w-5" />
+              Analyse ATS
             </CardTitle>
-            <CardDescription>
-              Internal heuristic review for ATS readability and product-role fit. Not a guarantee
-              for any specific ATS.
+            <CardDescription className="text-base leading-7">
+              Évaluation interne de lisibilité et de fit produit. Ce n’est pas une
+              garantie de passage d’un ATS particulier.
             </CardDescription>
           </div>
           <Button
             type="button"
+            size="lg"
             onClick={onAnalyze}
             disabled={analyzeDisabled}
             variant={analysis?.is_stale ? "default" : "outline"}
+            data-tour="guide-cv-analyze"
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${analyzing ? "animate-spin" : ""}`} />
-            {analyzing ? "Analyzing..." : analysis ? "Re-analyze CV" : "Analyze CV"}
+            {analyzing ? "Analyse…" : analysis ? "Relancer l’analyse" : "Analyser le CV"}
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="rounded-lg border">
+      <CardContent className="space-y-8">
+        <div className="rounded-2xl border">
           <button
             type="button"
-            className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium"
+            className="flex w-full items-center justify-between gap-2 px-4 py-4 text-left text-base font-medium"
             onClick={() => setPromptOpen((open) => !open)}
           >
             <span className="flex items-center gap-2">
-              Prompt template
+              Prompt d’analyse
               {isCustomPrompt ? (
-                <Badge variant="secondary">Custom</Badge>
+                <Badge variant="secondary">Personnalisé</Badge>
               ) : (
-                <Badge variant="outline">Default</Badge>
+                <Badge variant="outline">Par défaut</Badge>
               )}
             </span>
             {promptOpen ? (
@@ -202,20 +208,22 @@ export function CvAnalysisPanel({
             )}
           </button>
           {promptOpen ? (
-            <div className="space-y-3 border-t px-4 py-4">
-              <Label htmlFor="cv-analysis-prompt">System prompt used for Analyze CV</Label>
+            <div className="space-y-4 border-t px-4 py-4">
+              <Label htmlFor="cv-analysis-prompt" className="text-base">
+                Prompt système utilisé pour l’analyse CV
+              </Label>
               <Textarea
                 id="cv-analysis-prompt"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 rows={12}
                 disabled={promptLoading || promptSaving}
-                className="font-mono text-xs"
-                placeholder={promptLoading ? "Loading prompt..." : "System prompt…"}
+                className="font-mono text-sm leading-6"
+                placeholder={promptLoading ? "Chargement du prompt…" : "Prompt système…"}
               />
-              <p className="text-xs text-muted-foreground">
-                Keep the JSON field requirements if you edit this. The CV text is still injected
-                separately as the user message.
+              <p className="text-sm leading-6 text-muted-foreground">
+                Conserve les champs JSON requis si tu modifies ce prompt. Le texte du CV
+                est injecté séparément en message utilisateur.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -225,7 +233,7 @@ export function CvAnalysisPanel({
                   disabled={promptLoading || promptSaving || !prompt.trim() || !promptUnsaved}
                 >
                   <Save className="mr-1.5 h-3.5 w-3.5" />
-                  {promptSaving ? "Saving..." : "Save prompt"}
+                  {promptSaving ? "Enregistrement…" : "Enregistrer le prompt"}
                 </Button>
                 <Button
                   type="button"
@@ -234,7 +242,7 @@ export function CvAnalysisPanel({
                   onClick={handleResetPrompt}
                   disabled={promptLoading || promptSaving || (!isCustomPrompt && !promptUnsaved)}
                 >
-                  Reset to default
+                  Réinitialiser
                 </Button>
               </div>
             </div>
@@ -242,89 +250,92 @@ export function CvAnalysisPanel({
         </div>
 
         {hasUnsavedCv && (
-          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800">
-            Save your CV context before running analysis.
+          <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-base leading-7 text-amber-800">
+            Enregistre ton contexte CV avant de lancer l’analyse.
           </p>
         )}
 
         {!hasSavedCv && !hasUnsavedCv && (
-          <p className="text-sm text-muted-foreground">
-            Add and save your CV text to enable analysis.
+          <p className="text-base leading-7 text-muted-foreground">
+            Ajoute et enregistre ton texte de CV pour activer l’analyse.
           </p>
         )}
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading previous analysis...</p>
+          <p className="text-base text-muted-foreground">Chargement de l’analyse précédente…</p>
         ) : null}
 
         {analysis ? (
           <>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>Last analysis: {new Date(analysis.analyzed_at).toLocaleString()}</span>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>
+                Dernière analyse :{" "}
+                {new Date(analysis.analyzed_at).toLocaleString("fr-FR")}
+              </span>
               {analysis.is_stale && (
                 <Badge variant="outline" className="gap-1 border-amber-500/40 text-amber-700">
                   <AlertTriangle className="h-3 w-3" />
-                  Stale — CV changed since last analysis
+                  Obsolète — CV modifié depuis
                 </Badge>
               )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <ScoreCard label="Overall" score={analysis.analysis.overall_score} />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <ScoreCard label="Global" score={analysis.analysis.overall_score} />
               <ScoreCard label="Parsing" score={analysis.analysis.parsing_score} />
               <ScoreCard label="Structure" score={analysis.analysis.structure_score} />
               <ScoreCard label="Impact" score={analysis.analysis.impact_score} />
-              <ScoreCard label="Keywords" score={analysis.analysis.keyword_score} />
+              <ScoreCard label="Mots-clés" score={analysis.analysis.keyword_score} />
             </div>
 
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <p className="text-sm font-medium">Recruiter summary</p>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            <div className="rounded-2xl border bg-muted/30 p-6">
+              <p className="text-base font-semibold">Synthèse recruteur</p>
+              <p className="mt-2 text-base leading-7 text-muted-foreground">
                 {analysis.analysis.recruiter_summary}
               </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <p className="text-sm font-medium">Detected roles</p>
-                <div className="flex flex-wrap gap-1">
+                <p className="text-base font-semibold">Rôles détectés</p>
+                <div className="flex flex-wrap gap-2">
                   {analysis.analysis.detected_roles.length > 0 ? (
                     analysis.analysis.detected_roles.map((role) => (
-                      <Badge key={role} variant="outline">
+                      <Badge key={role} variant="outline" className="px-3 py-1 text-sm">
                         {role}
                       </Badge>
                     ))
                   ) : (
-                    <span className="text-sm text-muted-foreground">None detected</span>
+                    <span className="text-base text-muted-foreground">Aucun détecté</span>
                   )}
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium">Experience</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base font-semibold">Expérience</p>
+                <p className="text-base leading-7 text-muted-foreground">
                   {analysis.analysis.estimated_experience_years !== null
-                    ? `${analysis.analysis.estimated_experience_years} years (estimated from CV)`
-                    : "Not estimated from CV"}
+                    ? `${analysis.analysis.estimated_experience_years} ans (estimés depuis le CV)`
+                    : "Non estimée depuis le CV"}
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <p className="text-sm font-medium">Skills</p>
-                <div className="flex flex-wrap gap-1">
+                <p className="text-base font-semibold">Compétences</p>
+                <div className="flex flex-wrap gap-2">
                   {analysis.analysis.detected_skills.slice(0, 12).map((skill) => (
-                    <Badge key={skill} variant="secondary">
+                    <Badge key={skill} variant="secondary" className="px-3 py-1 text-sm">
                       {skill}
                     </Badge>
                   ))}
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium">Tools</p>
-                <div className="flex flex-wrap gap-1">
+                <p className="text-base font-semibold">Outils</p>
+                <div className="flex flex-wrap gap-2">
                   {analysis.analysis.detected_tools.slice(0, 12).map((tool) => (
-                    <Badge key={tool} variant="secondary">
+                    <Badge key={tool} variant="secondary" className="px-3 py-1 text-sm">
                       {tool}
                     </Badge>
                   ))}
@@ -332,11 +343,11 @@ export function CvAnalysisPanel({
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <p className="text-sm font-medium">Languages</p>
+                <p className="text-base font-semibold">Langues</p>
                 {analysis.analysis.detected_languages.length > 0 ? (
-                  <ul className="space-y-1 text-sm text-muted-foreground">
+                  <ul className="space-y-2 text-base leading-7 text-muted-foreground">
                     {analysis.analysis.detected_languages.map((lang) => (
                       <li key={`${lang.language}-${lang.level ?? ""}`}>
                         • {lang.language}
@@ -345,73 +356,77 @@ export function CvAnalysisPanel({
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">None detected</p>
+                  <p className="text-base text-muted-foreground">Aucune détectée</p>
                 )}
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium">Industries</p>
-                <div className="flex flex-wrap gap-1">
+                <p className="text-base font-semibold">Secteurs</p>
+                <div className="flex flex-wrap gap-2">
                   {analysis.analysis.detected_industries.length > 0 ? (
                     analysis.analysis.detected_industries.map((industry) => (
-                      <Badge key={industry} variant="outline">
+                      <Badge key={industry} variant="outline" className="px-3 py-1 text-sm">
                         {industry}
                       </Badge>
                     ))
                   ) : (
-                    <span className="text-sm text-muted-foreground">None detected</span>
+                    <span className="text-base text-muted-foreground">Aucun détecté</span>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <p className="text-sm font-medium">Strengths</p>
-                <BulletList items={analysis.analysis.strengths} emptyLabel="None listed" />
+                <p className="text-base font-semibold">Points forts</p>
+                <BulletList items={analysis.analysis.strengths} emptyLabel="Aucun listé" />
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium">Weaknesses</p>
-                <BulletList items={analysis.analysis.weaknesses} emptyLabel="None listed" />
+                <p className="text-base font-semibold">Points faibles</p>
+                <BulletList items={analysis.analysis.weaknesses} emptyLabel="Aucun listé" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">Mots-clés ATS manquants (produit)</p>
-              <div className="flex flex-wrap gap-1">
+              <p className="text-base font-semibold">Mots-clés produit manquants</p>
+              <div className="flex flex-wrap gap-2">
                 {analysis.analysis.missing_product_keywords.length > 0 ? (
                   analysis.analysis.missing_product_keywords.map((keyword) => (
-                    <Badge key={keyword} variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-800">
+                    <Badge
+                      key={keyword}
+                      variant="outline"
+                      className="border-amber-500/30 bg-amber-500/10 px-3 py-1 text-sm text-amber-800"
+                    >
                       {keyword}
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-sm text-muted-foreground">None flagged</span>
+                  <span className="text-base text-muted-foreground">Aucun signalé</span>
                 )}
               </div>
             </div>
 
-            <div className="space-y-3">
-              <p className="text-sm font-medium">Recommendations</p>
+            <div className="space-y-4">
+              <p className="text-base font-semibold">Recommandations</p>
               {sortedRecommendations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No recommendations returned.</p>
+                <p className="text-base text-muted-foreground">Aucune recommandation.</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {sortedRecommendations.map((rec) => (
-                    <div key={rec.id} className="rounded-lg border p-4 space-y-2">
+                    <div key={rec.id} className="space-y-2 rounded-2xl border p-6">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium">{rec.title}</p>
+                        <p className="text-lg font-semibold">{rec.title}</p>
                         <Badge variant="outline" className={severityBadgeClass(rec.severity)}>
                           {rec.severity}
                         </Badge>
                         <Badge variant="secondary">{rec.category}</Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{rec.explanation}</p>
-                      <p className="text-xs text-muted-foreground">
-                        <span className="font-medium text-foreground">Evidence: </span>
+                      <p className="text-base leading-7 text-muted-foreground">{rec.explanation}</p>
+                      <p className="text-sm leading-6 text-muted-foreground">
+                        <span className="font-medium text-foreground">Preuve : </span>
                         {rec.evidence_from_cv}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        <span className="font-medium text-foreground">Suggestion: </span>
+                      <p className="text-sm leading-6 text-muted-foreground">
+                        <span className="font-medium text-foreground">Suggestion : </span>
                         {rec.suggested_improvement}
                       </p>
                     </div>
@@ -424,8 +439,8 @@ export function CvAnalysisPanel({
           !loading &&
           hasSavedCv &&
           !hasUnsavedCv && (
-            <p className="text-sm text-muted-foreground">
-              Click Analyze CV to get scores and recommendations based on your saved CV.
+            <p className="text-base leading-7 text-muted-foreground">
+              Clique sur « Analyser le CV » pour obtenir scores et recommandations.
             </p>
           )
         )}

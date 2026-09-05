@@ -195,8 +195,7 @@ export default function LoginPageClient() {
     signupPasswordConfirm.length > 0;
 
   const canSubmitCv =
-    !parsingCv &&
-    (Boolean(pdfFile) || cvText.trim().length >= MIN_CV_LENGTH);
+    !parsingCv && (Boolean(pdfFile) || cvText.trim().length > 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -214,12 +213,12 @@ export default function LoginPageClient() {
 
         if (cancelled) return;
 
-        if (status.completed || status.has_tracked_search) {
-          router.replace(status.has_tracked_search ? "/jobs?extension=1" : "/dashboard");
+        if (status.completed) {
+          router.replace("/dashboard");
           return;
         }
 
-        if (status.has_cv || status.step === "metiers") {
+        if (status.has_cv || status.step === "api-keys") {
           router.replace("/onboarding/api-keys");
         }
       } catch {
@@ -351,7 +350,7 @@ export default function LoginPageClient() {
       };
 
       if (status.completed) {
-        router.push(status.has_tracked_search ? "/jobs?extension=1" : "/dashboard");
+        router.push("/dashboard");
         router.refresh();
         return;
       }
@@ -433,7 +432,7 @@ export default function LoginPageClient() {
         : "Connexion";
   const description =
     mode === "cv"
-      ? "Ensuite tu configureras tes clés API, puis ton métier."
+      ? "Ensuite tu configureras tes clés API, puis tu arrives sur le dashboard."
       : "Track PO/PM offers, score matches, generate cover letters.";
 
   if (mode === "cv") {
@@ -517,7 +516,9 @@ export default function LoginPageClient() {
                   </p>
                 ) : cvText.trim().length > 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    {cvText.trim().length} caractères
+                    {cvText.trim().length < MIN_CV_LENGTH
+                      ? `${cvText.trim().length} / ${MIN_CV_LENGTH} caractères minimum`
+                      : `${cvText.trim().length} caractères`}
                   </p>
                 ) : null}
               </div>

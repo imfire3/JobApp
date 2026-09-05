@@ -311,12 +311,24 @@ export function CvOptimizePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Score keywords (analyse)</CardDescription>
-            <CardTitle className={cn("text-3xl", getMatchScoreColor(analysis.analysis.keyword_score))}>
-              {analysis.analysis.keyword_score}
+            <CardTitle
+              className={cn(
+                "text-3xl",
+                typeof analysis.analysis.keyword_score === "number"
+                  ? getMatchScoreColor(analysis.analysis.keyword_score)
+                  : "text-muted-foreground"
+              )}
+            >
+              {typeof analysis.analysis.keyword_score === "number"
+                ? analysis.analysis.keyword_score
+                : "n/a"}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Overall {analysis.analysis.overall_score}
+            Overall{" "}
+            {typeof analysis.analysis.overall_score === "number"
+              ? analysis.analysis.overall_score
+              : "n/a"}
           </CardContent>
         </Card>
         <Card>

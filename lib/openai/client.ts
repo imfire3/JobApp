@@ -4,18 +4,8 @@ import {
   buildJobMatchUserPrompt,
   JOB_MATCH_SYSTEM_PROMPT,
 } from "@/lib/ai/prompts/job-match";
+import { parseJobMatchAnalysis } from "@/lib/ai/schemas/job-match";
 import type { JobAnalysis, ParsedCvProfile } from "@/types";
-
-const analysisSchema = z.object({
-  match_score: z.number().min(0).max(100),
-  match_reasons: z.array(z.string()).min(3).max(8),
-  match_gaps: z.array(z.string()).min(2).max(6),
-  cover_letter_angle: z.string(),
-  keywords_matched: z.array(z.string()).min(1).max(20),
-  keywords_missing: z.array(z.string()).min(1).max(20),
-  cv_improvements: z.array(z.string()).min(3).max(8),
-  job_posting_summary: z.string().min(1),
-});
 
 const parsedCvSchema = z.object({
   experiences: z.array(z.string()),
@@ -71,8 +61,7 @@ export async function analyzeJobMatch(
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("Empty response from OpenAI");
 
-  const parsed = analysisSchema.parse(JSON.parse(content));
-  return parsed;
+  return parseJobMatchAnalysis(JSON.parse(content));
 }
 
 export async function parseCvProfileWithAI(cvText: string): Promise<ParsedCvProfile> {

@@ -1,4 +1,4 @@
-export type OnboardingStep = "cv" | "metiers" | "done";
+export type OnboardingStep = "cv" | "api-keys" | "done";
 
 export type OnboardingFlags = {
   hasCv: boolean;
@@ -8,21 +8,13 @@ export type OnboardingFlags = {
   completed: boolean;
 };
 
-/** CV → métiers (alerte) → app. */
+/** CV → API keys → app. Métiers reste optionnel hors parcours obligatoire. */
 export function deriveOnboardingStep(flags: OnboardingFlags): OnboardingStep {
   if (flags.completed) return "done";
   if (!flags.hasCv) return "cv";
-  if (!flags.hasTrackedSearch) return "metiers";
-  return "done";
+  return "api-keys";
 }
 
 export function canCompleteOnboarding(flags: OnboardingFlags): boolean {
-  return flags.hasCv && flags.hasTrackedSearch;
-}
-
-/** Auto-complete only when the user already has a CV and at least one alerte. */
-export function shouldAutoComplete(
-  flags: Omit<OnboardingFlags, "completed">
-): boolean {
-  return flags.hasCv && flags.hasTrackedSearch;
+  return flags.hasCv;
 }

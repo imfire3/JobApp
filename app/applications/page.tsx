@@ -18,6 +18,7 @@ import {
 import { APPLICATION_STATUSES, type Application, type ApplicationStatus } from "@/types";
 import { toast } from "sonner";
 import { formatRelativeDate } from "@/lib/jobs/utils";
+import { PageHelpButton } from "@/components/onboarding/page-help-button";
 
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
   to_apply: "To Apply",
@@ -117,21 +118,24 @@ export default function ApplicationsPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Applications</h1>
-          <p className="text-sm text-muted-foreground">
-            Job Search CRM: pipeline, interview dates, notes, cover letters, history.
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Candidatures</h1>
+            <p className="text-sm text-muted-foreground">
+              Suivi CRM : pipeline, dates d’entretien, notes et historique.
+            </p>
+          </div>
+          <PageHelpButton pageId="applications" />
         </div>
 
-        <Card>
+        <Card data-tour="guide-applications-form">
           <CardHeader>
-            <CardTitle>Create application</CardTitle>
+            <CardTitle>Créer une candidature</CardTitle>
           </CardHeader>
           <CardContent>
             <form className="grid gap-4 md:grid-cols-3" onSubmit={createApplication}>
               <div className="space-y-2">
-                <Label>Company</Label>
+                <Label>Entreprise</Label>
                 <Input
                   value={form.company}
                   onChange={(e) => setForm((prev) => ({ ...prev, company: e.target.value }))}
@@ -139,15 +143,15 @@ export default function ApplicationsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Position</Label>
+                <Label>Poste</Label>
                 <Input
                   value={form.position}
                   onChange={(e) => setForm((prev) => ({ ...prev, position: e.target.value }))}
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
+              <div className="space-y-2" data-tour="guide-applications-status">
+                <Label>Statut</Label>
                 <Select
                   value={form.status}
                   onValueChange={(value) =>
@@ -196,7 +200,7 @@ export default function ApplicationsPage() {
               </div>
               <div className="md:col-span-3 flex justify-end">
                 <Button type="submit" disabled={creating}>
-                  {creating ? "Creating..." : "Create application"}
+                  {creating ? "Création…" : "Créer la candidature"}
                 </Button>
               </div>
             </form>

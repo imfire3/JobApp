@@ -8,6 +8,7 @@ import {
   ChromeExtensionModal,
   EXTENSION_SEEN_KEY,
 } from "@/components/onboarding/chrome-extension-modal";
+import { ProductTour } from "@/components/onboarding/product-tour";
 
 function ChromeExtensionGate() {
   const searchParams = useSearchParams();
@@ -83,6 +84,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Suspense fallback={null}>
         <ChromeExtensionGate />
       </Suspense>
+      <ProductTour />
     </div>
   );
 }

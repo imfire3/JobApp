@@ -154,15 +154,23 @@ export function AtsKeywordsPanel() {
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
                   Score keywords
                 </p>
-                <p className={`text-2xl font-bold ${getMatchScoreColor(ats.keyword_score)}`}>
-                  {ats.keyword_score}
-                </p>
+                {typeof ats.keyword_score === "number" ? (
+                  <p className={`text-2xl font-bold ${getMatchScoreColor(ats.keyword_score)}`}>
+                    {ats.keyword_score}
+                  </p>
+                ) : (
+                  <p className="text-2xl font-bold text-muted-foreground">n/a</p>
+                )}
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall</p>
-                <p className={`text-2xl font-bold ${getMatchScoreColor(ats.overall_score)}`}>
-                  {ats.overall_score}
-                </p>
+                {typeof ats.overall_score === "number" ? (
+                  <p className={`text-2xl font-bold ${getMatchScoreColor(ats.overall_score)}`}>
+                    {ats.overall_score}
+                  </p>
+                ) : (
+                  <p className="text-2xl font-bold text-muted-foreground">n/a</p>
+                )}
               </div>
               {analysis?.is_stale ? (
                 <Badge variant="outline" className="border-amber-500/40 text-amber-700">

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -121,28 +122,38 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Expériences</CardTitle>
-        <CardDescription>
-          Ajoute tes postes manuellement. Ils seront fusionnés dans le texte CV à
-          l’enregistrement.
-        </CardDescription>
+    <Card className="rounded-2xl">
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 space-y-0 p-6 md:p-8">
+        <div className="space-y-2">
+          <CardTitle className="text-xl font-semibold">Expériences</CardTitle>
+          <CardDescription className="text-base leading-7">
+            Ajoute tes postes manuellement. Ils seront fusionnés dans le texte CV à
+            l’enregistrement.
+          </CardDescription>
+        </div>
+        {!formOpen ? (
+          <Button type="button" size="lg" onClick={handleOpenForm}>
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter
+          </Button>
+        ) : null}
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 px-6 pb-6 md:px-8 md:pb-8">
         {experiences.length > 0 ? (
-          <ul className="space-y-3">
+          <ul className="space-y-4">
             {experiences.map((experience) => (
               <li
                 key={experience.id}
-                className="flex items-start justify-between gap-3 rounded-xl border border-border p-3"
+                className="flex items-start justify-between gap-4 rounded-2xl border border-border p-4 md:p-6"
               >
-                <div className="min-w-0 space-y-1">
-                  <p className="font-medium text-foreground">
+                <div className="min-w-0 space-y-2">
+                  <p className="text-lg font-semibold uppercase tracking-wide text-foreground">
                     {experience.title}
-                    <span className="text-muted-foreground"> — {experience.organization}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-base font-medium text-foreground">
+                    {experience.organization}
+                  </p>
+                  <p className="text-sm leading-6 text-muted-foreground">
                     {[
                       experience.startMonth
                         ? MONTH_OPTIONS.find((m) => m.value === experience.startMonth)?.label
@@ -163,16 +174,25 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
-                  {experience.skills.length > 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      {experience.skills.join(", ")}
+                  {experience.highlights.trim() ? (
+                    <p className="whitespace-pre-wrap text-base leading-7 text-muted-foreground">
+                      {experience.highlights.trim()}
                     </p>
+                  ) : null}
+                  {experience.skills.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {experience.skills.map((skill) => (
+                        <Badge key={skill} variant="secondary" className="px-3 py-1 text-sm">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
                   ) : null}
                 </div>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-sm"
+                  size="icon"
                   onClick={() => handleRemoveExperience(experience.id)}
                   aria-label={`Supprimer ${experience.title}`}
                 >
@@ -182,47 +202,44 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
             ))}
           </ul>
         ) : (
-          <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+          <p className="rounded-2xl border border-dashed p-6 text-base leading-7 text-muted-foreground">
             Aucune expérience ajoutée pour l’instant.
           </p>
         )}
 
-        {!formOpen ? (
-          <Button type="button" onClick={handleOpenForm}>
-            <Plus className="mr-2 h-4 w-4" />
-            Ajouter une expérience
-          </Button>
-        ) : (
-        <div className="space-y-4 rounded-xl border border-border p-4">
-          <h3 className="text-sm font-medium">Ajouter un poste</h3>
+        {formOpen ? (
+        <div className="space-y-6 rounded-2xl border border-border p-4 md:p-6">
+          <h3 className="text-lg font-semibold">Ajouter un poste</h3>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             <Field className="sm:col-span-2">
-              <Label htmlFor="exp-title" className="mb-0">
+              <Label htmlFor="exp-title" className="mb-0 text-base">
                 Intitulé du poste *
               </Label>
               <Input
                 id="exp-title"
                 value={draft.title}
                 onChange={(e) => updateDraft("title", e.target.value)}
-                placeholder="Exemple : Chef de produit senior"
+                placeholder="Exemple : Product Manager"
+                className="h-12 text-base"
               />
             </Field>
 
             <Field className="sm:col-span-2">
-              <Label htmlFor="exp-org" className="mb-0">
+              <Label htmlFor="exp-org" className="mb-0 text-base">
                 Organisation *
               </Label>
               <Input
                 id="exp-org"
                 value={draft.organization}
                 onChange={(e) => updateDraft("organization", e.target.value)}
-                placeholder="Exemple : Microsoft"
+                placeholder="Exemple : Welcome to the Jungle"
+                className="h-12 text-base"
               />
             </Field>
 
             <Field>
-              <Label htmlFor="exp-location" className="mb-0">
+              <Label htmlFor="exp-location" className="mb-0 text-base">
                 Lieu
               </Label>
               <Input
@@ -230,11 +247,12 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                 value={draft.location}
                 onChange={(e) => updateDraft("location", e.target.value)}
                 placeholder="Ville ou région"
+                className="h-12 text-base"
               />
             </Field>
 
             <Field>
-              <Label className="mb-0">Type de lieu</Label>
+              <Label className="mb-0 text-base">Type de lieu</Label>
               <Select
                 value={draft.locationType || "__none__"}
                 onValueChange={(value) =>
@@ -244,7 +262,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                   )
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="h-12 w-full text-base">
                   <SelectValue placeholder="Veuillez sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
@@ -261,7 +279,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
             </Field>
 
             <Field>
-              <Label className="mb-0">Type d’emploi</Label>
+              <Label className="mb-0 text-base">Type d’emploi</Label>
               <Select
                 value={draft.employmentType || "__none__"}
                 onValueChange={(value) =>
@@ -271,7 +289,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                   )
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="h-12 w-full text-base">
                   <SelectValue placeholder="Veuillez sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
@@ -287,7 +305,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
               </Select>
             </Field>
 
-            <div className="flex items-center gap-2 sm:items-end sm:pb-2">
+            <div className="flex items-center gap-3 sm:items-end sm:pb-2">
               <Checkbox
                 id="exp-current"
                 checked={draft.isCurrent}
@@ -301,18 +319,18 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                   }))
                 }}
               />
-              <Label htmlFor="exp-current" className="mb-0 cursor-pointer">
+              <Label htmlFor="exp-current" className="mb-0 cursor-pointer text-base">
                 Ceci est mon poste actuel
               </Label>
             </div>
 
             <Field>
-              <Label className="mb-0">Mois de début</Label>
+              <Label className="mb-0 text-base">Mois de début</Label>
               <Select
                 value={draft.startMonth}
                 onValueChange={(value) => updateDraft("startMonth", value ?? "")}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="h-12 w-full text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -326,12 +344,12 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
             </Field>
 
             <Field>
-              <Label className="mb-0">Année de début *</Label>
+              <Label className="mb-0 text-base">Année de début *</Label>
               <Select
                 value={draft.startYear}
                 onValueChange={(value) => updateDraft("startYear", value ?? "")}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="h-12 w-full text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -347,14 +365,14 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
             {!draft.isCurrent ? (
               <>
                 <Field>
-                  <Label className="mb-0">Mois de fin</Label>
+                  <Label className="mb-0 text-base">Mois de fin</Label>
                   <Select
                     value={draft.endMonth || "__none__"}
                     onValueChange={(value) =>
                       updateDraft("endMonth", !value || value === "__none__" ? "" : value)
                     }
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="h-12 w-full text-base">
                       <SelectValue placeholder="Mois" />
                     </SelectTrigger>
                     <SelectContent>
@@ -369,14 +387,14 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                 </Field>
 
                 <Field>
-                  <Label className="mb-0">Année de fin</Label>
+                  <Label className="mb-0 text-base">Année de fin</Label>
                   <Select
                     value={draft.endYear || "__none__"}
                     onValueChange={(value) =>
                       updateDraft("endYear", !value || value === "__none__" ? "" : value)
                     }
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="h-12 w-full text-base">
                       <SelectValue placeholder="Année" />
                     </SelectTrigger>
                     <SelectContent>
@@ -393,7 +411,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
             ) : null}
 
             <Field className="sm:col-span-2">
-              <Label htmlFor="exp-highlights" className="mb-0">
+              <Label htmlFor="exp-highlights" className="mb-0 text-base">
                 Points clés
               </Label>
               <Textarea
@@ -402,17 +420,18 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                 onChange={(e) => updateDraft("highlights", clampHighlights(e.target.value))}
                 rows={5}
                 placeholder="Réalisations, impact, contexte…"
+                className="text-base leading-7"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {draft.highlights.length}/{MAX_HIGHLIGHTS}
               </p>
             </Field>
 
             <Field className="sm:col-span-2">
-              <Label htmlFor="exp-skill" className="mb-0">
+              <Label htmlFor="exp-skill" className="mb-0 text-base">
                 Compétences
               </Label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm leading-6 text-muted-foreground">
                 Ajoute des compétences pour afficher tes points forts.
               </p>
               <div className="flex gap-2">
@@ -421,6 +440,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
                   placeholder="Ajouter une compétence"
+                  className="h-12 text-base"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault()
@@ -428,7 +448,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                     }
                   }}
                 />
-                <Button type="button" variant="outline" onClick={handleAddSkill}>
+                <Button type="button" variant="outline" size="lg" onClick={handleAddSkill}>
                   <Plus className="mr-1 h-4 w-4" />
                   Ajouter
                 </Button>
@@ -440,7 +460,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                       key={skill}
                       type="button"
                       onClick={() => handleRemoveSkill(skill)}
-                      className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium touch-manipulation"
+                      className="inline-flex min-h-8 items-center gap-2 rounded-full border border-border bg-muted/40 px-4 py-2 text-sm font-medium touch-manipulation"
                       aria-label={`Retirer ${skill}`}
                     >
                       {skill}
@@ -452,16 +472,16 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
             </Field>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={handleAddExperience} disabled={!canAdd}>
+          <div className="flex flex-wrap gap-4">
+            <Button type="button" size="lg" onClick={handleAddExperience} disabled={!canAdd}>
               Enregistrer l’expérience
             </Button>
-            <Button type="button" variant="outline" onClick={handleCloseForm}>
+            <Button type="button" size="lg" variant="outline" onClick={handleCloseForm}>
               Annuler
             </Button>
           </div>
         </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   )

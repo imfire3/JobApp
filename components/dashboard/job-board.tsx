@@ -18,9 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const defaultFilters: JobFilters = {
-  postedWithinHours: 24,
-};
+const defaultFilters: JobFilters = {};
 
 export function JobBoard() {
   const router = useRouter();

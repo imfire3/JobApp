@@ -2,17 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Bot,
-  Briefcase,
-  Cable,
-  FolderKanban,
-  Import,
-  LayoutDashboard,
-  Menu,
-  Puzzle,
-  Settings,
-} from "lucide-react";
+import { Briefcase, Menu } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -21,17 +11,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/jobs", label: "Jobs", icon: Briefcase },
-  { href: "/applications", label: "Applications", icon: FolderKanban },
-  { href: "/imports", label: "Imports", icon: Import },
-  { href: "/extension", label: "Extension Chrome", icon: Puzzle },
-  { href: "/sources", label: "Sources", icon: Cable },
-  { href: "/profile-ai", label: "CV Context", icon: Bot },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+import { NAV_ITEMS } from "@/components/layout/nav-items";
+import { RelaunchGuideButton } from "@/components/onboarding/page-help-button";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -44,42 +25,46 @@ export function MobileNav() {
         </div>
         <span className="font-semibold">JobTracker</span>
       </div>
-      <Sheet>
-        <SheetTrigger
-          className={cn(
-            "inline-flex size-9 items-center justify-center rounded-lg border bg-background hover:bg-muted"
-          )}
-        >
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Open menu</span>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-64">
-          <SheetHeader>
-            <SheetTitle>Menu</SheetTitle>
-          </SheetHeader>
-          <nav className="mt-4 flex flex-col gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
-                    active
-                      ? "bg-muted text-foreground"
-                      : "text-muted-foreground hover:bg-muted/60"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </SheetContent>
-      </Sheet>
+      <div className="flex items-center gap-1">
+        <RelaunchGuideButton />
+        <Sheet>
+          <SheetTrigger
+            className={cn(
+              "inline-flex size-9 items-center justify-center rounded-lg border bg-background hover:bg-muted"
+            )}
+          >
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Ouvrir le menu</span>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64">
+            <SheetHeader>
+              <SheetTitle>Menu</SheetTitle>
+            </SheetHeader>
+            <nav className="mt-4 flex flex-col gap-1">
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    data-tour={item.tourId}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
+                      active
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:bg-muted/60"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </SheetContent>
+        </Sheet>
+      </div>
     </header>
   );
 }

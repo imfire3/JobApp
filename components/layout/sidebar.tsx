@@ -1,34 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  Bot,
-  Briefcase,
-  Cable,
-  FolderKanban,
-  Import,
-  LayoutDashboard,
-  LogOut,
-  Puzzle,
-  Settings,
-  Sparkles,
-} from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Briefcase, LogOut, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useRouter } from "next/navigation";
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/jobs", label: "Jobs", icon: Briefcase },
-  { href: "/applications", label: "Applications", icon: FolderKanban },
-  { href: "/imports", label: "Imports", icon: Import },
-  { href: "/extension", label: "Extension Chrome", icon: Puzzle },
-  { href: "/sources", label: "Sources", icon: Cable },
-  { href: "/profile-ai", label: "CV Context", icon: Bot },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+import { NAV_ITEMS } from "@/components/layout/nav-items";
+import { RelaunchGuideButton } from "@/components/onboarding/page-help-button";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -48,20 +27,21 @@ export function Sidebar() {
         </div>
         <div>
           <p className="text-sm font-semibold tracking-tight">JobTracker</p>
-          <p className="text-xs text-muted-foreground">PO / PM search</p>
+          <p className="text-xs text-muted-foreground">Recherche d’emploi</p>
         </div>
       </div>
 
       <Separator />
 
       <nav className="flex flex-1 flex-col gap-1 p-4">
-        {navItems.map((item) => {
+        {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}
               href={item.href}
+              data-tour={item.tourId}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 active
@@ -80,11 +60,12 @@ export function Sidebar() {
         <div className="mb-3 rounded-lg border bg-background/50 p-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5" />
-            AI-powered matching
+            Matching & lettres IA
           </div>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Import jobs, score fit, generate cover letters.
+            Importe des offres, compare avec ton CV, génère des lettres.
           </p>
+          <RelaunchGuideButton className="mt-2 h-8 w-full justify-start px-0 text-muted-foreground" />
         </div>
         <Button
           variant="ghost"
@@ -92,7 +73,7 @@ export function Sidebar() {
           onClick={handleSignOut}
         >
           <LogOut className="h-4 w-4" />
-          Sign out
+          Déconnexion
         </Button>
       </div>
     </aside>

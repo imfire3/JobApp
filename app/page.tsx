@@ -9,9 +9,9 @@ const syne = Syne({
 })
 
 export const metadata: Metadata = {
-  title: "JobTracker — CRM de candidature PO / PM",
+  title: "JobTracker — CV, offres et candidatures",
   description:
-    "Centralise tes offres, score le fit avec ton CV, et génère des cover letters personnalisées. Import CSV, WTTJ, extension Chrome.",
+    "Importe ton CV, capture des offres, compare les mots-clés et suis tes candidatures. Extension Chrome, CSV, analyse ATS.",
 }
 
 export default function Home() {

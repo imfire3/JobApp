@@ -93,7 +93,11 @@ export async function loadOwnedJob(
   return (data as JobRow | null) ?? null;
 }
 
-function toPromptInput(job: JobRow, cvText: string): CoverLetterPromptInput {
+function toPromptInput(
+  job: JobRow,
+  cvText: string,
+  writingPreferences?: string | null
+): CoverLetterPromptInput {
   const skills = Array.isArray(job.skills)
     ? job.skills.filter((skill): skill is string => typeof skill === "string")
     : [];
@@ -114,6 +118,7 @@ function toPromptInput(job: JobRow, cvText: string): CoverLetterPromptInput {
     description: job.description,
     aiSummary: job.ai_summary,
     url: job.url,
+    writingPreferences: writingPreferences ?? null,
   };
 }
 
@@ -135,7 +140,26 @@ export async function generateAndSaveCoverLetter(
     throw new CoverLetterError("Job not found", 404);
   }
 
-  const generated = await generateCoverLetterContent(toPromptInput(job, cvText));
+  let writingPreferences: string | null = null;
+  try {
+    const { data: settings } = await supabase
+      .from("user_settings")
+      .select("cover_letter_defaults")
+      .eq("id", userId)
+      .maybeSingle();
+    const defaults = settings?.cover_letter_defaults;
+    if (defaults && typeof defaults === "object") {
+      writingPreferences = JSON.stringify(defaults);
+    } else if (typeof defaults === "string" && defaults.trim()) {
+      writingPreferences = defaults;
+    }
+  } catch {
+    writingPreferences = null;
+  }
+
+  const generated = await generateCoverLetterContent(
+    toPromptInput(job, cvText, writingPreferences)
+  );
 
   const { data: savedLetter, error: saveError } = await supabase
     .from("cover_letters")

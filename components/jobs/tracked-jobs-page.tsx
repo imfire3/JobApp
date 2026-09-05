@@ -14,6 +14,7 @@ import { JobCard } from "@/components/dashboard/job-card";
 import { JobTable } from "@/components/dashboard/job-table";
 import { JobBulkActions } from "@/components/dashboard/job-bulk-actions";
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
+import { PageHelpButton } from "@/components/onboarding/page-help-button";
 import { filterJobs } from "@/lib/jobs/utils";
 import type { Job, JobFilters, JobStatus, TrackedSearch } from "@/types";
 import { List, Play, Plus, RefreshCw, Trash2, LayoutGrid } from "lucide-react";
@@ -22,7 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { nativeSelectClassName, nativeSelectChevronStyle } from "@/components/ui/native-select";
 import { useRouter } from "next/navigation";
 
-const defaultFilters: JobFilters = { postedWithinHours: 24 };
+const defaultFilters: JobFilters = {};
 
 type TrackedSearchPayload = {
   name: string;
@@ -478,9 +479,12 @@ export function TrackedJobsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div
+        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        data-tour="guide-jobs-header"
+      >
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Offres suivies</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Offres</h1>
           <p className="text-sm text-muted-foreground">
             Choisis une alerte pour voir ses offres. Collecte auto tous les jours à 08:00.
           </p>
@@ -490,11 +494,13 @@ export function TrackedJobsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <PageHelpButton pageId="jobs" />
           <Button variant="outline" onClick={syncAllEnabled} disabled={syncingAll}>
             <RefreshCw className={`mr-2 h-4 w-4 ${syncingAll ? "animate-spin" : ""}`} />
             {syncingAll ? "Sync…" : "Sync toutes"}
           </Button>
           <Button
+            data-tour="guide-jobs-alert"
             onClick={() => {
               setEditingSearch(null);
               setSearchForm(emptySearch);
@@ -625,7 +631,11 @@ export function TrackedJobsPage() {
 
       <JobFiltersBar filters={filters} onChange={setFilters} sources={sources} />
 
-      <Tabs value={view} onValueChange={(value) => setView(value as "cards" | "table")}>
+      <Tabs
+        value={view}
+        onValueChange={(value) => setView(value as "cards" | "table")}
+        data-tour="guide-jobs-match"
+      >
         <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
           <TabsList>
             <TabsTrigger value="cards">
@@ -639,11 +649,20 @@ export function TrackedJobsPage() {
           </TabsList>
           <JobDateFilter filters={filters} onChange={setFilters} />
         </div>
+        {jobs.length > 0 && filteredJobs.length !== jobs.length ? (
+          <p className="mb-3 text-sm text-muted-foreground">
+            {filteredJobs.length} offre{filteredJobs.length > 1 ? "s" : ""} affichée
+            {filteredJobs.length > 1 ? "s" : ""} sur {jobs.length} — élargis le filtre Date
+            ou désactive « Last 24h only ».
+          </p>
+        ) : null}
 
         <TabsContent value="cards" className="mt-0">
           {filteredJobs.length === 0 ? (
             <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-              Aucune offre pour cette alerte. Lance la collecte ou importe un CSV depuis Imports.
+              {jobs.length > 0
+                ? "Aucune offre ne correspond aux filtres actifs. Passe Date sur « Any date » ou désactive « Last 24h only »."
+                : "Aucune offre pour cette alerte. Lance la collecte ou importe un CSV depuis Imports."}
             </p>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -666,14 +685,22 @@ export function TrackedJobsPage() {
         </TabsContent>
 
         <TabsContent value="table" className="mt-0">
-          <JobTable
-            jobs={filteredJobs}
-            onSelect={(id, selected) => updateJob(id, { selected })}
-            onStatusChange={(id, status) => updateJob(id, { status })}
-            onAnalyze={handleAnalyze}
-            onViewCoverLetter={setCoverLetterJob}
-            onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
-          />
+          {filteredJobs.length === 0 ? (
+            <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+              {jobs.length > 0
+                ? "Aucune offre ne correspond aux filtres actifs. Passe Date sur « Any date » ou désactive « Last 24h only »."
+                : "Aucune offre pour cette alerte. Lance la collecte ou importe un CSV depuis Imports."}
+            </p>
+          ) : (
+            <JobTable
+              jobs={filteredJobs}
+              onSelect={(id, selected) => updateJob(id, { selected })}
+              onStatusChange={(id, status) => updateJob(id, { status })}
+              onAnalyze={handleAnalyze}
+              onViewCoverLetter={setCoverLetterJob}
+              onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
+            />
+          )}
         </TabsContent>
       </Tabs>
 

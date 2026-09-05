@@ -5,7 +5,6 @@ import { ONBOARDING_COOKIE, getOnboardingCookieOptions } from "@/lib/onboarding/
 import {
   canCompleteOnboarding,
   deriveOnboardingStep,
-  shouldAutoComplete,
   type OnboardingFlags,
 } from "@/lib/onboarding/status";
 import { MIN_CV_LENGTH } from "@/lib/cv-analysis/service";
@@ -103,28 +102,8 @@ export async function GET() {
 
   try {
     const flags = await loadOnboardingState(supabase, user.id);
-
-    if (!flags.completed && shouldAutoComplete(flags)) {
-      const completedAt = new Date().toISOString();
-      const { error: updateError } = await supabase.from("user_settings").upsert(
-        {
-          id: user.id,
-          onboarding_completed: true,
-          onboarding_completed_at: completedAt,
-        },
-        { onConflict: "id" }
-      );
-
-      if (updateError) {
-        return NextResponse.json({ error: updateError.message }, { status: 500 });
-      }
-
-      return createOnboardingResponse({
-        ...flags,
-        completed: true,
-      });
-    }
-
+    // Do not auto-complete here: after CV the user must see /onboarding/api-keys
+    // and finish (or skip) explicitly before the dashboard unlocks.
     return createOnboardingResponse(flags);
   } catch (caughtError) {
     const message = caughtError instanceof Error ? caughtError.message : "Failed to load onboarding state";

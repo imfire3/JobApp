@@ -69,7 +69,7 @@ export async function updateSession(request: NextRequest) {
 
     if (onboardingPending && !isOnboardingAllowed(pathname) && !isPublicRoute(pathname)) {
       const url = request.nextUrl.clone();
-      // Resume onboarding: API keys page gates to CV / métiers as needed
+      // Resume onboarding: API keys page gates to CV as needed, then dashboard
       url.pathname = "/onboarding/api-keys";
       return NextResponse.redirect(url);
     }

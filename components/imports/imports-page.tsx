@@ -15,8 +15,16 @@ import {
   type ImportJobCard,
 } from "@/components/imports/import-analysis-panel";
 import { ChromeExtensionPanel } from "@/components/imports/chrome-extension-panel";
-import { EXPECTED_IMPORT_COLUMNS } from "@/lib/imports/jobs-file";
+import {
+  EXPECTED_IMPORT_COLUMNS,
+  WEBSITE_PASTE_SOURCE,
+  buildWebsitePasteRow,
+  mergeWebsitePasteRow,
+  rowsToCsvFile,
+} from "@/lib/imports/jobs-file";
 import type { ParsedImportRow } from "@/lib/imports/jobs-file";
+import { Textarea } from "@/components/ui/textarea";
+import { PageHelpButton } from "@/components/onboarding/page-help-button";
 
 type ImportSummary = {
   total_rows: number;
@@ -57,6 +65,8 @@ function rowsToPreviewCards(rows: ParsedImportRow[]): ImportJobCard[] {
 export function ImportsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewRows, setPreviewRows] = useState<ParsedImportRow[]>([]);
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [websitePaste, setWebsitePaste] = useState("");
   const [summary, setSummary] = useState<ImportSummary | WttjImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -221,13 +231,15 @@ export function ImportsPage() {
 
       const rows = payload.rows ?? [];
       const invalid = (payload.invalid_rows ?? []).filter((row) => row.rowNumber > 0);
-      setPreviewRows(rows);
+      const pasteRow = buildWebsitePasteRow(websiteUrl, websitePaste, rows.length + 1);
+      const merged = mergeWebsitePasteRow(rows, pasteRow);
+      setPreviewRows(merged);
       setPreviewInvalid(invalid);
       if (activeTab === "sheet") {
-        setAnalysisCards(rowsToPreviewCards(rows));
+        setAnalysisCards(rowsToPreviewCards(merged));
       }
 
-      if (rows.length === 0 && invalid.length > 0) {
+      if (merged.length === 0 && invalid.length > 0) {
         setError(
           `Aucune offre valide. ${invalid.length} ligne(s) rejetée(s) — ex: ${invalid[0]?.errors.join("; ")}`
         );
@@ -245,16 +257,36 @@ export function ImportsPage() {
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null;
     setFile(selected);
-    setPreviewRows([]);
     setSummary(null);
     setError(null);
-    setAnalysisCards([]);
     setAnalyzedCount(0);
     setPreviewInvalid([]);
 
     if (selected) {
       await handlePreview(selected);
+      return;
     }
+
+    const pasteRow = buildWebsitePasteRow(websiteUrl, websitePaste, 1);
+    const merged = mergeWebsitePasteRow([], pasteRow);
+    setPreviewRows(merged);
+    setAnalysisCards(rowsToPreviewCards(merged));
+  }
+
+  function handleWebsitePasteChange(nextUrl: string, nextContent: string) {
+    setWebsiteUrl(nextUrl);
+    setWebsitePaste(nextContent);
+    const pasteRow = buildWebsitePasteRow(nextUrl, nextContent, 1);
+    setPreviewRows((prev) => {
+      const merged = mergeWebsitePasteRow(
+        prev.filter((row) => row.source !== WEBSITE_PASTE_SOURCE),
+        pasteRow
+      );
+      setAnalysisCards(rowsToPreviewCards(merged));
+      return merged;
+    });
+    setSummary(null);
+    setError(null);
   }
 
   async function handleWttjSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -393,8 +425,8 @@ export function ImportsPage() {
 
   async function handleSheetSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!file) {
-      setError("Select a file first.");
+    if (previewRows.length === 0) {
+      setError("Ajoute un fichier CSV/Excel ou colle une offre (URL + texte).");
       return;
     }
 
@@ -403,8 +435,12 @@ export function ImportsPage() {
     setSummary(null);
 
     try {
+      const hasPaste = previewRows.some((row) => row.source === WEBSITE_PASTE_SOURCE);
+      const uploadFile =
+        hasPaste || !file ? rowsToCsvFile(previewRows) : file;
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", uploadFile);
 
       const response = await fetch("/api/import-jobs", {
         method: "POST",
@@ -451,12 +487,15 @@ export function ImportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Imports</h1>
-        <p className="text-sm text-muted-foreground">
-          Importe un CSV/Excel, analyse chaque offre avec une barre de progression, puis valide
-          vers le board.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Imports</h1>
+          <p className="text-sm text-muted-foreground">
+            Importe un CSV/Excel, analyse chaque offre avec une barre de progression, puis valide
+            vers le board.
+          </p>
+        </div>
+        <PageHelpButton pageId="imports" />
       </div>
 
       <Tabs
@@ -542,7 +581,7 @@ export function ImportsPage() {
         </TabsContent>
 
         <TabsContent value="sheet" className="mt-4 space-y-4">
-          <Card>
+          <Card data-tour="guide-imports-form">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="h-4 w-4" />
@@ -572,10 +611,46 @@ export function ImportsPage() {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="website-url">URL de l&apos;offre (optionnel)</Label>
+                  <Input
+                    id="website-url"
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://www.welcometothejungle.com/..."
+                    value={websiteUrl}
+                    onChange={(event) =>
+                      handleWebsitePasteChange(event.target.value, websitePaste)
+                    }
+                    aria-label="URL de l'offre à importer"
+                  />
+                </div>
+
+                <div className="space-y-2" data-tour="guide-imports-paste">
+                  <Label htmlFor="website-paste">
+                    Coller le contenu de la page / offre
+                  </Label>
+                  <Textarea
+                    id="website-paste"
+                    rows={6}
+                    placeholder="Colle ici le titre, l'entreprise, la description et les infos de l'offre…"
+                    value={websitePaste}
+                    onChange={(event) =>
+                      handleWebsitePasteChange(websiteUrl, event.target.value)
+                    }
+                    aria-label="Contenu de l'offre collé depuis le site"
+                    className="min-h-28"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    La première ligne devient le titre. L&apos;URL sert de lien
+                    offre ; le texte collé est stocké dans la description.
+                  </p>
+                </div>
+
                 <Button
                   type="submit"
                   disabled={
-                    uploading || analyzing || !file || previewRows.length === 0
+                    uploading || analyzing || previewRows.length === 0
                   }
                 >
                   {uploading
@@ -602,7 +677,7 @@ export function ImportsPage() {
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           {activeTab === "sheet"
-            ? "Upload CSV → cards en aperçu → Importer et analyser (barre 0–100%) → Valider vers Jobs."
+            ? "Upload CSV, ou colle une offre (URL + texte) → aperçu → Importer et analyser → Valider vers Jobs."
             : "Run your Apify actor → export dataset as JSON → upload here → preview → import into Jobs."}
         </p>
       </div>

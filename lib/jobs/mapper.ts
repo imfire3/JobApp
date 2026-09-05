@@ -213,6 +213,7 @@ export function toJobViewModel(row: JobRow): Job {
       typeof row.tracked_searches === "object" && row.tracked_searches
         ? row.tracked_searches.name ?? null
         : null,
+    keywords_from_job: asStringArray(jobFit?.keywords_from_job),
     keywords_matched: asStringArray(jobFit?.keywords_matched),
     keywords_missing: asStringArray(jobFit?.keywords_missing),
     cv_improvements: asStringArray(jobFit?.cv_improvements),

@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import type { DashboardKpis, Job } from "@/types";
 import { computeKpis } from "@/lib/jobs/utils";
 import { Bot, Cable, Clock3, Sparkles } from "lucide-react";
+import { PageHelpButton } from "@/components/onboarding/page-help-button";
 
 type DashboardSummaryResponse = {
   jobs: Job[];
@@ -62,20 +63,24 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div
+        className="flex flex-wrap items-center justify-between gap-3"
+        data-tour="guide-dashboard"
+      >
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
           <p className="text-sm text-muted-foreground">
-            AI-powered Job Search CRM overview and automation status.
+            Vue d’ensemble de ta recherche et de ton activité récente.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <PageHelpButton pageId="dashboard" />
           <Link href="/sources" className={buttonVariants({ variant: "outline" })}>
             <Cable className="mr-2 h-4 w-4" />
-            Manage connectors
+            Gérer les sources
           </Link>
           <Link href="/jobs" className={buttonVariants({})}>
-            Open jobs
+            Voir mes offres
           </Link>
         </div>
       </div>

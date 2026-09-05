@@ -117,10 +117,12 @@ export interface JobRecord {
 }
 
 export interface JobAnalysis {
-  match_score: number;
+  match_score: number | null;
   match_reasons: string[];
   match_gaps: string[];
   cover_letter_angle: string;
+  /** All notable keywords extracted from the job posting */
+  keywords_from_job: string[];
   /** Keywords present in both CV and job posting */
   keywords_matched: string[];
   /** Important job keywords missing from the CV */
@@ -129,6 +131,10 @@ export interface JobAnalysis {
   cv_improvements: string[];
   /** Short synthesis of the job posting requirements */
   job_posting_summary: string;
+  status?: "ok" | "partial" | "insufficient_input";
+  score_confidence?: "low" | "medium" | "high";
+  score_explanation?: string;
+  limitations?: string[];
 }
 
 /** UI-facing job view model (mapped from JobRecord). */
@@ -182,6 +188,7 @@ export interface Job extends ImportedJob {
   tracked_search_name?: string | null;
   keywords_matched?: string[] | null;
   keywords_missing?: string[] | null;
+  keywords_from_job?: string[] | null;
   cv_improvements?: string[] | null;
   job_posting_summary?: string | null;
   created_at: string;
@@ -364,6 +371,13 @@ export type CvAnalysisSeverity = "low" | "medium" | "high";
 export interface CvDetectedLanguage {
   language: string;
   level?: string | null;
+  evidence_from_cv?: string;
+}
+
+export interface CvEvidenceItem {
+  title: string;
+  explanation: string;
+  evidence_from_cv: string;
 }
 
 export interface CvAnalysisRecommendation {
@@ -374,14 +388,40 @@ export interface CvAnalysisRecommendation {
   explanation: string;
   evidence_from_cv: string;
   suggested_improvement: string;
+  suggested_rewrite?: string | null;
+  information_to_confirm?: string | null;
+}
+
+export interface CvTargetRole {
+  role: string;
+  source: "explicit" | "inferred";
+  evidence_from_cv: string;
 }
 
 export interface CvAtsAnalysis {
-  overall_score: number;
-  parsing_score: number;
-  structure_score: number;
-  impact_score: number;
-  keyword_score: number;
+  status?: "ok" | "partial" | "insufficient_input";
+  assessment_scope?: {
+    inputs_observed: string[];
+    limitations: string[];
+    ats_disclaimer: string;
+  };
+  target_roles?: CvTargetRole[];
+  scores?: {
+    parsing_score: number | null;
+    structure_score: number | null;
+    impact_score: number | null;
+    keyword_score: number | null;
+    overall_score: number | null;
+  };
+  score_explanations?: Record<
+    string,
+    { rationale: string; confidence: "low" | "medium" | "high" }
+  >;
+  overall_score: number | null;
+  parsing_score: number | null;
+  structure_score: number | null;
+  impact_score: number | null;
+  keyword_score: number | null;
   detected_roles: string[];
   detected_skills: string[];
   detected_tools: string[];
@@ -390,6 +430,8 @@ export interface CvAtsAnalysis {
   estimated_experience_years: number | null;
   strengths: string[];
   weaknesses: string[];
+  strengths_detailed?: CvEvidenceItem[];
+  weaknesses_detailed?: CvEvidenceItem[];
   missing_product_keywords: string[];
   recommendations: CvAnalysisRecommendation[];
   recruiter_summary: string;
