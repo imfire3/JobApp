@@ -199,78 +199,80 @@ export default function LoginPageClient() {
   if (mode === "cv") {
     return (
       <div className="flex h-dvh flex-col bg-muted/30">
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-4">
-          <Card className="mx-auto w-full max-w-2xl shadow-lg">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <Briefcase className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-2xl">{title}</CardTitle>
-              <CardDescription>{description}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-2">
-                <input
-                  ref={fileInputRef}
-                  id="cv-pdf"
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  className="sr-only"
-                  disabled={loading}
-                  onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
-                />
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-4 text-center touch-manipulation transition-colors disabled:opacity-50 ${
-                    pdfFile
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-muted/20 hover:border-primary hover:bg-muted/40 active:bg-muted/60"
-                  }`}
-                >
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
+          <div className="flex min-h-full items-center justify-center py-6">
+            <Card className="mx-auto w-full max-w-2xl shadow-lg">
+              <CardHeader className="text-center">
+                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <Briefcase className="h-6 w-6" />
+                </div>
+                <CardTitle className="text-2xl">{title}</CardTitle>
+                <CardDescription>{description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <input
+                    ref={fileInputRef}
+                    id="cv-pdf"
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="sr-only"
+                    disabled={loading}
+                    onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
+                  />
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-4 text-center touch-manipulation transition-colors disabled:opacity-50 ${
+                      pdfFile
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-muted/20 hover:border-primary hover:bg-muted/40 active:bg-muted/60"
+                    }`}
+                  >
+                    {pdfFile ? (
+                      <CheckCircle2 className="h-7 w-7 text-primary" />
+                    ) : (
+                      <FileUp className="h-6 w-6 text-foreground" />
+                    )}
+                    <span className="break-all text-base font-semibold text-foreground">
+                      {pdfFile ? pdfFile.name : "Importer un fichier PDF"}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {pdfFile
+                        ? `${formatFileSize(pdfFile.size)} · Appuie pour changer`
+                        : "CV au format PDF"}
+                    </span>
+                  </button>
                   {pdfFile ? (
-                    <CheckCircle2 className="h-7 w-7 text-primary" />
-                  ) : (
-                    <FileUp className="h-6 w-6 text-foreground" />
-                  )}
-                  <span className="break-all text-base font-semibold text-foreground">
-                    {pdfFile ? pdfFile.name : "Importer un fichier PDF"}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {pdfFile
-                      ? `${formatFileSize(pdfFile.size)} · Appuie pour changer`
-                      : "CV au format PDF"}
-                  </span>
-                </button>
-                {pdfFile ? (
-                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
-                    <p className="font-medium text-foreground">Fichier prêt</p>
-                    <p className="mt-1 break-all text-muted-foreground">{pdfFile.name}</p>
-                    <p className="mt-1 text-muted-foreground">{formatFileSize(pdfFile.size)}</p>
-                  </div>
-                ) : null}
-              </div>
+                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+                      <p className="font-medium text-foreground">Fichier prêt</p>
+                      <p className="mt-1 break-all text-muted-foreground">{pdfFile.name}</p>
+                      <p className="mt-1 text-muted-foreground">{formatFileSize(pdfFile.size)}</p>
+                    </div>
+                  ) : null}
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cv-text">Ou colle ton CV</Label>
-                <Textarea
-                  id="cv-text"
-                  value={cvText}
-                  onChange={(e) => setCvText(e.target.value)}
-                  rows={10}
-                  disabled={loading || Boolean(pdfFile)}
-                  placeholder="Expérience, compétences, outils, résultats…"
-                  className="min-h-[180px] font-mono text-base md:text-sm"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {pdfFile
-                    ? "Le texte sera extrait du PDF à l’import."
-                    : `${cvText.trim().length} / ${MIN_CV_LENGTH} caractères minimum`}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="cv-text">Ou colle ton CV</Label>
+                  <Textarea
+                    id="cv-text"
+                    value={cvText}
+                    onChange={(e) => setCvText(e.target.value)}
+                    rows={10}
+                    disabled={loading || Boolean(pdfFile)}
+                    placeholder="Expérience, compétences, outils, résultats…"
+                    className="min-h-[180px] font-mono text-base md:text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {pdfFile
+                      ? "Le texte sera extrait du PDF à l’import."
+                      : `${cvText.trim().length} / ${MIN_CV_LENGTH} caractères minimum`}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <div className="sticky bottom-0 z-20 border-t border-border/80 bg-background/95 px-4 py-4 backdrop-blur supports-backdrop-filter:bg-background/85 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -300,23 +302,6 @@ export default function LoginPageClient() {
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
-          <button
-            type="button"
-            className="mb-4 w-full rounded-lg border bg-muted/50 p-3 text-left text-sm text-muted-foreground touch-manipulation active:bg-muted"
-            onClick={() => {
-              if (mode === "login") {
-                setIdentifier("admin");
-                setPassword("admin");
-              }
-            }}
-          >
-            Demo : <span className="font-medium text-foreground">admin</span> /{" "}
-            <span className="font-medium text-foreground">admin</span>
-            {mode === "login" ? (
-              <span className="mt-1 block text-xs">Appuie ici pour remplir</span>
-            ) : null}
-          </button>
-
           {mode === "login" ? (
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
