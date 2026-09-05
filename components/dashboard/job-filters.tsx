@@ -159,9 +159,9 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
         </Select>
       </div>
 
-      <div className="flex flex-col justify-end gap-3">
-        <div className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
-          <Label htmlFor="remote-only" className="text-sm">
+      <div className="flex flex-wrap items-end justify-end gap-3 md:col-span-2 lg:col-span-4 xl:col-span-8">
+        <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
+          <Label htmlFor="remote-only" className="whitespace-nowrap text-sm">
             Remote only
           </Label>
           <Switch
@@ -172,8 +172,8 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
             }
           />
         </div>
-        <div className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
-          <Label htmlFor="hybrid-only" className="text-sm">
+        <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
+          <Label htmlFor="hybrid-only" className="whitespace-nowrap text-sm">
             Hybrid
           </Label>
           <Switch
@@ -184,8 +184,8 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
             }
           />
         </div>
-        <div className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
-          <Label htmlFor="last-24h" className="text-sm">
+        <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
+          <Label htmlFor="last-24h" className="whitespace-nowrap text-sm">
             Last 24h only
           </Label>
           <Switch

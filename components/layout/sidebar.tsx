@@ -10,6 +10,7 @@ import {
   Import,
   LayoutDashboard,
   LogOut,
+  Puzzle,
   Settings,
   Sparkles,
 } from "lucide-react";
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/applications", label: "Applications", icon: FolderKanban },
   { href: "/imports", label: "Imports", icon: Import },
+  { href: "/extension", label: "Extension Chrome", icon: Puzzle },
   { href: "/sources", label: "Sources", icon: Cable },
   { href: "/profile-ai", label: "CV Context", icon: Bot },
   { href: "/settings", label: "Settings", icon: Settings },

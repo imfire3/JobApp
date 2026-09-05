@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AppWindow, Braces, Download, FileSpreadsheet, Upload } from "lucide-react";
+import { AppWindow, Braces, Download, FileSpreadsheet, Puzzle, Upload } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   ImportAnalysisPanel,
   type ImportJobCard,
 } from "@/components/imports/import-analysis-panel";
+import { ChromeExtensionPanel } from "@/components/imports/chrome-extension-panel";
 import { EXPECTED_IMPORT_COLUMNS } from "@/lib/imports/jobs-file";
 import type { ParsedImportRow } from "@/lib/imports/jobs-file";
 
@@ -60,7 +61,7 @@ export function ImportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [previewing, setPreviewing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"json" | "sheet">("sheet");
+  const [activeTab, setActiveTab] = useState<"json" | "sheet" | "chrome">("sheet");
   const [replaceExisting, setReplaceExisting] = useState(true);
   const [analysisCards, setAnalysisCards] = useState<ImportJobCard[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
@@ -461,7 +462,7 @@ export function ImportsPage() {
       <Tabs
         value={activeTab}
         onValueChange={(value) => {
-          setActiveTab(value as "json" | "sheet");
+          setActiveTab(value as "json" | "sheet" | "chrome");
           setAnalysisCards([]);
           setAnalyzedCount(0);
         }}
@@ -474,6 +475,10 @@ export function ImportsPage() {
           <TabsTrigger value="sheet" className="gap-2">
             <FileSpreadsheet className="h-4 w-4" />
             CSV / Excel
+          </TabsTrigger>
+          <TabsTrigger value="chrome" className="gap-2">
+            <Puzzle className="h-4 w-4" />
+            Extension Chrome
           </TabsTrigger>
         </TabsList>
 
@@ -583,8 +588,13 @@ export function ImportsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="chrome" className="mt-4 space-y-4">
+          <ChromeExtensionPanel onGoToCsv={() => setActiveTab("sheet")} />
+        </TabsContent>
       </Tabs>
 
+      {activeTab !== "chrome" ? (
       <div className="rounded-lg border bg-muted/40 p-4">
         <p className="flex items-center gap-2 text-sm font-medium">
           <AppWindow className="h-4 w-4" />
@@ -596,6 +606,7 @@ export function ImportsPage() {
             : "Run your Apify actor → export dataset as JSON → upload here → preview → import into Jobs."}
         </p>
       </div>
+      ) : null}
 
       {error ? (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">

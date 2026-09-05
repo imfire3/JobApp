@@ -45,6 +45,17 @@ export async function updateSession(request: NextRequest) {
   const onboardingPending = !onboardingDone;
 
   if (localUser) {
+    if (pathname === "/") {
+      const url = request.nextUrl.clone();
+      if (onboardingDone) {
+        url.pathname = "/dashboard";
+      } else {
+        url.pathname = "/login";
+        url.searchParams.set("cv", "1");
+      }
+      return NextResponse.redirect(url);
+    }
+
     if (isAuthRoute) {
       if (onboardingDone) {
         const url = request.nextUrl.clone();

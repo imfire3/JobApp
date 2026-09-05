@@ -7,7 +7,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMatchScoreColor } from "@/lib/jobs/utils";
 import type { CvAnalysisResponse } from "@/types";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 function KeywordGroup({
@@ -109,16 +109,25 @@ export function AtsKeywordsPanel() {
             Compétences, outils et mots-clés produit détectés sur ton CV (et ceux manquants).
           </CardDescription>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleAnalyze}
-          disabled={analyzing || loading}
-        >
-          <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${analyzing ? "animate-spin" : ""}`} />
-          {analyzing ? "Analyse…" : "Rafraîchir"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/profile-ai/optimize"
+            className={buttonVariants({ variant: "default", size: "sm" })}
+          >
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            Optimiser
+          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAnalyze}
+            disabled={analyzing || loading}
+          >
+            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${analyzing ? "animate-spin" : ""}`} />
+            {analyzing ? "Analyse…" : "Rafraîchir"}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-5">
         {loading ? (

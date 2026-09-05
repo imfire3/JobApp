@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { CvAnalysisResponse } from "@/types";
 
 export function SettingsForm() {
+  const router = useRouter();
   const [cvText, setCvText] = useState("");
   const [savedCvText, setSavedCvText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -137,6 +139,7 @@ export function SettingsForm() {
       }
       setAnalysis(data.analysis ?? null);
       toast.success("CV analysis complete");
+      router.push("/profile-ai/optimize");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "CV analysis failed");
     } finally {
@@ -200,7 +203,7 @@ export function SettingsForm() {
             onChange={(e) => setCvText(e.target.value)}
             rows={16}
             placeholder="Paste your real CV content here (experience, achievements, tools, context)."
-            className="font-mono text-sm"
+            className="h-72 max-h-72 resize-none overflow-y-auto font-mono text-sm [field-sizing:fixed]"
           />
           {lastUpdatedAt && (
             <p className="text-xs text-muted-foreground">

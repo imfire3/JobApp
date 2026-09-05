@@ -54,7 +54,7 @@ function PromptEditor({
   onSave: () => void;
   onReset: () => void;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [showUserMessage, setShowUserMessage] = useState(false);
   const unsaved = value !== savedValue;
 
