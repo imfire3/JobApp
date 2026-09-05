@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react"
 import { createPortal } from "react-dom"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,8 @@ type LayoutState = {
   highlight: { top: number; left: number; width: number; height: number } | null
 }
 
+const emptySubscribe = () => () => {}
+
 const getStepsFromEvent = (detail: ProductGuideEventDetail): GuideStep[] => {
   if (detail.type === "first-visit") return FIRST_VISIT_STEPS
   if (detail.type === "page") return PAGE_GUIDE_STEPS[detail.pageId] ?? []
@@ -28,29 +30,28 @@ const getStepsFromEvent = (detail: ProductGuideEventDetail): GuideStep[] => {
 export function ProductTour() {
   const router = useRouter()
   const pathname = usePathname()
-  const [mounted, setMounted] = useState(false)
-  const [active, setActive] = useState(false)
+  const isClient = useSyncExternalStore(emptySubscribe, () => true, () => false)
+  const shouldAutoStart = useSyncExternalStore(
+    emptySubscribe,
+    () => !hasSeenProductGuide(),
+    () => false
+  )
+
   const [steps, setSteps] = useState<GuideStep[]>(FIRST_VISIT_STEPS)
   const [stepIndex, setStepIndex] = useState(0)
   const [layout, setLayout] = useState<LayoutState | null>(null)
-  const [isFirstVisitRun, setIsFirstVisitRun] = useState(false)
+  const [isFirstVisitRun, setIsFirstVisitRun] = useState(true)
+  const [manualActive, setManualActive] = useState(false)
+  const [closed, setClosed] = useState(false)
 
+  const active = !closed && (manualActive || shouldAutoStart)
   const step = steps[stepIndex]
   const total = steps.length
 
-  useEffect(() => {
-    setMounted(true)
-    if (!hasSeenProductGuide()) {
-      setIsFirstVisitRun(true)
-      setSteps(FIRST_VISIT_STEPS)
-      setStepIndex(0)
-      setActive(true)
-    }
-  }, [])
-
   const closeGuide = useCallback((markSeen: boolean) => {
     if (markSeen) markProductGuideSeen()
-    setActive(false)
+    setClosed(true)
+    setManualActive(false)
     setLayout(null)
   }, [])
 
@@ -60,7 +61,8 @@ export function ProductTour() {
     setStepIndex(0)
     setIsFirstVisitRun(firstVisit)
     setLayout(null)
-    setActive(true)
+    setClosed(false)
+    setManualActive(true)
   }, [])
 
   useEffect(() => {
@@ -201,7 +203,11 @@ export function ProductTour() {
     const nextStep = steps[nextIndex]
     setLayout(null)
     setStepIndex(nextIndex)
-    if (nextStep && pathname !== nextStep.path && !pathname.startsWith(`${nextStep.path}/`)) {
+    if (
+      nextStep &&
+      pathname !== nextStep.path &&
+      !pathname.startsWith(`${nextStep.path}/`)
+    ) {
       router.push(nextStep.path)
     }
   }
@@ -211,7 +217,11 @@ export function ProductTour() {
     const prevStep = steps[prevIndex]
     setLayout(null)
     setStepIndex(prevIndex)
-    if (prevStep && pathname !== prevStep.path && !pathname.startsWith(`${prevStep.path}/`)) {
+    if (
+      prevStep &&
+      pathname !== prevStep.path &&
+      !pathname.startsWith(`${prevStep.path}/`)
+    ) {
       router.push(prevStep.path)
     }
   }
@@ -227,7 +237,7 @@ export function ProductTour() {
     closeGuide(isFirstVisitRun)
   }
 
-  if (!mounted || !active || !step || !layout) return null
+  if (!isClient || !active || !step || !layout) return null
 
   const isLast = stepIndex >= total - 1
 
