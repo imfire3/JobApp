@@ -220,7 +220,7 @@ export default function LoginPageClient() {
         }
 
         if (status.has_cv || status.step === "metiers") {
-          router.replace("/onboarding/metiers");
+          router.replace("/onboarding/api-keys");
         }
       } catch {
         // stay on current login/cv step
@@ -357,7 +357,7 @@ export default function LoginPageClient() {
       }
 
       if (status.has_cv) {
-        router.push("/onboarding/metiers");
+        router.push("/onboarding/api-keys");
         router.refresh();
         return;
       }
@@ -416,7 +416,7 @@ export default function LoginPageClient() {
     try {
       await saveCvOnly();
       toast.success("CV importé");
-      router.push("/onboarding/metiers");
+      router.push("/onboarding/api-keys");
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Import CV échoué");
@@ -433,7 +433,7 @@ export default function LoginPageClient() {
         : "Connexion";
   const description =
     mode === "cv"
-      ? "Ensuite tu choisiras ton métier pour créer ta première alerte."
+      ? "Ensuite tu configureras tes clés API, puis ton métier."
       : "Track PO/PM offers, score matches, generate cover letters.";
 
   if (mode === "cv") {

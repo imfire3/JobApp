@@ -23,6 +23,7 @@ function isOnboardingAllowed(pathname: string) {
     pathname.startsWith("/api/onboarding") ||
     pathname.startsWith("/api/profile") ||
     pathname.startsWith("/api/tracked-searches") ||
+    pathname.startsWith("/api/settings") ||
     pathname.startsWith("/api/auth")
   );
 }
@@ -68,8 +69,8 @@ export async function updateSession(request: NextRequest) {
 
     if (onboardingPending && !isOnboardingAllowed(pathname) && !isPublicRoute(pathname)) {
       const url = request.nextUrl.clone();
-      // Resume at métiers; that page sends users without a CV back to /login?cv=1
-      url.pathname = "/onboarding/metiers";
+      // Resume onboarding: API keys page gates to CV / métiers as needed
+      url.pathname = "/onboarding/api-keys";
       return NextResponse.redirect(url);
     }
 

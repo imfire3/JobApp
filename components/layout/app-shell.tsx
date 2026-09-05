@@ -67,14 +67,16 @@ function ChromeExtensionGate() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-background">
       <MobileNav />
-      <div className="flex min-h-0 flex-1">
-        <div className="hidden md:block md:h-full md:shrink-0">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="hidden h-full min-h-0 md:block md:shrink-0">
           <Sidebar />
         </div>
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain">
-          <div className="container mx-auto max-w-7xl p-4 md:p-6 lg:p-8">{children}</div>
+          <div className="container mx-auto max-w-7xl p-4 pb-8 md:p-6 md:pb-10 lg:p-8 lg:pb-12">
+            {children}
+          </div>
         </main>
       </div>
 

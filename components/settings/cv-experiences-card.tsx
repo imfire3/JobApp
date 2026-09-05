@@ -44,6 +44,7 @@ const yearOptions = (() => {
 })()
 
 export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardProps) {
+  const [formOpen, setFormOpen] = useState(false)
   const [draft, setDraft] = useState(emptyCvExperience())
   const [skillInput, setSkillInput] = useState("")
 
@@ -60,6 +61,18 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
     value: ReturnType<typeof emptyCvExperience>[K]
   ) {
     setDraft((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function handleOpenForm() {
+    setDraft(emptyCvExperience())
+    setSkillInput("")
+    setFormOpen(true)
+  }
+
+  function handleCloseForm() {
+    setFormOpen(false)
+    setDraft(emptyCvExperience())
+    setSkillInput("")
   }
 
   function handleAddSkill() {
@@ -99,8 +112,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
     }
 
     onChange([...experiences, next])
-    setDraft(emptyCvExperience())
-    setSkillInput("")
+    handleCloseForm()
     toast.success("Expérience ajoutée")
   }
 
@@ -175,6 +187,12 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
           </p>
         )}
 
+        {!formOpen ? (
+          <Button type="button" onClick={handleOpenForm}>
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter une expérience
+          </Button>
+        ) : (
         <div className="space-y-4 rounded-xl border border-border p-4">
           <h3 className="text-sm font-medium">Ajouter un poste</h3>
 
@@ -434,10 +452,16 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
             </Field>
           </div>
 
-          <Button type="button" onClick={handleAddExperience} disabled={!canAdd}>
-            Ajouter l’expérience
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={handleAddExperience} disabled={!canAdd}>
+              Enregistrer l’expérience
+            </Button>
+            <Button type="button" variant="outline" onClick={handleCloseForm}>
+              Annuler
+            </Button>
+          </div>
         </div>
+        )}
       </CardContent>
     </Card>
   )

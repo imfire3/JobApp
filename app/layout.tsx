@@ -36,10 +36,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${montserrat.variable} ${geistMono.variable} h-full antialiased`}
+      className={`dark ${montserrat.variable} ${geistMono.variable} h-full overflow-hidden antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-background font-sans text-foreground">
+      <body className="h-full overflow-hidden bg-background font-sans text-foreground">
         <ThemeProvider>
           <TooltipProvider>
             {children}

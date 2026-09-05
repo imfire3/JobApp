@@ -41,7 +41,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+    <aside className="flex h-full min-h-0 w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
       <div className="flex items-center gap-2 px-6 py-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Briefcase className="h-5 w-5" />
