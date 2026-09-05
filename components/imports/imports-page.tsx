@@ -25,6 +25,7 @@ import {
 import type { ParsedImportRow } from "@/lib/imports/jobs-file";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
+import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 
 type ImportSummary = {
   total_rows: number;
@@ -487,17 +488,6 @@ export function ImportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Imports</h1>
-          <p className="text-sm text-muted-foreground">
-            Importe un CSV/Excel, analyse chaque offre avec une barre de progression, puis valide
-            vers le board.
-          </p>
-        </div>
-        <PageHelpButton pageId="imports" />
-      </div>
-
       <Tabs
         value={activeTab}
         onValueChange={(value) => {
@@ -506,22 +496,34 @@ export function ImportsPage() {
           setAnalyzedCount(0);
         }}
       >
-        <TabsList>
-          <TabsTrigger value="json" className="gap-2">
-            <Braces className="h-4 w-4" />
-            Apify JSON
-          </TabsTrigger>
-          <TabsTrigger value="sheet" className="gap-2">
-            <FileSpreadsheet className="h-4 w-4" />
-            CSV / Excel
-          </TabsTrigger>
-          <TabsTrigger value="chrome" className="gap-2">
-            <Puzzle className="h-4 w-4" />
-            Extension Chrome
-          </TabsTrigger>
-        </TabsList>
+        <StickyPageHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Imports</h1>
+              <p className="text-sm text-muted-foreground">
+                Importe un CSV/Excel, analyse chaque offre avec une barre de progression, puis
+                valide vers le board.
+              </p>
+            </div>
+            <PageHelpButton pageId="imports" />
+          </div>
+          <TabsList>
+            <TabsTrigger value="json" className="gap-2">
+              <Braces className="h-4 w-4" />
+              Apify JSON
+            </TabsTrigger>
+            <TabsTrigger value="sheet" className="gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              CSV / Excel
+            </TabsTrigger>
+            <TabsTrigger value="chrome" className="gap-2">
+              <Puzzle className="h-4 w-4" />
+              Extension Chrome
+            </TabsTrigger>
+          </TabsList>
+        </StickyPageHeader>
 
-        <TabsContent value="json" className="mt-4 space-y-4">
+        <TabsContent value="json" className="mt-0 space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

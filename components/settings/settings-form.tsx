@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CvAnalysisPanel } from "@/components/settings/cv-analysis-panel"
 import { CvExperiencesCard } from "@/components/settings/cv-experiences-card"
 import { PageHelpButton } from "@/components/onboarding/page-help-button"
+import { StickyPageHeader } from "@/components/layout/sticky-page-header"
 import { mergeExperiencesIntoCvText, type CvExperience } from "@/lib/cv/experiences"
 import {
   Briefcase,
@@ -203,44 +204,46 @@ export function SettingsForm() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Mon CV</h1>
-          <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-            Ton CV sert à personnaliser les lettres de motivation et à alimenter
-            l’analyse ATS. Organise-le comme un profil candidat.
-          </p>
-        </div>
-        <PageHelpButton pageId="cv" />
-      </header>
-
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <Badge variant={hasSavedCv ? "secondary" : "outline"}>
-          {hasSavedCv ? "CV enregistré" : "CV à compléter"}
-        </Badge>
-        <span>{hasUnsavedCv ? "Modifications non enregistrées" : "À jour"}</span>
-        {lastUpdatedAt ? (
-          <span className="text-xs">
-            · {new Date(lastUpdatedAt).toLocaleString("fr-FR")}
-          </span>
-        ) : null}
-      </div>
-
       <Tabs value={activeSection} onValueChange={handleSectionChange} className="gap-6">
-        <TabsList
-          aria-label="Sections du profil CV"
-          className="h-auto w-full flex-wrap justify-start sm:w-fit"
-        >
-          {SECTIONS.map((section) => {
-            const Icon = section.icon
-            return (
-              <TabsTrigger key={section.id} value={section.id} className="gap-1.5 px-3 py-1.5">
-                <Icon className="h-4 w-4" />
-                {section.label}
-              </TabsTrigger>
-            )
-          })}
-        </TabsList>
+        <StickyPageHeader>
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold tracking-tight">Mon CV</h1>
+              <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+                Ton CV sert à personnaliser les lettres de motivation et à alimenter
+                l’analyse ATS. Organise-le comme un profil candidat.
+              </p>
+            </div>
+            <PageHelpButton pageId="cv" />
+          </header>
+
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <Badge variant={hasSavedCv ? "secondary" : "outline"}>
+              {hasSavedCv ? "CV enregistré" : "CV à compléter"}
+            </Badge>
+            <span>{hasUnsavedCv ? "Modifications non enregistrées" : "À jour"}</span>
+            {lastUpdatedAt ? (
+              <span className="text-xs">
+                · {new Date(lastUpdatedAt).toLocaleString("fr-FR")}
+              </span>
+            ) : null}
+          </div>
+
+          <TabsList
+            aria-label="Sections du profil CV"
+            className="h-auto w-full flex-wrap justify-start sm:w-fit"
+          >
+            {SECTIONS.map((section) => {
+              const Icon = section.icon
+              return (
+                <TabsTrigger key={section.id} value={section.id} className="gap-1.5 px-3 py-1.5">
+                  <Icon className="h-4 w-4" />
+                  {section.label}
+                </TabsTrigger>
+              )
+            })}
+          </TabsList>
+        </StickyPageHeader>
 
         <TabsContent value="profil" className="mt-0 space-y-8">
           <Card className="rounded-2xl">

@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Cable, Clock3, Play, Settings2, ScrollText } from "lucide-react";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
+import { StickyPageHeader } from "@/components/layout/sticky-page-header";
+import { Cable, Clock3, Play, Settings2, ScrollText } from "lucide-react";
 
 interface SourceCard {
   id: string;
@@ -79,19 +80,18 @@ export function SourcesPage() {
 
   return (
     <div className="space-y-6">
-      <div
-        className="flex flex-wrap items-center justify-between gap-3"
-        data-tour="guide-sources"
-      >
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Sources</h1>
-          <p className="text-sm text-muted-foreground">
-            Services de collecte d’offres — actuellement en démonstration. Utilise les imports
-            pour ajouter tes offres.
-          </p>
+      <StickyPageHeader data-tour="guide-sources">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Sources</h1>
+            <p className="text-sm text-muted-foreground">
+              Services de collecte d’offres — actuellement en démonstration. Utilise les imports
+              pour ajouter tes offres.
+            </p>
+          </div>
+          <PageHelpButton pageId="sources" />
         </div>
-        <PageHelpButton pageId="sources" />
-      </div>
+      </StickyPageHeader>
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

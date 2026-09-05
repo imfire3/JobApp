@@ -19,6 +19,7 @@ import { APPLICATION_STATUSES, type Application, type ApplicationStatus } from "
 import { toast } from "sonner";
 import { formatRelativeDate } from "@/lib/jobs/utils";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
+import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
   to_apply: "To Apply",
@@ -118,15 +119,17 @@ export default function ApplicationsPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Candidatures</h1>
-            <p className="text-sm text-muted-foreground">
-              Suivi CRM : pipeline, dates d’entretien, notes et historique.
-            </p>
+        <StickyPageHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Candidatures</h1>
+              <p className="text-sm text-muted-foreground">
+                Suivi CRM : pipeline, dates d’entretien, notes et historique.
+              </p>
+            </div>
+            <PageHelpButton pageId="applications" />
           </div>
-          <PageHelpButton pageId="applications" />
-        </div>
+        </StickyPageHeader>
 
         <Card data-tour="guide-applications-form">
           <CardHeader>

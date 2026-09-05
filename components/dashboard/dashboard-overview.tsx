@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import type { DashboardKpis, Job } from "@/types";
 import { computeKpis } from "@/lib/jobs/utils";
-import { Bot, Cable, Clock3, Sparkles } from "lucide-react";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
+import { StickyPageHeader } from "@/components/layout/sticky-page-header";
+import { Bot, Cable, Clock3, Sparkles } from "lucide-react";
 
 type DashboardSummaryResponse = {
   jobs: Job[];
@@ -63,27 +64,26 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-6">
-      <div
-        className="flex flex-wrap items-center justify-between gap-3"
-        data-tour="guide-dashboard"
-      >
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
-          <p className="text-sm text-muted-foreground">
-            Vue d’ensemble de ta recherche et de ton activité récente.
-          </p>
+      <StickyPageHeader data-tour="guide-dashboard">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
+            <p className="text-sm text-muted-foreground">
+              Vue d’ensemble de ta recherche et de ton activité récente.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <PageHelpButton pageId="dashboard" />
+            <Link href="/sources" className={buttonVariants({ variant: "outline" })}>
+              <Cable className="mr-2 h-4 w-4" />
+              Gérer les sources
+            </Link>
+            <Link href="/jobs" className={buttonVariants({})}>
+              Voir mes offres
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <PageHelpButton pageId="dashboard" />
-          <Link href="/sources" className={buttonVariants({ variant: "outline" })}>
-            <Cable className="mr-2 h-4 w-4" />
-            Gérer les sources
-          </Link>
-          <Link href="/jobs" className={buttonVariants({})}>
-            Voir mes offres
-          </Link>
-        </div>
-      </div>
+      </StickyPageHeader>
 
       <KpiCards kpis={kpis} />
 

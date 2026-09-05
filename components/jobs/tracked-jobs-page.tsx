@@ -15,6 +15,7 @@ import { JobTable } from "@/components/dashboard/job-table";
 import { JobBulkActions } from "@/components/dashboard/job-bulk-actions";
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
+import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 import { filterJobs } from "@/lib/jobs/utils";
 import type { Job, JobFilters, JobStatus, TrackedSearch } from "@/types";
 import { List, Play, Plus, RefreshCw, Trash2, LayoutGrid } from "lucide-react";
@@ -479,39 +480,38 @@ export function TrackedJobsPage() {
 
   return (
     <div className="space-y-6">
-      <div
-        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-        data-tour="guide-jobs-header"
-      >
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Offres</h1>
-          <p className="text-sm text-muted-foreground">
-            Choisis une alerte pour voir ses offres. Collecte auto tous les jours à 08:00.
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Dernière sync : {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Jamais"} ·
-            Prochaine : {nextSyncAt ? new Date(nextSyncAt).toLocaleString() : "Non planifiée"}
-          </p>
+      <StickyPageHeader data-tour="guide-jobs-header">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Offres</h1>
+            <p className="text-sm text-muted-foreground">
+              Choisis une alerte pour voir ses offres. Collecte auto tous les jours à 08:00.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Dernière sync : {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Jamais"} ·
+              Prochaine : {nextSyncAt ? new Date(nextSyncAt).toLocaleString() : "Non planifiée"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <PageHelpButton pageId="jobs" />
+            <Button variant="outline" onClick={syncAllEnabled} disabled={syncingAll}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${syncingAll ? "animate-spin" : ""}`} />
+              {syncingAll ? "Sync…" : "Sync toutes"}
+            </Button>
+            <Button
+              data-tour="guide-jobs-alert"
+              onClick={() => {
+                setEditingSearch(null);
+                setSearchForm(emptySearch);
+                setDialogOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle alerte
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <PageHelpButton pageId="jobs" />
-          <Button variant="outline" onClick={syncAllEnabled} disabled={syncingAll}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${syncingAll ? "animate-spin" : ""}`} />
-            {syncingAll ? "Sync…" : "Sync toutes"}
-          </Button>
-          <Button
-            data-tour="guide-jobs-alert"
-            onClick={() => {
-              setEditingSearch(null);
-              setSearchForm(emptySearch);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nouvelle alerte
-          </Button>
-        </div>
-      </div>
+      </StickyPageHeader>
 
       <Card>
         <CardContent className="space-y-4 pt-2">

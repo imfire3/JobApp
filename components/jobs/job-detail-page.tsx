@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
+import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 import { getMatchScoreColor, getStatusColor } from "@/lib/jobs/utils";
 import type { CvAnalysisResponse, Job, JobStatus } from "@/types";
 import { JOB_STATUSES } from "@/types";
@@ -327,85 +328,87 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-2">
-            <Link
-              href="/jobs"
-              className={buttonVariants({ variant: "ghost", size: "sm" })}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Offres
-            </Link>
-            <h1 className="text-2xl font-bold tracking-tight">{job.title}</h1>
-            <p className="text-muted-foreground">{job.company}</p>
-            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline">{job.source}</Badge>
-              {job.location ? (
-                <span className="inline-flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {job.location}
-                </span>
-              ) : null}
-              {job.contract_type ? (
-                <Badge variant="outline">{job.contract_type}</Badge>
-              ) : null}
-              {job.salary ? <Badge variant="outline">{job.salary}</Badge> : null}
-              <Badge className={getStatusColor(job.status)} variant="secondary">
-                {job.status.replace(/_/g, " ")}
-              </Badge>
-              {typeof job.match_score === "number" ? (
-                <span className={`font-bold ${getMatchScoreColor(job.match_score)}`}>
-                  Match {job.match_score}%
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <PageHelpButton pageId="job-detail" />
-            <a
-              href={job.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-              Offre source
-            </a>
-            <Select
-              value={job.status}
-              onValueChange={(value) => {
-                if (!value) return;
-                void updateJob({ status: value as JobStatus });
-              }}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {JOB_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status.replace(/_/g, " ")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
+      <div className="mx-auto max-w-7xl">
         <Tabs defaultValue="comparatif" className="gap-4">
-          <TabsList aria-label="Analyses offre et CV" className="h-auto flex-wrap">
-            {ANALYSIS_TABS.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <TabsTrigger key={tab.value} value={tab.value}>
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          <StickyPageHeader className="mb-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-2">
+                <Link
+                  href="/jobs"
+                  className={buttonVariants({ variant: "ghost", size: "sm" })}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Offres
+                </Link>
+                <h1 className="text-2xl font-bold tracking-tight">{job.title}</h1>
+                <p className="text-muted-foreground">{job.company}</p>
+                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline">{job.source}</Badge>
+                  {job.location ? (
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {job.location}
+                    </span>
+                  ) : null}
+                  {job.contract_type ? (
+                    <Badge variant="outline">{job.contract_type}</Badge>
+                  ) : null}
+                  {job.salary ? <Badge variant="outline">{job.salary}</Badge> : null}
+                  <Badge className={getStatusColor(job.status)} variant="secondary">
+                    {job.status.replace(/_/g, " ")}
+                  </Badge>
+                  {typeof job.match_score === "number" ? (
+                    <span className={`font-bold ${getMatchScoreColor(job.match_score)}`}>
+                      Match {job.match_score}%
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <PageHelpButton pageId="job-detail" />
+                <a
+                  href={job.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                  Offre source
+                </a>
+                <Select
+                  value={job.status}
+                  onValueChange={(value) => {
+                    if (!value) return;
+                    void updateJob({ status: value as JobStatus });
+                  }}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {JOB_STATUSES.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status.replace(/_/g, " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <TabsList aria-label="Analyses offre et CV" className="h-auto flex-wrap">
+              {ANALYSIS_TABS.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger key={tab.value} value={tab.value}>
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </StickyPageHeader>
 
           <TabsContent value="comparatif" className="space-y-4">
             <Card>

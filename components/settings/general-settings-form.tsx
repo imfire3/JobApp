@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
-import { useTheme } from "next-themes";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
+import { StickyPageHeader } from "@/components/layout/sticky-page-header";
+import { useTheme } from "next-themes";
 
 type SettingsState = {
   theme: "light" | "dark" | "system";
@@ -122,15 +123,17 @@ export function GeneralSettingsForm() {
 
   return (
     <div className="space-y-6" data-tour="guide-settings">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Réglages</h1>
-          <p className="text-sm text-muted-foreground">
-            Langue, thème et paramètres de l’assistant IA.
-          </p>
+      <StickyPageHeader>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Réglages</h1>
+            <p className="text-sm text-muted-foreground">
+              Langue, thème et paramètres de l’assistant IA.
+            </p>
+          </div>
+          <PageHelpButton pageId="settings" />
         </div>
-        <PageHelpButton pageId="settings" />
-      </div>
+      </StickyPageHeader>
 
       <Card>
         <CardHeader>
