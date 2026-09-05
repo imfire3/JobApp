@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -27,14 +28,25 @@ const getStepsFromEvent = (detail: ProductGuideEventDetail): GuideStep[] => {
 export function ProductTour() {
   const router = useRouter()
   const pathname = usePathname()
-  const [active, setActive] = useState(() => !hasSeenProductGuide())
+  const [mounted, setMounted] = useState(false)
+  const [active, setActive] = useState(false)
   const [steps, setSteps] = useState<GuideStep[]>(FIRST_VISIT_STEPS)
   const [stepIndex, setStepIndex] = useState(0)
   const [layout, setLayout] = useState<LayoutState | null>(null)
-  const [isFirstVisitRun, setIsFirstVisitRun] = useState(() => !hasSeenProductGuide())
+  const [isFirstVisitRun, setIsFirstVisitRun] = useState(false)
 
   const step = steps[stepIndex]
   const total = steps.length
+
+  useEffect(() => {
+    setMounted(true)
+    if (!hasSeenProductGuide()) {
+      setIsFirstVisitRun(true)
+      setSteps(FIRST_VISIT_STEPS)
+      setStepIndex(0)
+      setActive(true)
+    }
+  }, [])
 
   const closeGuide = useCallback((markSeen: boolean) => {
     if (markSeen) markProductGuideSeen()
@@ -47,6 +59,7 @@ export function ProductTour() {
     setSteps(nextSteps)
     setStepIndex(0)
     setIsFirstVisitRun(firstVisit)
+    setLayout(null)
     setActive(true)
   }, [])
 
@@ -143,7 +156,7 @@ export function ProductTour() {
       return
     }
 
-    const timer = window.setTimeout(() => updateLayout(), 100)
+    const timer = window.setTimeout(() => updateLayout(), 120)
     const onResize = () => updateLayout()
     window.addEventListener("resize", onResize)
     window.addEventListener("scroll", onResize, true)
@@ -184,11 +197,23 @@ export function ProductTour() {
       closeGuide(true)
       return
     }
-    setStepIndex((prev) => prev + 1)
+    const nextIndex = stepIndex + 1
+    const nextStep = steps[nextIndex]
+    setLayout(null)
+    setStepIndex(nextIndex)
+    if (nextStep && pathname !== nextStep.path && !pathname.startsWith(`${nextStep.path}/`)) {
+      router.push(nextStep.path)
+    }
   }
 
   const handleBack = () => {
-    setStepIndex((prev) => Math.max(prev - 1, 0))
+    const prevIndex = Math.max(stepIndex - 1, 0)
+    const prevStep = steps[prevIndex]
+    setLayout(null)
+    setStepIndex(prevIndex)
+    if (prevStep && pathname !== prevStep.path && !pathname.startsWith(`${prevStep.path}/`)) {
+      router.push(prevStep.path)
+    }
   }
 
   const handleAction = () => {
@@ -202,20 +227,20 @@ export function ProductTour() {
     closeGuide(isFirstVisitRun)
   }
 
-  if (!active || !step || !layout) return null
+  if (!mounted || !active || !step || !layout) return null
 
   const isLast = stepIndex >= total - 1
 
-  return (
+  const tour = (
     <div
-      className="fixed inset-0 z-[80]"
+      className="fixed inset-0 z-[200]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="product-guide-title"
     >
       <button
         type="button"
-        className="absolute inset-0 cursor-default bg-transparent"
+        className="absolute inset-0 z-0 cursor-default bg-transparent"
         aria-label="Quitter le guide"
         onClick={handleQuit}
       />
@@ -223,7 +248,7 @@ export function ProductTour() {
       {layout.highlight ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute rounded-xl ring-2 ring-primary"
+          className="pointer-events-none absolute z-[1] rounded-xl ring-2 ring-primary"
           style={{
             top: layout.highlight.top,
             left: layout.highlight.left,
@@ -233,20 +258,22 @@ export function ProductTour() {
           }}
         />
       ) : (
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-black/55" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-[1] bg-black/55" />
       )}
 
       <div
         className={
           layout.tooltip.mobile
-            ? "absolute inset-x-4 bottom-4 z-[81] max-h-[45vh] overflow-y-auto rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-xl"
-            : "absolute z-[81] w-[min(100%-2rem,20rem)] rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-xl"
+            ? "absolute inset-x-4 bottom-4 z-[2] max-h-[45vh] overflow-y-auto rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-xl"
+            : "absolute z-[2] w-[min(100%-2rem,20rem)] rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-xl"
         }
         style={
           layout.tooltip.mobile
             ? undefined
             : { top: layout.tooltip.top, left: layout.tooltip.left }
         }
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium text-muted-foreground">
@@ -296,4 +323,7 @@ export function ProductTour() {
       </div>
     </div>
   )
+
+  // Portal to body so the tour stays interactive above other dialogs/modals.
+  return createPortal(tour, document.body)
 }

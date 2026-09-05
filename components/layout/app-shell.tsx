@@ -9,6 +9,7 @@ import {
   EXTENSION_SEEN_KEY,
 } from "@/components/onboarding/chrome-extension-modal";
 import { ProductTour } from "@/components/onboarding/product-tour";
+import { hasSeenProductGuide } from "@/lib/onboarding/product-guide";
 
 function ChromeExtensionGate() {
   const searchParams = useSearchParams();
@@ -29,6 +30,9 @@ function ChromeExtensionGate() {
 
       const forceShow = searchParams.get("extension") === "1";
       if (alreadySeen && !forceShow) return;
+
+      // Wait until the product guide is done — Dialog would make the tour inert.
+      if (!forceShow && !hasSeenProductGuide()) return;
 
       try {
         const res = await fetch("/api/tracked-searches");
