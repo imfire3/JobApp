@@ -1,10 +1,22 @@
 import { z } from "zod";
-import type { JobAnalysis } from "@/types";
+import type { JobAnalysis, JobCriterionAssessment } from "@/types";
+import { deriveMatchScore } from "@/lib/jobs/derive-match-score";
+import {
+  computeScoreFromCriteria,
+  slugFromLabel,
+  type JobCriterionAssessment as CriterionRow,
+} from "@/lib/jobs/criteria-score";
 
 const confidenceSchema = z.enum(["low", "medium", "high"]);
 const importanceSchema = z.enum(["required", "preferred", "unspecified"]);
 const prioritySchema = z.enum(["low", "medium", "high"]);
 const nullableScore = z.number().int().min(0).max(100).nullable();
+const evidenceLevelSchema = z.union([
+  z.literal(0),
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+]);
 /** Models often return null for missing evidence — coerce to empty string. */
 const softString = z.preprocess(
   (value) => (value == null ? "" : value),
@@ -15,6 +27,27 @@ const softNullableString = z.preprocess(
   z.string().nullable()
 );
 
+const criterionAssessmentSchema = z.object({
+  id: softString,
+  label: softString,
+  weight_percent: z.number().min(0).max(100),
+  evidence_level: evidenceLevelSchema,
+  cv_status: z.enum([
+    "demonstrated",
+    "mentioned_only",
+    "transferable",
+    "not_evidenced",
+    "contradicted",
+  ]),
+  evidence_from_job: softString,
+  evidence_from_cv: softNullableString,
+  question_to_candidate: softNullableString,
+  confirmation_status: z
+    .enum(["none", "asked", "confirmed", "denied"])
+    .default("none"),
+  recruiter_block_risk: z.enum(["low", "medium", "high"]).default("medium"),
+});
+
 export const jobMatchAnalysisRawSchema = z.object({
   status: z.enum(["ok", "partial", "insufficient_input"]).default("ok"),
   match_score: nullableScore,
@@ -22,6 +55,7 @@ export const jobMatchAnalysisRawSchema = z.object({
   score_explanation: softString.default(""),
   limitations: z.array(softString).default([]),
   job_posting_summary: softString.default(""),
+  criteria_assessment: z.array(criterionAssessmentSchema).default([]),
   score_breakdown: z
     .array(
       z.object({
@@ -164,7 +198,34 @@ function improvementLine(item: {
   return parts.join(" ");
 }
 
-/** Accepts prompt v3 rich objects or legacy flat string arrays. */
+function normalizeCriteria(
+  raw: JobMatchAnalysisRaw["criteria_assessment"]
+): JobCriterionAssessment[] {
+  return raw
+    .filter((item) => item.label.trim())
+    .slice(0, 12)
+    .map((item, index) => {
+      const hasQuestion = Boolean(item.question_to_candidate?.trim());
+      const confirmation_status =
+        item.confirmation_status === "none" && hasQuestion
+          ? "asked"
+          : item.confirmation_status;
+      return {
+        id: item.id.trim() || `${slugFromLabel(item.label)}-${index + 1}`,
+        label: item.label.trim(),
+        weight_percent: item.weight_percent,
+        evidence_level: item.evidence_level,
+        cv_status: item.cv_status,
+        evidence_from_job: item.evidence_from_job.trim(),
+        evidence_from_cv: item.evidence_from_cv?.trim() || null,
+        question_to_candidate: item.question_to_candidate?.trim() || null,
+        confirmation_status,
+        recruiter_block_risk: item.recruiter_block_risk,
+      } satisfies CriterionRow;
+    });
+}
+
+/** Accepts prompt v3/v4 rich objects or legacy flat string arrays. */
 export function parseJobMatchAnalysis(raw: unknown): JobAnalysis {
   if (!raw || typeof raw !== "object") {
     throw new JobMatchValidationError("Invalid job match response");
@@ -175,7 +236,12 @@ export function parseJobMatchAnalysis(raw: unknown): JobAnalysis {
     Array.isArray(record.match_reasons) &&
     record.match_reasons.some((item) => item && typeof item === "object");
 
-  if (reasonsAreObjects || "score_breakdown" in record || "requirements_assessment" in record) {
+  if (
+    reasonsAreObjects ||
+    "score_breakdown" in record ||
+    "requirements_assessment" in record ||
+    "criteria_assessment" in record
+  ) {
     const parsed = jobMatchAnalysisRawSchema.safeParse(raw);
     if (!parsed.success) {
       const detail = parsed.error.issues
@@ -232,16 +298,51 @@ export function flattenJobMatchAnalysis(raw: JobMatchAnalysisRaw): JobAnalysis {
   const fromJobRaw = raw.keywords_from_job.map((item) => item.trim()).filter(Boolean);
   const fromJob = Array.from(new Set([...fromJobRaw, ...matched, ...missing])).slice(0, 25);
 
-  return {
+  const matchReasons = raw.match_reasons
+    .filter((item) => item.title.trim() || item.explanation.trim())
+    .slice(0, 5)
+    .map(reasonLine);
+  const matchGaps = raw.match_gaps
+    .filter((item) => item.title.trim() || item.explanation.trim())
+    .slice(0, 3)
+    .map(gapLine);
+
+  const criteriaComputed = computeScoreFromCriteria(
+    normalizeCriteria(raw.criteria_assessment)
+  );
+  const criteria_assessment = criteriaComputed.criteria as JobCriterionAssessment[];
+
+  const fallback = deriveMatchScore({
     match_score: raw.match_score,
-    match_reasons: raw.match_reasons
-      .filter((item) => item.title.trim() || item.explanation.trim())
-      .slice(0, 5)
-      .map(reasonLine),
-    match_gaps: raw.match_gaps
-      .filter((item) => item.title.trim() || item.explanation.trim())
-      .slice(0, 3)
-      .map(gapLine),
+    score_breakdown: raw.score_breakdown,
+    keywords_matched: matched,
+    keywords_missing: missing,
+    match_reasons: matchReasons,
+    match_gaps: matchGaps,
+  });
+
+  const match_score =
+    criteria_assessment.length > 0
+      ? criteriaComputed.match_score
+      : fallback.score;
+
+  const scoreExplanation =
+    criteria_assessment.length > 0
+      ? raw.score_explanation?.trim() ||
+        "Score calculé à partir des critères pondérés de l’offre et du niveau de preuve dans le CV (0–3)."
+      : raw.score_explanation?.trim() ||
+        (fallback.source === "keywords"
+          ? "Score estimé à partir de la couverture des mots-clés ATS extraits (match_score IA absent)."
+          : fallback.source === "breakdown"
+            ? "Score recalculé depuis le détail des dimensions renvoyées par l’analyse."
+            : fallback.source === "reasons_gaps"
+              ? "Score estimé à partir des forces et écarts documentés (match_score IA absent)."
+              : "");
+
+  return {
+    match_score,
+    match_reasons: matchReasons,
+    match_gaps: matchGaps,
     cover_letter_angle: raw.cover_letter_angle,
     keywords_from_job: fromJob,
     keywords_matched: matched,
@@ -250,9 +351,31 @@ export function flattenJobMatchAnalysis(raw: JobMatchAnalysisRaw): JobAnalysis {
       .filter((item) => item.action.trim())
       .slice(0, 5)
       .map(improvementLine),
+    cv_improvement_items: raw.cv_improvements
+      .filter((item) => item.action.trim())
+      .slice(0, 5)
+      .map((item) => ({
+        id: item.id.trim() || `edit-${item.action.slice(0, 12)}`,
+        priority: item.priority,
+        cv_section: item.cv_section.trim(),
+        action: item.action.trim(),
+        evidence_from_cv: item.evidence_from_cv.trim(),
+        evidence_from_job: item.evidence_from_job.trim(),
+        suggested_rewrite: item.suggested_rewrite?.trim() || null,
+        information_to_confirm: item.information_to_confirm?.trim() || null,
+      })),
+    criteria_assessment,
+    score_breakdown: raw.score_breakdown
+      .filter((item) => item.dimension.trim())
+      .map((item) => ({
+        dimension: item.dimension.trim(),
+        score: item.score,
+        effective_weight_percent: item.effective_weight_percent,
+        rationale: item.rationale.trim(),
+      })),
     job_posting_summary: raw.job_posting_summary,
     score_confidence: raw.score_confidence,
-    score_explanation: raw.score_explanation,
+    score_explanation: scoreExplanation,
     limitations: raw.limitations,
     status: raw.status,
   };

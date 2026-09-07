@@ -8,7 +8,15 @@ import {
   normalizeSourceKey,
   type RemoteMode,
 } from "@/lib/jobs/normalize";
-import type { ImportedJob, Job, JobRecord, JobStatus } from "@/types";
+import { deriveMatchScore } from "@/lib/jobs/derive-match-score";
+import { computeScoreFromCriteria } from "@/lib/jobs/criteria-score";
+import type {
+  ImportedJob,
+  Job,
+  JobCriterionAssessment,
+  JobRecord,
+  JobStatus,
+} from "@/types";
 import type { ParsedImportRow } from "@/lib/imports/jobs-file";
 
 type JobRow = JobRecord & {
@@ -21,10 +29,6 @@ function parseJsonbStringArray(value: unknown): string[] | null {
     return value.filter((item): item is string => typeof item === "string");
   }
   return null;
-}
-
-function resolveMatchScore(row: JobRow): number | null {
-  return row.ai_match_score ?? row.match_score ?? null;
 }
 
 function resolveStrengths(row: JobRow): string[] | null {
@@ -134,7 +138,6 @@ export function toJobViewModel(row: JobRow): Job {
         ? `from ${Math.round(row.salary_min / 1000)}k ${row.salary_currency ?? "EUR"}`
         : null;
 
-  const matchScore = resolveMatchScore(row);
   const matchReasons = resolveStrengths(row);
   const matchGaps = resolveGaps(row);
   const jobFit =
@@ -148,6 +151,47 @@ export function toJobViewModel(row: JobRow): Job {
 
   const asStringArray = (value: unknown): string[] | null =>
     Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : null;
+
+  const keywordsMatched = asStringArray(jobFit?.keywords_matched);
+  const keywordsMissing = asStringArray(jobFit?.keywords_missing);
+  const scoreBreakdown = Array.isArray(jobFit?.score_breakdown)
+    ? (jobFit.score_breakdown as Job["score_breakdown"])
+    : null;
+  const criteriaAssessment = Array.isArray(jobFit?.criteria_assessment)
+    ? (jobFit.criteria_assessment as JobCriterionAssessment[])
+    : null;
+
+  const criteriaScore =
+    criteriaAssessment && criteriaAssessment.length > 0
+      ? computeScoreFromCriteria(criteriaAssessment)
+      : null;
+
+  const derivedMeta = deriveMatchScore({
+    match_score: row.ai_match_score ?? row.match_score ?? null,
+    score_breakdown: scoreBreakdown,
+    keywords_matched: keywordsMatched,
+    keywords_missing: keywordsMissing,
+    match_reasons: matchReasons,
+    match_gaps: matchGaps,
+  });
+  const matchScore =
+    typeof criteriaScore?.match_score === "number"
+      ? criteriaScore.match_score
+      : derivedMeta.score;
+
+  const scoreExplanationStored =
+    typeof jobFit?.score_explanation === "string" ? jobFit.score_explanation : null;
+  const scoreExplanation =
+    scoreExplanationStored?.trim() ||
+    (criteriaScore?.match_score != null
+      ? "Score calculé à partir des critères pondérés de l’offre et du niveau de preuve dans le CV (0–3)."
+      : derivedMeta.source === "keywords"
+        ? "Score estimé à partir de la couverture des mots-clés ATS extraits (match_score IA absent)."
+        : derivedMeta.source === "breakdown"
+          ? "Score recalculé depuis le détail des dimensions renvoyées par l’analyse."
+          : derivedMeta.source === "reasons_gaps"
+            ? "Score estimé à partir des forces et écarts documentés (match_score IA absent)."
+            : null);
 
   return {
     id: row.id,
@@ -214,9 +258,15 @@ export function toJobViewModel(row: JobRow): Job {
         ? row.tracked_searches.name ?? null
         : null,
     keywords_from_job: asStringArray(jobFit?.keywords_from_job),
-    keywords_matched: asStringArray(jobFit?.keywords_matched),
-    keywords_missing: asStringArray(jobFit?.keywords_missing),
+    keywords_matched: keywordsMatched,
+    keywords_missing: keywordsMissing,
     cv_improvements: asStringArray(jobFit?.cv_improvements),
+    cv_improvement_items: Array.isArray(jobFit?.cv_improvement_items)
+      ? (jobFit.cv_improvement_items as Job["cv_improvement_items"])
+      : null,
+    criteria_assessment: criteriaAssessment,
+    score_breakdown: scoreBreakdown,
+    score_explanation: scoreExplanation,
     job_posting_summary:
       typeof jobFit?.job_posting_summary === "string" ? jobFit.job_posting_summary : null,
     created_at: row.created_at,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { JOB_MATCH_PROMPT_VERSION } from "@/lib/ai/prompts/job-match";
 import { toJobViewModel } from "@/lib/jobs/mapper";
 import { analyzeJobMatch } from "@/lib/openai/client";
 
@@ -86,6 +87,15 @@ export async function POST(request: Request) {
       job.raw_data && typeof job.raw_data === "object" && !Array.isArray(job.raw_data)
         ? (job.raw_data as Record<string, unknown>)
         : {};
+    const existingJobFit =
+      existingRaw.job_fit &&
+      typeof existingRaw.job_fit === "object" &&
+      !Array.isArray(existingRaw.job_fit)
+        ? (existingRaw.job_fit as Record<string, unknown>)
+        : {};
+    const existingConfirmations = Array.isArray(existingJobFit.confirmations)
+      ? existingJobFit.confirmations
+      : [];
 
     const { data: updated, error: updateError } = await supabase
       .from("jobs")
@@ -104,12 +114,16 @@ export async function POST(request: Request) {
             keywords_matched: analysis.keywords_matched,
             keywords_missing: analysis.keywords_missing,
             cv_improvements: analysis.cv_improvements,
+            cv_improvement_items: analysis.cv_improvement_items ?? [],
+            criteria_assessment: analysis.criteria_assessment ?? [],
+            score_breakdown: analysis.score_breakdown ?? [],
             job_posting_summary: analysis.job_posting_summary,
             score_confidence: analysis.score_confidence ?? null,
             score_explanation: analysis.score_explanation ?? null,
             limitations: analysis.limitations ?? [],
             status: analysis.status ?? "ok",
-            prompt_version: "v3",
+            prompt_version: JOB_MATCH_PROMPT_VERSION,
+            confirmations: existingConfirmations,
           },
         },
       })

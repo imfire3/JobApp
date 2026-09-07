@@ -116,6 +116,51 @@ export interface JobRecord {
   updated_at: string;
 }
 
+
+export interface JobCvImprovementItem {
+  id: string;
+  priority: "low" | "medium" | "high";
+  cv_section: string;
+  action: string;
+  evidence_from_cv: string;
+  evidence_from_job: string;
+  suggested_rewrite: string | null;
+  information_to_confirm: string | null;
+}
+
+export type JobCriterionEvidenceLevel = 0 | 1 | 2 | 3;
+
+export type JobCriterionConfirmationStatus =
+  | "none"
+  | "asked"
+  | "confirmed"
+  | "denied";
+
+export interface JobCriterionAssessment {
+  id: string;
+  label: string;
+  weight_percent: number;
+  evidence_level: JobCriterionEvidenceLevel;
+  cv_status:
+    | "demonstrated"
+    | "mentioned_only"
+    | "transferable"
+    | "not_evidenced"
+    | "contradicted";
+  evidence_from_job: string;
+  evidence_from_cv: string | null;
+  question_to_candidate: string | null;
+  confirmation_status: JobCriterionConfirmationStatus;
+  recruiter_block_risk: "low" | "medium" | "high";
+}
+
+export interface JobCriterionConfirmation {
+  criterion_id: string;
+  answer: "yes" | "no";
+  detail?: string | null;
+  updated_at: string;
+}
+
 export interface JobAnalysis {
   match_score: number | null;
   match_reasons: string[];
@@ -129,6 +174,17 @@ export interface JobAnalysis {
   keywords_missing: string[];
   /** Actionable CV edits for this specific job */
   cv_improvements: string[];
+  /** Rich phrasing suggestions for this job (with suggested rewrites) */
+  cv_improvement_items?: JobCvImprovementItem[];
+  /** Offer-specific weighted criteria with CV evidence levels (0–3) */
+  criteria_assessment?: JobCriterionAssessment[];
+  /** Per-dimension scores from job-match analysis when available */
+  score_breakdown?: Array<{
+    dimension: string;
+    score: number | null;
+    effective_weight_percent: number;
+    rationale: string;
+  }>;
   /** Short synthesis of the job posting requirements */
   job_posting_summary: string;
   status?: "ok" | "partial" | "insufficient_input";
@@ -190,6 +246,15 @@ export interface Job extends ImportedJob {
   keywords_missing?: string[] | null;
   keywords_from_job?: string[] | null;
   cv_improvements?: string[] | null;
+  cv_improvement_items?: JobCvImprovementItem[] | null;
+  criteria_assessment?: JobCriterionAssessment[] | null;
+  score_breakdown?: Array<{
+    dimension: string;
+    score: number | null;
+    effective_weight_percent: number;
+    rationale: string;
+  }> | null;
+  score_explanation?: string | null;
   job_posting_summary?: string | null;
   created_at: string;
   updated_at: string;
@@ -374,6 +439,22 @@ export interface CvDetectedLanguage {
   evidence_from_cv?: string;
 }
 
+
+export interface CvDetectedExperience {
+  title: string;
+  organization: string;
+  location?: string | null;
+  employment_type?: string | null;
+  is_current?: boolean;
+  start_month?: string | null;
+  start_year?: string | null;
+  end_month?: string | null;
+  end_year?: string | null;
+  highlights?: string;
+  skills?: string[];
+  evidence_from_cv?: string;
+}
+
 export interface CvEvidenceItem {
   title: string;
   explanation: string;
@@ -427,6 +508,7 @@ export interface CvAtsAnalysis {
   detected_tools: string[];
   detected_languages: CvDetectedLanguage[];
   detected_industries: string[];
+  detected_experiences?: CvDetectedExperience[];
   estimated_experience_years: number | null;
   strengths: string[];
   weaknesses: string[];
