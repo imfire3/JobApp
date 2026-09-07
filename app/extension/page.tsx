@@ -12,7 +12,8 @@ export default function ExtensionPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Extension</h1>
               <p className="text-sm text-muted-foreground">
-                Installe l’extension pour enregistrer des offres Welcome to the Jungle en CSV.
+                Télécharge l’extension Chrome, installe-la en mode développeur, puis enregistre
+                des offres Welcome to the Jungle en CSV.
               </p>
             </div>
             <PageHelpButton pageId="extension" />

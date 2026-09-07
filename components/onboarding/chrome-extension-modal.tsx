@@ -1,7 +1,8 @@
 "use client";
 
 import { Download, FolderOpen, Puzzle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CHROME_EXTENSION_ZIP_URL } from "@/components/imports/chrome-extension-panel";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
+import { cn } from "@/lib/utils";
 export const EXTENSION_SEEN_KEY = "jobtracker_extension_seen";
 
 type ChromeExtensionModalProps = {
@@ -49,15 +50,30 @@ export function ChromeExtensionModal({
             Installe l’extension Chrome
           </DialogTitle>
           <DialogDescription>
-            Tes alertes sont prêtes. L’extension WTTJ te permet d’ajouter des offres Welcome to
-            the Jungle dans un CSV, puis de les importer dans JobTracker.
+            L’extension JobTracker ajoute des offres Welcome to the Jungle dans un CSV, puis tu
+            les importes dans l’app.
           </DialogDescription>
         </DialogHeader>
+
+        <a
+          href={CHROME_EXTENSION_ZIP_URL}
+          download="jobtracker-chrome-extension.zip"
+          className={cn(buttonVariants({ size: "lg" }), "w-full")}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Télécharger l’extension
+        </a>
 
         <ol className="space-y-3 text-sm text-muted-foreground">
           <li className="flex gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
               1
+            </span>
+            <span>Télécharge le ZIP, puis dézippe-le.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
+              2
             </span>
             <span>
               Ouvre <code className="rounded bg-muted px-1 py-0.5 text-xs">chrome://extensions</code>{" "}
@@ -66,21 +82,18 @@ export function ChromeExtensionModal({
           </li>
           <li className="flex gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
-              2
+              3
             </span>
             <span className="flex items-start gap-2">
               <FolderOpen className="mt-0.5 h-4 w-4 shrink-0" />
-              Active le mode développeur, puis charge le dossier{" "}
-              <code className="rounded bg-muted px-1 py-0.5 text-xs">chrome-extension</code> du
-              projet
+              Mode développeur → Charger l’extension non empaquetée → choisis le dossier dézippé
             </span>
           </li>
           <li className="flex gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
-              3
+              4
             </span>
-            <span className="flex items-start gap-2">
-              <Download className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
               Sur une offre WTTJ, ajoute-la au CSV puis importe-le dans{" "}
               <strong className="text-foreground">Imports</strong>
             </span>
