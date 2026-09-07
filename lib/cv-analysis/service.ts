@@ -134,6 +134,13 @@ export async function runCvAnalysis(
 
   const cvContentHash = hashCvContent(cvText);
   const customPrompt = await loadCvAnalysisSystemPrompt(supabase, userId);
+  const { data: settings } = await supabase
+    .from("user_settings")
+    .select("openai_key")
+    .eq("id", userId)
+    .maybeSingle();
+  const apiKey =
+    typeof settings?.openai_key === "string" ? settings.openai_key : null;
 
   let analysis: CvAtsAnalysis;
   let model: string;
@@ -141,6 +148,7 @@ export async function runCvAnalysis(
   try {
     ({ analysis, model, promptVersion } = await analyzeCvForAts(cvText, {
       systemPrompt: customPrompt,
+      apiKey,
     }));
   } catch (error) {
     if (error instanceof CvAnalysisValidationError) {

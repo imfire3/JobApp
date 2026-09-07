@@ -149,6 +149,7 @@ Contraintes :
 - Un keyword_missing doit venir de l’offre et n’avoir aucune preuve directe ou équivalente dans le CV.
 - match_type : "exact", "equivalent", "semantic".
 - cv_improvements : jusqu’à 5 modifications concrètes, classées par priorité. Priorise l’ajout ou la mise en avant des mots-clés manquants réellement justifiés par le parcours du candidat.
+- Pour cv_improvements.evidence_from_cv, utilise une chaîne vide ou null s’il n’y a pas de preuve CV explicite.
 - Chaque suggested_rewrite utilise uniquement des faits connus ; sinon, utilise null et renseigne information_to_confirm.
 - job_posting_summary : 2 à 4 phrases sur la mission, les exigences centrales et la séniorité demandée. Signale si la séniorité n’est pas précisée.
 - cover_letter_angle : un paragraphe reliant les besoins prioritaires aux preuves les plus convaincantes du CV, sans rédiger la lettre.

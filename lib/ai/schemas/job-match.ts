@@ -5,30 +5,39 @@ const confidenceSchema = z.enum(["low", "medium", "high"]);
 const importanceSchema = z.enum(["required", "preferred", "unspecified"]);
 const prioritySchema = z.enum(["low", "medium", "high"]);
 const nullableScore = z.number().int().min(0).max(100).nullable();
+/** Models often return null for missing evidence — coerce to empty string. */
+const softString = z.preprocess(
+  (value) => (value == null ? "" : value),
+  z.string()
+);
+const softNullableString = z.preprocess(
+  (value) => (value == null ? null : value),
+  z.string().nullable()
+);
 
 export const jobMatchAnalysisRawSchema = z.object({
   status: z.enum(["ok", "partial", "insufficient_input"]).default("ok"),
   match_score: nullableScore,
   score_confidence: confidenceSchema.default("low"),
-  score_explanation: z.string().default(""),
-  limitations: z.array(z.string()).default([]),
-  job_posting_summary: z.string().default(""),
+  score_explanation: softString.default(""),
+  limitations: z.array(softString).default([]),
+  job_posting_summary: softString.default(""),
   score_breakdown: z
     .array(
       z.object({
-        dimension: z.string(),
+        dimension: softString,
         score: nullableScore,
         effective_weight_percent: z.number().min(0).max(100),
-        rationale: z.string(),
+        rationale: softString,
       })
     )
     .default([]),
   requirements_assessment: z
     .array(
       z.object({
-        requirement: z.string(),
+        requirement: softString,
         importance: importanceSchema,
-        evidence_from_job: z.string(),
+        evidence_from_job: softString,
         cv_status: z.enum([
           "demonstrated",
           "mentioned_only",
@@ -36,71 +45,71 @@ export const jobMatchAnalysisRawSchema = z.object({
           "not_evidenced",
           "contradicted",
         ]),
-        evidence_from_cv: z.string().nullable(),
-        assessment: z.string(),
+        evidence_from_cv: softNullableString,
+        assessment: softString,
       })
     )
     .default([]),
   match_reasons: z
     .array(
       z.object({
-        title: z.string(),
-        evidence_from_cv: z.string(),
-        evidence_from_job: z.string(),
-        explanation: z.string(),
+        title: softString,
+        evidence_from_cv: softString,
+        evidence_from_job: softString,
+        explanation: softString,
       })
     )
     .default([]),
   match_gaps: z
     .array(
       z.object({
-        title: z.string(),
+        title: softString,
         severity: prioritySchema,
         gap_type: z.enum(["not_evidenced", "partial", "contradicted"]),
-        evidence_from_job: z.string(),
-        evidence_from_cv: z.string().nullable(),
-        explanation: z.string(),
-        question_to_candidate: z.string().nullable(),
+        evidence_from_job: softString,
+        evidence_from_cv: softNullableString,
+        explanation: softString,
+        question_to_candidate: softNullableString,
       })
     )
     .default([]),
   keywords_matched: z
     .array(
       z.object({
-        job_term: z.string(),
-        cv_term: z.string(),
+        job_term: softString,
+        cv_term: softString,
         match_type: z.enum(["exact", "equivalent", "semantic"]),
-        evidence_from_job: z.string(),
-        evidence_from_cv: z.string(),
+        evidence_from_job: softString,
+        evidence_from_cv: softString,
       })
     )
     .default([]),
   keywords_missing: z
     .array(
       z.object({
-        keyword: z.string(),
+        keyword: softString,
         importance: importanceSchema,
-        evidence_from_job: z.string(),
-        comment: z.string(),
+        evidence_from_job: softString,
+        comment: softString,
       })
     )
     .default([]),
-  keywords_from_job: z.array(z.string()).default([]),
+  keywords_from_job: z.array(softString).default([]),
   cv_improvements: z
     .array(
       z.object({
-        id: z.string(),
+        id: softString,
         priority: prioritySchema,
-        cv_section: z.string(),
-        action: z.string(),
-        evidence_from_cv: z.string(),
-        evidence_from_job: z.string(),
-        suggested_rewrite: z.string().nullable(),
-        information_to_confirm: z.string().nullable(),
+        cv_section: softString,
+        action: softString,
+        evidence_from_cv: softString,
+        evidence_from_job: softString,
+        suggested_rewrite: softNullableString,
+        information_to_confirm: softNullableString,
       })
     )
     .default([]),
-  cover_letter_angle: z.string().default(""),
+  cover_letter_angle: softString.default(""),
 });
 
 export type JobMatchAnalysisRaw = z.infer<typeof jobMatchAnalysisRawSchema>;

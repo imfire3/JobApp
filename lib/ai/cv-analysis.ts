@@ -9,13 +9,13 @@ import {
   parseCvAtsAnalysis,
   type CvAtsAnalysis,
 } from "@/lib/ai/schemas/cv-analysis";
+import {
+  mapOpenAIError,
+  resolveOpenAIApiKey,
+} from "@/lib/openai/api-key";
 
-function getOpenAIClient() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-  return new OpenAI({ apiKey });
+function getOpenAIClient(apiKey?: string | null) {
+  return new OpenAI({ apiKey: resolveOpenAIApiKey(apiKey) });
 }
 
 function getModel() {
@@ -24,13 +24,13 @@ function getModel() {
 
 export async function analyzeCvForAts(
   cvText: string,
-  options?: { systemPrompt?: string | null }
+  options?: { systemPrompt?: string | null; apiKey?: string | null }
 ): Promise<{
   analysis: CvAtsAnalysis;
   model: string;
   promptVersion: string;
 }> {
-  const client = getOpenAIClient();
+  const client = getOpenAIClient(options?.apiKey);
   const model = getModel();
   const customPrompt = options?.systemPrompt?.trim();
   const systemPrompt = customPrompt || CV_ANALYSIS_SYSTEM_PROMPT;
@@ -48,8 +48,7 @@ export async function analyzeCvForAts(
       ],
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "OpenAI request failed";
-    throw new Error(message);
+    throw mapOpenAIError(error);
   }
 
   const content = response.choices[0]?.message?.content;

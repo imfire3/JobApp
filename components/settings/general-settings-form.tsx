@@ -189,8 +189,12 @@ export function GeneralSettingsForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>AI provider</CardTitle>
-          <CardDescription>Store provider keys in your own secure environment.</CardDescription>
+          <CardTitle>Clé OpenAI</CardTitle>
+          <CardDescription>
+            Utilise ta propre clé OpenAI. Le compte OpenAI doit avoir du crédit
+            (Billing sur platform.openai.com), sinon l’analyse des offres et les
+            lettres échouent.
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
@@ -214,13 +218,20 @@ export function GeneralSettingsForm() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>OpenAI key</Label>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Clé API OpenAI</Label>
             <Input
               type="password"
+              autoComplete="off"
+              placeholder="sk-…"
               value={settings.openai_key}
               onChange={(e) => setSettings((prev) => ({ ...prev, openai_key: e.target.value }))}
             />
+            <p className="text-xs leading-5 text-muted-foreground">
+              Sans clé valide + crédit OpenAI, le matching et les lettres ne
+              fonctionnent pas. Les offres déjà importées peuvent être
+              ré-analysées ensuite depuis la fiche offre.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Anthropic key</Label>

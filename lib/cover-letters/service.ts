@@ -141,10 +141,11 @@ export async function generateAndSaveCoverLetter(
   }
 
   let writingPreferences: string | null = null;
+  let apiKey: string | null = null;
   try {
     const { data: settings } = await supabase
       .from("user_settings")
-      .select("cover_letter_defaults")
+      .select("cover_letter_defaults,openai_key")
       .eq("id", userId)
       .maybeSingle();
     const defaults = settings?.cover_letter_defaults;
@@ -153,12 +154,15 @@ export async function generateAndSaveCoverLetter(
     } else if (typeof defaults === "string" && defaults.trim()) {
       writingPreferences = defaults;
     }
+    apiKey =
+      typeof settings?.openai_key === "string" ? settings.openai_key : null;
   } catch {
     writingPreferences = null;
   }
 
   const generated = await generateCoverLetterContent(
-    toPromptInput(job, cvText, writingPreferences)
+    toPromptInput(job, cvText, writingPreferences),
+    { apiKey }
   );
 
   const { data: savedLetter, error: saveError } = await supabase

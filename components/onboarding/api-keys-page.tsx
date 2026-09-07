@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { KeyRound } from "lucide-react"
+import { ExternalLink, KeyRound } from "lucide-react"
 import { toast } from "sonner"
 import { AuthCardShell } from "@/components/auth/auth-card-shell"
 import { Button } from "@/components/ui/button"
@@ -10,28 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-
-type AiProvider = "openai" | "anthropic" | "gemini"
 
 type KeysState = {
-  ai_provider: AiProvider
   openai_key: string
-  anthropic_key: string
-  gemini_key: string
 }
 
 const defaultKeys: KeysState = {
-  ai_provider: "openai",
   openai_key: "",
-  anthropic_key: "",
-  gemini_key: "",
 }
 
 export function ApiKeysPageClient() {
@@ -71,10 +56,7 @@ export function ApiKeysPageClient() {
           const payload = data.settings ?? {}
           if (!cancelled) {
             setKeys({
-              ai_provider: (payload.ai_provider as AiProvider) ?? "openai",
               openai_key: payload.openai_key ?? "",
-              anthropic_key: payload.anthropic_key ?? "",
-              gemini_key: payload.gemini_key ?? "",
             })
           }
         }
@@ -105,23 +87,31 @@ export function ApiKeysPageClient() {
 
   async function handleContinue(e: React.FormEvent) {
     e.preventDefault()
+    const openaiKey = keys.openai_key.trim()
+    if (!openaiKey) {
+      toast.error("Ajoute ta clé API OpenAI pour continuer")
+      return
+    }
+    if (!openaiKey.startsWith("sk-")) {
+      toast.error("La clé OpenAI doit commencer par sk-")
+      return
+    }
+
     setLoading(true)
     try {
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ai_provider: keys.ai_provider,
-          openai_key: keys.openai_key || null,
-          anthropic_key: keys.anthropic_key || null,
-          gemini_key: keys.gemini_key || null,
+          ai_provider: "openai",
+          openai_key: openaiKey,
         }),
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
-      if (!res.ok) throw new Error(data.error ?? "Impossible d’enregistrer les clés")
+      if (!res.ok) throw new Error(data.error ?? "Impossible d’enregistrer la clé")
 
       await finishOnboarding()
-      toast.success("Clés enregistrées")
+      toast.success("Clé OpenAI enregistrée")
       router.push("/dashboard")
       router.refresh()
     } catch (error) {
@@ -131,19 +121,7 @@ export function ApiKeysPageClient() {
     }
   }
 
-  async function handleSkip() {
-    setLoading(true)
-    try {
-      await finishOnboarding()
-      toast.success("Onboarding terminé")
-      router.push("/dashboard")
-      router.refresh()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Échec de l’inscription")
-    } finally {
-      setLoading(false)
-    }
-  }
+  const canContinue = keys.openai_key.trim().startsWith("sk-")
 
   return (
     <AuthCardShell>
@@ -160,43 +138,48 @@ export function ApiKeysPageClient() {
               <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <KeyRound className="h-6 w-6" />
               </div>
-              <CardTitle className="text-2xl">AI provider</CardTitle>
-              <CardDescription className="pb-4">
-                Configure tes clés API pour l’analyse CV et les lettres de motivation.
-                Tu pourras les modifier plus tard dans Settings.
+              <CardTitle className="text-2xl">Ta clé OpenAI</CardTitle>
+              <CardDescription className="pb-2 text-left sm:text-center">
+                JobTracker utilise ta propre clé OpenAI pour analyser le CV, scorer les
+                offres et générer les lettres. Sans clé valide (et sans crédit sur le
+                compte OpenAI), ces fonctions ne marchent pas.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Field>
-                <Label className="mb-0">Provider</Label>
-                <Select
-                  value={keys.ai_provider}
-                  onValueChange={(value) =>
-                    setKeys((prev) => ({
-                      ...prev,
-                      ai_provider: (value as AiProvider) || "openai",
-                    }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="openai">OpenAI</SelectItem>
-                    <SelectItem value="anthropic">Anthropic</SelectItem>
-                    <SelectItem value="gemini">Gemini</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
+              <div className="rounded-xl border border-border bg-muted/40 p-4 text-left text-sm leading-6 text-muted-foreground">
+                <p className="font-medium text-foreground">Important — crédit OpenAI</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-4">
+                  <li>
+                    Crée ou ouvre un compte sur{" "}
+                    <a
+                      href="https://platform.openai.com"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline"
+                    >
+                      platform.openai.com
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </li>
+                  <li>
+                    Ajoute un moyen de paiement / du crédit (Billing) — un compte gratuit
+                    sans solde ne suffit en général pas.
+                  </li>
+                  <li>
+                    Crée une clé API (API keys), copie-la ici, puis continue.
+                  </li>
+                </ol>
+              </div>
 
               <Field>
                 <Label htmlFor="onboarding-openai-key" className="mb-0">
-                  OpenAI key
+                  Clé API OpenAI
                 </Label>
                 <Input
                   id="onboarding-openai-key"
                   type="password"
                   autoComplete="off"
+                  required
                   value={keys.openai_key}
                   onChange={(e) =>
                     setKeys((prev) => ({ ...prev, openai_key: e.target.value }))
@@ -205,54 +188,18 @@ export function ApiKeysPageClient() {
                 />
               </Field>
 
-              <Field>
-                <Label htmlFor="onboarding-anthropic-key" className="mb-0">
-                  Anthropic key
-                </Label>
-                <Input
-                  id="onboarding-anthropic-key"
-                  type="password"
-                  autoComplete="off"
-                  value={keys.anthropic_key}
-                  onChange={(e) =>
-                    setKeys((prev) => ({ ...prev, anthropic_key: e.target.value }))
-                  }
-                  placeholder="sk-ant-…"
-                />
-              </Field>
-
-              <Field>
-                <Label htmlFor="onboarding-gemini-key" className="mb-0">
-                  Gemini key
-                </Label>
-                <Input
-                  id="onboarding-gemini-key"
-                  type="password"
-                  autoComplete="off"
-                  value={keys.gemini_key}
-                  onChange={(e) =>
-                    setKeys((prev) => ({ ...prev, gemini_key: e.target.value }))
-                  }
-                  placeholder="AIza…"
-                />
-              </Field>
-
               <p className="text-xs text-muted-foreground">
-                Tu pourras aussi les modifier plus tard dans Settings. Les clés serveur
-                (`.env`) restent prioritaires si configurées.
+                Tu pourras modifier cette clé plus tard dans Réglages. Elle reste
+                privée à ton compte JobTracker.
               </p>
 
-              <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                {loading ? "Enregistrement…" : "Aller au dashboard"}
-              </Button>
               <Button
-                type="button"
-                variant="ghost"
+                type="submit"
+                size="lg"
                 className="w-full"
-                disabled={loading}
-                onClick={() => void handleSkip()}
+                disabled={loading || !canContinue}
               >
-                Passer pour l’instant
+                {loading ? "Enregistrement…" : "Continuer vers le dashboard"}
               </Button>
             </CardContent>
           </form>

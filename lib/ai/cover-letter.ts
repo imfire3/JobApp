@@ -5,13 +5,13 @@ import {
   COVER_LETTER_SYSTEM_PROMPT,
   type CoverLetterPromptInput,
 } from "@/lib/ai/prompts/cover-letter";
+import {
+  mapOpenAIError,
+  resolveOpenAIApiKey,
+} from "@/lib/openai/api-key";
 
-function getOpenAIClient() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-  return new OpenAI({ apiKey });
+function getOpenAIClient(apiKey?: string | null) {
+  return new OpenAI({ apiKey: resolveOpenAIApiKey(apiKey) });
 }
 
 function getCoverLetterModel() {
@@ -26,20 +26,26 @@ function detectLanguage(text: string): string {
 }
 
 export async function generateCoverLetterContent(
-  input: CoverLetterPromptInput
+  input: CoverLetterPromptInput,
+  options?: { apiKey?: string | null }
 ): Promise<{ content: string; model: string; language: string; promptVersion: string }> {
-  const client = getOpenAIClient();
+  const client = getOpenAIClient(options?.apiKey);
   const model = getCoverLetterModel();
   const language = detectLanguage(input.description ?? input.cvText);
 
-  const response = await client.chat.completions.create({
-    model,
-    temperature: 0.7,
-    messages: [
-      { role: "system", content: COVER_LETTER_SYSTEM_PROMPT },
-      { role: "user", content: buildCoverLetterUserPrompt(input) },
-    ],
-  });
+  let response: OpenAI.Chat.Completions.ChatCompletion;
+  try {
+    response = await client.chat.completions.create({
+      model,
+      temperature: 0.7,
+      messages: [
+        { role: "system", content: COVER_LETTER_SYSTEM_PROMPT },
+        { role: "user", content: buildCoverLetterUserPrompt(input) },
+      ],
+    });
+  } catch (error) {
+    throw mapOpenAIError(error);
+  }
 
   const content = response.choices[0]?.message?.content?.trim();
   if (!content) {

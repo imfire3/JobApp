@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
     const { data: settings } = await supabase
       .from("user_settings")
-      .select("job_match_system_prompt")
+      .select("job_match_system_prompt,openai_key")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -75,7 +75,11 @@ export async function POST(request: Request) {
         location: view.location ?? undefined,
         remote: view.remote,
       },
-      { systemPrompt: customJobPrompt }
+      {
+        systemPrompt: customJobPrompt,
+        apiKey:
+          typeof settings?.openai_key === "string" ? settings.openai_key : null,
+      }
     );
 
     const existingRaw =

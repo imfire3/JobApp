@@ -100,4 +100,44 @@ describe("parseJobMatchAnalysis", () => {
     });
     assert.equal(parsed.match_score, null);
   });
+
+  it("coerces null evidence_from_cv in cv_improvements", () => {
+    const parsed = parseJobMatchAnalysis({
+      status: "ok",
+      match_score: 60,
+      score_confidence: "medium",
+      score_explanation: "Overlap partiel",
+      limitations: [],
+      job_posting_summary: "PO.",
+      score_breakdown: [],
+      requirements_assessment: [],
+      match_reasons: [
+        {
+          title: "Priorisation",
+          evidence_from_cv: null,
+          evidence_from_job: "Backlog",
+          explanation: "OK",
+        },
+      ],
+      match_gaps: [],
+      keywords_matched: [],
+      keywords_missing: [],
+      cv_improvements: [
+        {
+          id: "edit-1",
+          priority: "high",
+          cv_section: "Expériences",
+          action: "Ajouter discovery",
+          evidence_from_cv: null,
+          evidence_from_job: "User research",
+          suggested_rewrite: null,
+          information_to_confirm: null,
+        },
+      ],
+      cover_letter_angle: "Angle.",
+    });
+
+    assert.match(parsed.cv_improvements[0] ?? "", /Ajouter discovery/);
+    assert.match(parsed.match_reasons[0] ?? "", /Priorisation/);
+  });
 });

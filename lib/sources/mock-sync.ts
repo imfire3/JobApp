@@ -61,6 +61,14 @@ export async function runMockSyncForTarget(
     .eq("id", userId)
     .maybeSingle();
 
+  const { data: settings } = await supabase
+    .from("user_settings")
+    .select("openai_key")
+    .eq("id", userId)
+    .maybeSingle();
+  const openaiKey =
+    typeof settings?.openai_key === "string" ? settings.openai_key : null;
+
   let runs = 0;
   let imported = 0;
   let skipped = 0;
@@ -147,7 +155,8 @@ export async function runMockSyncForTarget(
             inserted,
             profile?.cv_text ?? null,
             profile?.target_roles ?? [],
-            profile?.target_locations ?? []
+            profile?.target_locations ?? [],
+            openaiKey
           );
         }
 
@@ -353,21 +362,26 @@ async function maybeAnalyzeInsertedJob(
   job: { id: string; title: string; company: string; location: string | null; remote: boolean; description: string | null },
   cvText: string | null,
   targetRoles: string[],
-  targetLocations: string[]
+  targetLocations: string[],
+  apiKey: string | null
 ) {
-  if (!cvText || !process.env.OPENAI_API_KEY) return;
+  if (!cvText) return;
+  if (!apiKey?.trim() && !process.env.OPENAI_API_KEY?.trim()) return;
 
   try {
-    const analysis = await analyzeJobMatch({
-      cvText,
-      targetRoles,
-      targetLocations,
-      jobTitle: job.title,
-      company: job.company,
-      jobDescription: job.description ?? "",
-      location: job.location ?? undefined,
-      remote: job.remote,
-    });
+    const analysis = await analyzeJobMatch(
+      {
+        cvText,
+        targetRoles,
+        targetLocations,
+        jobTitle: job.title,
+        company: job.company,
+        jobDescription: job.description ?? "",
+        location: job.location ?? undefined,
+        remote: job.remote,
+      },
+      { apiKey }
+    );
 
     await supabase
       .from("jobs")
