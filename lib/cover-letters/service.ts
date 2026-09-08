@@ -130,7 +130,7 @@ export async function generateAndSaveCoverLetter(
   const cvText = await loadCvText(supabase, userId);
   if (!cvText) {
     throw new CoverLetterError(
-      "Please add your CV text in CV Context before generating cover letters",
+      "Ajoute ton CV dans Profil & CV avant de générer des lettres.",
       400
     );
   }

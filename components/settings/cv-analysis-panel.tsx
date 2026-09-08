@@ -179,7 +179,7 @@ export function CvAnalysisPanel({
             onClick={onAnalyze}
             disabled={analyzeDisabled}
             variant={analysis?.is_stale ? "default" : "outline"}
-            data-tour="guide-cv-analyze"
+
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${analyzing ? "animate-spin" : ""}`} />
             {analyzing ? "Analyse…" : analysis ? "Relancer l’analyse" : "Analyser le CV"}

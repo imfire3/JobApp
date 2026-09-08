@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/components/layout/nav-items";
-import { RelaunchGuideButton } from "@/components/onboarding/page-help-button";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -26,7 +25,6 @@ export function MobileNav() {
         <span className="font-semibold">JobTracker</span>
       </div>
       <div className="flex items-center gap-1">
-        <RelaunchGuideButton />
         <Sheet>
           <SheetTrigger
             className={cn(
@@ -48,7 +46,6 @@ export function MobileNav() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    data-tour={item.tourId}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
                       active

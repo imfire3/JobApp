@@ -29,9 +29,9 @@ function formatDate(value: string | null) {
 }
 
 function statusLabel(status: SourceCard["status"]) {
-  if (status === "connected") return "Connected";
-  if (status === "error") return "Error";
-  return "Not configured";
+  if (status === "connected") return "Connectée"
+  if (status === "error") return "Erreur"
+  return "Non configurée"
 }
 
 function statusVariant(status: SourceCard["status"]): "default" | "secondary" | "destructive" {
@@ -48,45 +48,47 @@ export function SourcesPage() {
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/sources");
-      if (!res.ok) throw new Error("Failed to load sources");
-      const data = await res.json();
-      setSources(data.sources ?? []);
+      if (!res.ok) throw new Error("Impossible de charger les sources")
+      const data = await res.json()
+      setSources(data.sources ?? [])
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load sources");
-      setSources([]);
+      toast.error(error instanceof Error ? error.message : "Impossible de charger les sources")
+      setSources([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    load();
-  }, [load]);
+    load()
+  }, [load])
 
   async function syncNow(sourceId: string) {
-    setSyncingId(sourceId);
+    setSyncingId(sourceId)
     try {
-      const res = await fetch(`/api/sync/source/${sourceId}`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Sync failed");
-      toast.success(`Run now complete: ${data.imported} imported, ${data.skipped} duplicates`);
-      await load();
+      const res = await fetch(`/api/sync/source/${sourceId}`, { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Sync échouée")
+      toast.success(
+        `Collecte terminée : ${data.imported} importée(s), ${data.skipped} doublon(s)`
+      )
+      await load()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Sync failed");
+      toast.error(error instanceof Error ? error.message : "Sync échouée")
     } finally {
-      setSyncingId(null);
+      setSyncingId(null)
     }
   }
 
   return (
     <div className="space-y-6">
-      <StickyPageHeader data-tour="guide-sources">
+      <StickyPageHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Sources</h1>
             <p className="text-sm text-muted-foreground">
-              Services de collecte d’offres — actuellement en démonstration. Utilise les imports
-              pour ajouter tes offres.
+              Connecteurs de collecte d’offres. Pour un import manuel, utilise aussi
+              Imports ou l’extension Chrome.
             </p>
           </div>
           <PageHelpButton pageId="sources" />

@@ -25,6 +25,10 @@ import {
   Sparkles,
   Wifi,
 } from "lucide-react";
+import {
+  JobScoringProgressBar,
+  type JobScoringProgress,
+} from "@/components/jobs/job-scoring-progress";
 
 interface JobCardProps {
   job: Job;
@@ -36,6 +40,7 @@ interface JobCardProps {
   onOpen?: (job: Job) => void;
   isAnalyzing?: boolean;
   isGenerating?: boolean;
+  analysisProgress?: JobScoringProgress;
 }
 
 export function JobCard({
@@ -48,7 +53,17 @@ export function JobCard({
   onOpen,
   isAnalyzing,
   isGenerating,
+  analysisProgress,
 }: JobCardProps) {
+  const scoring =
+    analysisProgress ??
+    (isAnalyzing ? { status: "analyzing" as const, progress: 55 } : null);
+  const showScoringBar =
+    scoring !== null &&
+    (scoring.status === "queued" ||
+      scoring.status === "analyzing" ||
+      scoring.status === "error");
+
   const handleOpen = () => {
     onOpen?.(job);
   };
@@ -137,6 +152,16 @@ export function JobCard({
       </CardHeader>
 
       <CardContent className="flex-1 pb-3">
+        {showScoringBar && scoring ? (
+          <div className="mb-3">
+            <JobScoringProgressBar
+              progress={scoring.progress}
+              status={scoring.status}
+              title={job.title}
+              error={scoring.error}
+            />
+          </div>
+        ) : null}
         <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
           {job.summary ?? job.ai_summary ?? job.description}
         </p>
@@ -172,10 +197,18 @@ export function JobCard({
           variant="outline"
           size="sm"
           onClick={() => onAnalyze(job.id)}
-          disabled={isAnalyzing}
+          disabled={
+            isAnalyzing ||
+            scoring?.status === "analyzing" ||
+            scoring?.status === "queued"
+          }
         >
           <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-          {isAnalyzing ? "Analyzing..." : "Analyze"}
+          {isAnalyzing || scoring?.status === "analyzing"
+            ? "Analyse…"
+            : scoring?.status === "queued"
+              ? "En file…"
+              : "Analyze"}
         </Button>
 
         {job.cover_letter ? (

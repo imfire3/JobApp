@@ -60,16 +60,19 @@ export function mapTrackedSearchToConnectorOptions(
 ): JobConnectorOptions {
   const roles = trackedSearch.job_titles.length
     ? trackedSearch.job_titles
-    : ["Product Owner", "Product Manager"];
-  const location = trackedSearch.locations[0] ?? "Paris";
+    : ["Product Owner", "Product Manager"]
+  const location = trackedSearch.locations[0] ?? "Paris"
+  const expertiseQuery = (trackedSearch.expertises ?? []).join(" ")
+  const queryParts = [roles.join(" OR "), ...(trackedSearch.keywords ?? [])]
+  if (expertiseQuery) queryParts.push(expertiseQuery)
 
   return {
     trackedSearch,
-    query: roles.join(" OR "),
+    query: queryParts.filter(Boolean).join(" "),
     location,
     roles,
     keywords: trackedSearch.keywords,
     excludedKeywords: trackedSearch.excluded_keywords,
     maxResults: 50,
-  };
+  }
 }

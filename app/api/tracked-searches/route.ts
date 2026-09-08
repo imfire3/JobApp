@@ -1,30 +1,7 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { trackedSearchWriteSchema } from "@/lib/jobs/tracked-search-schema";
 import { buildNextSyncAt } from "@/lib/sources/utils";
-
-const trackedSearchSchema = z.object({
-  name: z.string().min(2),
-  enabled: z.boolean().default(true),
-  job_titles: z.array(z.string()).default([]),
-  keywords: z.array(z.string()).default([]),
-  excluded_keywords: z.array(z.string()).default([]),
-  locations: z.array(z.string()).default([]),
-  maximum_distance: z.number().nullable().optional(),
-  remote_preference: z.string().default("any"),
-  hybrid: z.boolean().default(false),
-  on_site: z.boolean().default(false),
-  experience: z.array(z.string()).default([]),
-  contract_types: z.array(z.string()).default([]),
-  minimum_salary: z.number().nullable().optional(),
-  currency: z.string().default("EUR"),
-  industries: z.array(z.string()).default([]),
-  excluded_industries: z.array(z.string()).default([]),
-  company_size: z.string().nullable().optional(),
-  company_culture: z.string().nullable().optional(),
-  ai_preferences: z.record(z.string(), z.unknown()).default({}),
-  minimum_match_score: z.number().nullable().optional(),
-});
 
 export async function GET() {
   const { supabase, user, error } = await getAuthenticatedUser();
@@ -49,9 +26,9 @@ export async function POST(request: Request) {
   const { supabase, user, error } = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  let payload: z.infer<typeof trackedSearchSchema>;
+  let payload: ReturnType<typeof trackedSearchWriteSchema.parse>;
   try {
-    payload = trackedSearchSchema.parse(await request.json());
+    payload = trackedSearchWriteSchema.parse(await request.json());
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }

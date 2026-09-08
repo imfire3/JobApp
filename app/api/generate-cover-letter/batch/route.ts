@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
   if (!cvCheck.data?.cv_text?.trim()) {
     return NextResponse.json(
-      { error: "Please add your CV text in CV Context before generating cover letters" },
+      { error: "Ajoute ton CV dans Profil & CV avant de générer des lettres." },
       { status: 400 }
     );
   }

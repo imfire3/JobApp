@@ -44,10 +44,10 @@ export function JobDateFilter({
           <SelectValue />
         </SelectTrigger>
         <SelectContent align="end">
-          <SelectItem value="0">Any date</SelectItem>
-          <SelectItem value="1">Last 24h</SelectItem>
-          <SelectItem value="7">Last 7 days</SelectItem>
-          <SelectItem value="30">Last 30 days</SelectItem>
+          <SelectItem value="0">Toutes les dates</SelectItem>
+          <SelectItem value="1">Dernières 24 h</SelectItem>
+          <SelectItem value="7">7 derniers jours</SelectItem>
+          <SelectItem value="30">30 derniers jours</SelectItem>
         </SelectContent>
       </Select>
     </div>
@@ -60,7 +60,7 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
       <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
         <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
           <Label htmlFor="remote-only" className="mb-0 whitespace-nowrap text-sm">
-            Remote only
+            Remote uniquement
           </Label>
           <Switch
             id="remote-only"
@@ -72,7 +72,7 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
         </div>
         <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
           <Label htmlFor="hybrid-only" className="mb-0 whitespace-nowrap text-sm">
-            Hybrid
+            Hybride
           </Label>
           <Switch
             id="hybrid-only"
@@ -84,7 +84,7 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
         </div>
         <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
           <Label htmlFor="last-24h" className="mb-0 whitespace-nowrap text-sm">
-            Last 24h only
+            24 h seulement
           </Label>
           <Switch
             id="last-24h"

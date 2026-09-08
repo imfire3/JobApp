@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   WEBSITE_PASTE_SOURCE,
   buildWebsitePasteRow,
+  extractWttjMetaFromUrl,
   mergeWebsitePasteRow,
   parseJobsImportFile,
   rowsToCsvFile,
@@ -13,21 +14,39 @@ describe("website paste import helpers", () => {
     assert.equal(buildWebsitePasteRow("https://example.com/job", "  "), null);
   });
 
-  it("builds a row from pasted text and URL", () => {
+  it("extracts company and title hints from WTTJ URL", () => {
+    const meta = extractWttjMetaFromUrl(
+      "https://www.welcometothejungle.com/fr/companies/acme-corp/jobs/product-owner-paris"
+    );
+    assert.equal(meta.company, "Acme Corp");
+    assert.equal(meta.titleFromPath, "Product Owner Paris");
+  });
+
+  it("builds a row from pasted text and WTTJ URL", () => {
     const row = buildWebsitePasteRow(
-      "https://www.welcometothejungle.com/fr/companies/acme/jobs/dev",
-      "Développeur Fullstack\n\nStack React / Node\nRemote possible"
+      "https://www.welcometothejungle.com/fr/companies/acme/jobs/dev-fullstack",
+      "Welcome to the Jungle\nSe connecter\nDéveloppeur Fullstack\n\nStack React / Node\nRemote possible"
     );
 
     assert.ok(row);
     assert.equal(row?.source, WEBSITE_PASTE_SOURCE);
     assert.equal(row?.title, "Développeur Fullstack");
-    assert.equal(row?.company, "welcometothejungle.com");
+    assert.equal(row?.company, "Acme");
     assert.equal(
       row?.url,
-      "https://www.welcometothejungle.com/fr/companies/acme/jobs/dev"
+      "https://www.welcometothejungle.com/fr/companies/acme/jobs/dev-fullstack"
     );
     assert.match(row?.description ?? "", /Stack React/);
+    assert.equal(row?.raw_data?.pasted_text, row?.description);
+  });
+
+  it("uses a unique paste.local URL when no URL is provided", () => {
+    const first = buildWebsitePasteRow("", "Titre A\nDesc");
+    const second = buildWebsitePasteRow("", "Titre B\nDesc");
+    assert.ok(first && second);
+    assert.match(first.url, /^https:\/\/paste\.local\/job-/);
+    assert.match(second.url, /^https:\/\/paste\.local\/job-/);
+    assert.notEqual(first.url, second.url);
   });
 
   it("merges paste over previous paste without dropping file rows", () => {
@@ -54,7 +73,7 @@ describe("website paste import helpers", () => {
     assert.equal(replaced[1]?.title, "Nouveau titre");
   });
 
-  it("serializes rows to a CSV that the parser accepts", async () => {
+  it("serializes rows to a CSV that preserves pasted_text", async () => {
     const row = buildWebsitePasteRow("https://example.com/job-1", "Lead Dev\nMission");
     assert.ok(row);
     const file = rowsToCsvFile([row!]);
@@ -63,5 +82,6 @@ describe("website paste import helpers", () => {
     assert.equal(parsed.rows.length, 1);
     assert.equal(parsed.rows[0]?.title, "Lead Dev");
     assert.equal(parsed.rows[0]?.url, "https://example.com/job-1");
+    assert.equal(parsed.rows[0]?.raw_data?.pasted_text, "Lead Dev\nMission");
   });
 });

@@ -2,12 +2,21 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildJobInsertPayload } from "@/lib/jobs/mapper";
 import type { ParsedImportFile } from "@/lib/imports/jobs-file";
 
+export type AlreadyOnBoardJob = {
+  id: string;
+  url: string;
+  title: string;
+  company: string;
+};
+
 export type ImportSummary = {
   total_rows: number;
   imported: number;
   duplicates: number;
+  updated: number;
   invalid: number;
   invalid_rows: Array<{ rowNumber: number; errors: string[] }>;
+  already_on_board: AlreadyOnBoardJob[];
 };
 
 export type ImportedJobRef = {
@@ -16,6 +25,7 @@ export type ImportedJobRef = {
   title: string;
   company: string;
   was_duplicate: boolean;
+  was_updated: boolean;
 };
 
 export type ImportParsedJobsResult = {
@@ -23,13 +33,42 @@ export type ImportParsedJobsResult = {
   jobs: ImportedJobRef[];
 };
 
+export function buildImportResultMessage(summary: ImportSummary): string {
+  const parts: string[] = [];
+  if (summary.imported > 0) {
+    parts.push(
+      summary.imported === 1
+        ? "1 offre ajoutée au board"
+        : `${summary.imported} offres ajoutées au board`
+    );
+  }
+  if (summary.duplicates > 0) {
+    parts.push(
+      summary.duplicates === 1
+        ? "1 offre était déjà sur ton board (non réimportée)"
+        : `${summary.duplicates} offres étaient déjà sur ton board (non réimportées)`
+    );
+  }
+  if (summary.invalid > 0) {
+    parts.push(
+      summary.invalid === 1
+        ? "1 ligne invalide ignorée"
+        : `${summary.invalid} lignes invalides ignorées`
+    );
+  }
+  if (parts.length === 0) {
+    return "Aucune offre à importer.";
+  }
+  return parts.join(" · ");
+}
+
 export async function importParsedJobs(
   supabase: SupabaseClient,
   userId: string,
   parsed: ParsedImportFile
 ): Promise<ImportParsedJobsResult> {
   const urlCandidates = parsed.rows.map((row) => row.url);
-  const existingByUrl = new Map<string, ImportedJobRef>();
+  const existingByUrl = new Map<string, AlreadyOnBoardJob>();
   const chunkSize = 500;
 
   for (let offset = 0; offset < urlCandidates.length; offset += chunkSize) {
@@ -50,18 +89,27 @@ export async function importParsedJobs(
         url: row.url,
         title: typeof row.title === "string" ? row.title : "",
         company: typeof row.company === "string" ? row.company : "",
-        was_duplicate: true,
       });
     }
   }
 
   const rowsToInsert = parsed.rows.filter((row) => !existingByUrl.has(row.url));
-  const duplicates = parsed.rows.length - rowsToInsert.length;
-  const jobs: ImportedJobRef[] = [];
+  const duplicateRows = parsed.rows.filter((row) => existingByUrl.has(row.url));
+  const jobsByUrl = new Map<string, ImportedJobRef>();
+  const alreadyOnBoard: AlreadyOnBoardJob[] = [];
 
-  for (const row of parsed.rows) {
+  for (const row of duplicateRows) {
     const existing = existingByUrl.get(row.url);
-    if (existing) jobs.push(existing);
+    if (!existing) continue;
+    alreadyOnBoard.push(existing);
+    jobsByUrl.set(row.url, {
+      id: existing.id,
+      url: existing.url,
+      title: existing.title,
+      company: existing.company,
+      was_duplicate: true,
+      was_updated: false,
+    });
   }
 
   let imported = 0;
@@ -85,34 +133,39 @@ export async function importParsedJobs(
       if (insertError.code !== "23505") {
         throw new Error(insertError.message);
       }
+      // Unique constraint race: treat remaining as duplicates if we can resolve them
     } else {
       imported = inserted?.length ?? 0;
       for (const row of inserted ?? []) {
         if (typeof row.id !== "string" || typeof row.url !== "string") continue;
-        jobs.push({
+        jobsByUrl.set(row.url, {
           id: row.id,
           url: row.url,
           title: typeof row.title === "string" ? row.title : "",
           company: typeof row.company === "string" ? row.company : "",
           was_duplicate: false,
+          was_updated: false,
         });
       }
     }
   }
 
-  // Keep preview order
-  const byUrl = new Map(jobs.map((job) => [job.url, job]));
   const orderedJobs = parsed.rows
-    .map((row) => byUrl.get(row.url))
+    .map((row) => jobsByUrl.get(row.url))
     .filter((job): job is ImportedJobRef => Boolean(job));
+
+  const duplicates =
+    alreadyOnBoard.length + Math.max(0, rowsToInsert.length - imported);
 
   return {
     summary: {
       total_rows: parsed.totalRows,
       imported,
-      duplicates: duplicates + Math.max(0, rowsToInsert.length - imported),
+      duplicates,
+      updated: 0,
       invalid: parsed.invalidRows.filter((row) => row.rowNumber > 0).length,
       invalid_rows: parsed.invalidRows,
+      already_on_board: alreadyOnBoard,
     },
     jobs: orderedJobs,
   };

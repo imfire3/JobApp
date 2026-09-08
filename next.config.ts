@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   allowedDevOrigins: ["192.168.1.31", "localhost", "127.0.0.1"],
-  serverExternalPackages: ["unpdf", "mammoth"],
+  serverExternalPackages: ["unpdf", "mammoth", "@napi-rs/canvas"],
 };
 
 export default nextConfig;

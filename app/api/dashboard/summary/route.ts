@@ -6,7 +6,7 @@ export async function GET() {
   const { supabase, user, error } = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const [{ data: jobs, error: jobsError }, { data: sources, error: sourcesError }] = await Promise.all([
+  const [{ data: jobs, error: jobsError }, { data: sources, error: sourcesError }, applicationsCountResult] = await Promise.all([
     supabase
       .from("jobs")
       .select("*")
@@ -16,14 +16,28 @@ export async function GET() {
       .from("job_sources")
       .select("*")
       .eq("user_id", user.id),
+    supabase
+      .from("applications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("status", [
+        "applied",
+        "hr_interview",
+        "technical_interview",
+        "case_study",
+        "offer",
+        "accepted",
+      ]),
   ]);
 
+  const applicationsSent = applicationsCountResult.count ?? 0;
   if (jobsError) {
     if (jobsError.code === "42P01") {
       return NextResponse.json({
         jobs: [],
         sources: [],
         active_connectors: 0,
+        applications_sent: 0,
         ai_recommendations: buildAiRecommendations([]),
         recent_activity: [],
         last_sync_time: null,
@@ -43,6 +57,7 @@ export async function GET() {
       jobs: jobs ?? [],
       sources: [],
       active_connectors: 0,
+      applications_sent: applicationsSent,
       ai_recommendations: [],
       recent_activity: [],
       last_sync_time: null,
@@ -77,13 +92,14 @@ export async function GET() {
     jobs: mappedJobs,
     sources: sources ?? [],
     active_connectors: (sources ?? []).filter((s) => s.enabled).length,
+    applications_sent: applicationsSent,
     ai_recommendations: aiRecommendations,
     recent_activity: (activities ?? []).map((item) => ({
       time: item.started_at,
-      label: sourceNameById.get(item.source_id) ?? "Connector",
+      label: sourceNameById.get(item.source_id) ?? "Connecteur",
       message:
         item.message ??
-        `${item.jobs_found ?? 0} found, ${item.jobs_imported ?? 0} imported`,
+        `${item.jobs_found ?? 0} trouvées, ${item.jobs_imported ?? 0} importées`,
       phase: item.phase ?? "completed",
     })),
     last_sync_time: sortedSources[0]?.last_sync_at ?? null,
@@ -110,12 +126,15 @@ function buildAiRecommendations(
   const highScore = jobs
     .filter((job) => (job.match_score ?? 0) >= 80 && job.status !== "applied")
     .slice(0, 3)
-    .map((job) => `Prioritize ${job.title} at ${job.company} (${job.match_score}% match)`);
+    .map(
+      (job) =>
+        `Priorise ${job.title} chez ${job.company} (${job.match_score}% de match)`
+    );
 
   if (highScore.length > 0) return highScore;
   return [
-    "Run a sync now to refresh opportunities.",
-    "Upload/update your CV to improve AI match quality.",
-    "Select 3 strong jobs and generate cover letters in bulk.",
+    "Lance une sync ou un import pour rafraîchir tes offres.",
+    "Mets à jour ton CV dans Profil & CV pour améliorer le match.",
+    "Sélectionne 3 offres fortes et génère des lettres en lot.",
   ];
 }

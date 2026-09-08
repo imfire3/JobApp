@@ -8,7 +8,6 @@ import {
   CircleAlert,
   ExternalLink,
   FileText,
-  FlaskConical,
   Loader2,
   Mail,
   MessageSquare,
@@ -458,16 +457,12 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
-                      href={`/jobs/${job.id}`}
+                      href="/jobs"
                       className={buttonVariants({ variant: "ghost", size: "sm" })}
                     >
                       <ArrowLeft className="mr-2 h-4 w-4" />
-                      Page actuelle
+                      Retour aux offres
                     </Link>
-                    <Badge variant="outline" className="gap-1">
-                      <FlaskConical className="h-3 w-3" />
-                      Lab UX
-                    </Badge>
                   </div>
                   <h1 className="text-2xl font-bold tracking-tight">{job.title}</h1>
                   <p className="text-muted-foreground">{job.company}</p>

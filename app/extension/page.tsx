@@ -6,7 +6,7 @@ import { PageHelpButton } from "@/components/onboarding/page-help-button"
 export default function ExtensionPage() {
   return (
     <AppShell>
-      <div className="mx-auto max-w-7xl space-y-6" data-tour="guide-extension">
+      <div className="mx-auto max-w-7xl space-y-6">
         <StickyPageHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>

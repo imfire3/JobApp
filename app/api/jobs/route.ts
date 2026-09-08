@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { upsertApplicationsFromAppliedJobs } from "@/lib/applications/upsert-from-job";
 import { deleteAllUserJobs } from "@/lib/imports/import-wttj-json";
 import { mapJobRows, toJobViewModel } from "@/lib/jobs/mapper";
 import { JOB_STATUSES } from "@/types";
@@ -109,6 +110,21 @@ export async function PATCH(request: Request) {
 
     if (coverLetterError) {
       return NextResponse.json({ error: coverLetterError.message }, { status: 500 });
+    }
+  }
+
+  if (body.status === "applied") {
+    const { error: applicationError } = await upsertApplicationsFromAppliedJobs(
+      supabase,
+      user.id,
+      data.map((job) => ({
+        id: job.id as string,
+        title: (job.title as string | null) ?? null,
+        company: (job.company as string | null) ?? null,
+      }))
+    );
+    if (applicationError) {
+      return NextResponse.json({ error: applicationError }, { status: 500 });
     }
   }
 

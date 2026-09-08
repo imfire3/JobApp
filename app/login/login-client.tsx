@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, CheckCircle2, Eye, EyeOff, FileUp } from "lucide-react";
+import { Briefcase, CheckCircle2, Eye, EyeOff, FileUp, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AuthCardShell } from "@/components/auth/auth-card-shell";
+import { OnboardingProgress } from "@/components/onboarding/onboarding-progress";
 
 /** Keep in sync with lib/cv-analysis/service.ts MIN_CV_LENGTH */
 const MIN_CV_LENGTH = 200;
@@ -212,6 +213,18 @@ export default function LoginPageClient() {
   const canSubmitCv =
     !parsingCv && (Boolean(pdfFile) || cvText.trim().length > 0);
 
+  const handleFillFakeSignup = () => {
+    const stamp = Date.now().toString(36);
+    const fakePassword = "DevTest1!";
+    setFirstName("Alex");
+    setLastName("Martin");
+    setEmail(`dev.${stamp}@example.com`);
+    setSignupPassword(fakePassword);
+    setSignupPasswordConfirm(fakePassword);
+    setShowPasswordMismatch(false);
+    toast.success("Formulaire signup prérempli (dev)");
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -222,19 +235,25 @@ export default function LoginPageClient() {
         const status = (await statusRes.json().catch(() => ({}))) as {
           completed?: boolean;
           has_cv?: boolean;
+          has_profile_reviewed?: boolean;
           has_tracked_search?: boolean;
           step?: string;
         };
 
         if (cancelled) return;
 
-        if (status.completed) {
+        if (status.completed || status.step === "done") {
           router.replace("/dashboard");
           return;
         }
 
-        if (status.has_cv || status.step === "api-keys") {
-          router.replace("/onboarding/api-keys");
+        if (status.step === "api-keys" || status.has_profile_reviewed) {
+          router.replace("/dashboard");
+          return;
+        }
+
+        if (status.has_cv || status.step === "profile") {
+          router.replace("/onboarding/profile");
         }
       } catch {
         // stay on current login/cv step
@@ -254,8 +273,11 @@ export default function LoginPageClient() {
     }
     const isPdf =
       file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    if (!isPdf) {
-      toast.error("Choisis un fichier PDF");
+    const isImage =
+      ["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(file.type) ||
+      /\.(png|jpe?g|webp)$/i.test(file.name);
+    if (!isPdf && !isImage) {
+      toast.error("Choisis un fichier PDF ou une image (PNG/JPEG/WebP)");
       if (fileInputRef.current) fileInputRef.current.value = "";
       setPdfFile(null);
       return;
@@ -272,16 +294,18 @@ export default function LoginPageClient() {
       });
       const data = await readApiJson<{
         extracted_text?: string;
+        text_length?: number;
+        ocr_used?: boolean;
         error?: string;
       }>(res);
       if (!res.ok) {
-        throw new Error(data.error ?? "Impossible d’extraire le texte du PDF");
+        throw new Error(data.error ?? "Impossible d’extraire le texte du CV");
       }
       const text = (data.extracted_text ?? "").trim();
       setCvText(text);
       toast.success(
         text
-          ? `CV extrait · ${text.length} caractères`
+          ? `CV extrait · ${text.length} caractères${data.ocr_used ? " (OCR)" : ""}`
           : `Fichier sélectionné : ${file.name}`
       );
     } catch (error) {
@@ -361,17 +385,19 @@ export default function LoginPageClient() {
       const status = (await statusRes.json().catch(() => ({}))) as {
         completed?: boolean;
         has_cv?: boolean;
+        has_profile_reviewed?: boolean;
         has_tracked_search?: boolean;
+        step?: string;
       };
 
-      if (status.completed) {
+      if (status.completed || status.step === "done" || status.has_profile_reviewed) {
         router.push("/dashboard");
         router.refresh();
         return;
       }
 
-      if (status.has_cv) {
-        router.push("/onboarding/api-keys");
+      if (status.has_cv || status.step === "profile") {
+        router.push("/onboarding/profile");
         router.refresh();
         return;
       }
@@ -430,7 +456,7 @@ export default function LoginPageClient() {
     try {
       await saveCvOnly();
       toast.success("CV importé");
-      router.push("/onboarding/api-keys");
+      router.push("/onboarding/profile");
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Import CV échoué");
@@ -455,7 +481,8 @@ export default function LoginPageClient() {
       <AuthCardShell>
         <Card className="w-full shadow-lg">
           <form onSubmit={handleCv}>
-            <CardHeader className="text-center">
+            <CardHeader className="space-y-4 text-center">
+              <OnboardingProgress current="cv" className="text-left" />
               <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <Briefcase className="h-6 w-6" />
               </div>
@@ -470,7 +497,7 @@ export default function LoginPageClient() {
                   ref={fileInputRef}
                   id="cv-pdf"
                   type="file"
-                  accept=".pdf,application/pdf"
+                  accept=".pdf,application/pdf,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
                   className="sr-only"
                   disabled={loading || parsingCv}
                   onChange={(e) => void handleFileChange(e.target.files?.[0] ?? null)}
@@ -701,7 +728,20 @@ export default function LoginPageClient() {
                   Les deux mots de passe ne correspondent pas
                 </p>
               ) : null}
-              <div className="relative z-10 pt-1">
+              <div className="relative z-10 space-y-2 pt-1">
+                {process.env.NODE_ENV !== "production" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-dashed"
+                    onClick={handleFillFakeSignup}
+                    aria-label="Préremplir le formulaire d’inscription (développement)"
+                  >
+                    <FlaskConical className="mr-1.5 h-3.5 w-3.5" />
+                    DEV · Fake signup
+                  </Button>
+                ) : null}
                 <Button
                   type="submit"
                   size="lg"

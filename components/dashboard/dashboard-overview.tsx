@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -21,6 +22,7 @@ type DashboardSummaryResponse = {
     error: number;
   };
   active_connectors: number;
+  applications_sent?: number;
   ai_recommendations: string[];
   recent_activity: Array<{
     time: string;
@@ -40,16 +42,29 @@ export function DashboardOverview() {
       .then((payload) => {
         if (!payload || payload.error || !Array.isArray(payload.jobs)) {
           setData(null);
+          toast.error(
+            typeof payload?.error === "string"
+              ? payload.error
+              : "Impossible de charger le tableau de bord"
+          );
           return;
         }
         setData(payload);
       })
-      .catch(() => setData(null))
+      .catch(() => {
+        setData(null);
+        toast.error("Impossible de charger le tableau de bord");
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const kpis: DashboardKpis = useMemo(() => {
-    const base = computeKpis(data?.jobs ?? []);
+    const base = computeKpis(data?.jobs ?? [], {
+      applicationsSent:
+        typeof data?.applications_sent === "number"
+          ? data.applications_sent
+          : undefined,
+    });
     return {
       ...base,
       lastSyncTime: data?.last_sync_time ?? null,
@@ -64,7 +79,7 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-6">
-      <StickyPageHeader data-tour="guide-dashboard">
+      <StickyPageHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
@@ -74,9 +89,9 @@ export function DashboardOverview() {
           </div>
           <div className="flex flex-wrap gap-2">
             <PageHelpButton pageId="dashboard" />
-            <Link href="/sources" className={buttonVariants({ variant: "outline" })}>
+            <Link href="/imports" className={buttonVariants({ variant: "outline" })}>
               <Cable className="mr-2 h-4 w-4" />
-              Gérer les sources
+              Importer des offres
             </Link>
             <Link href="/jobs" className={buttonVariants({})}>
               Voir mes offres
@@ -92,7 +107,7 @@ export function DashboardOverview() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock3 className="h-4 w-4" />
-              Recent activity
+              Activité récente
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -100,13 +115,18 @@ export function DashboardOverview() {
               <div className="h-24 animate-pulse rounded-lg bg-muted" />
             ) : (data?.recent_activity?.length ?? 0) === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No activity yet. Run a connector sync from Sources.
+                Pas encore d’activité. Lance une collecte depuis Offres, Imports ou
+                Sources.
               </p>
             ) : (
               data?.recent_activity.map((item, index) => (
                 <div key={`${item.time}-${index}`} className="rounded-md border p-3 text-sm">
                   <p className="font-medium">
-                    {new Date(item.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {item.label}
+                    {new Date(item.time).toLocaleTimeString("fr-FR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    · {item.label}
                   </p>
                   <p className="text-muted-foreground">{item.message}</p>
                 </div>
@@ -119,7 +139,7 @@ export function DashboardOverview() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bot className="h-4 w-4" />
-              AI recommendations
+              Suggestions IA
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -136,7 +156,7 @@ export function DashboardOverview() {
                 href="/profile-ai"
                 className={buttonVariants({ variant: "secondary" })}
               >
-                Refine profile & AI preferences
+                Affiner Profil & CV
               </Link>
             </div>
           </CardContent>

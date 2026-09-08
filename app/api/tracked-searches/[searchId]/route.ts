@@ -1,29 +1,6 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { getAuthenticatedUser } from "@/lib/auth";
-
-const patchSchema = z.object({
-  name: z.string().min(2).optional(),
-  enabled: z.boolean().optional(),
-  job_titles: z.array(z.string()).optional(),
-  keywords: z.array(z.string()).optional(),
-  excluded_keywords: z.array(z.string()).optional(),
-  locations: z.array(z.string()).optional(),
-  maximum_distance: z.number().nullable().optional(),
-  remote_preference: z.string().optional(),
-  hybrid: z.boolean().optional(),
-  on_site: z.boolean().optional(),
-  experience: z.array(z.string()).optional(),
-  contract_types: z.array(z.string()).optional(),
-  minimum_salary: z.number().nullable().optional(),
-  currency: z.string().optional(),
-  industries: z.array(z.string()).optional(),
-  excluded_industries: z.array(z.string()).optional(),
-  company_size: z.string().nullable().optional(),
-  company_culture: z.string().nullable().optional(),
-  ai_preferences: z.record(z.string(), z.unknown()).optional(),
-  minimum_match_score: z.number().nullable().optional(),
-});
+import { trackedSearchPatchSchema } from "@/lib/jobs/tracked-search-schema";
 
 export async function PATCH(
   request: Request,
@@ -33,9 +10,9 @@ export async function PATCH(
   const { supabase, user, error } = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  let payload: z.infer<typeof patchSchema>;
+  let payload: ReturnType<typeof trackedSearchPatchSchema.parse>;
   try {
-    payload = patchSchema.parse(await request.json());
+    payload = trackedSearchPatchSchema.parse(await request.json());
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }

@@ -26,16 +26,38 @@ export const cvDetectedLanguageSchema = z.object({
   evidence_from_cv: z.string().optional(),
 });
 
+/** Models often return years/months as numbers — coerce to string for storage. */
+const optionalYearString = z
+  .union([z.string(), z.number(), z.null()])
+  .optional()
+  .transform((value): string | null => {
+    if (value == null || value === "") return null
+    const digits = String(value).replace(/\D/g, "")
+    if (!digits) return null
+    return digits.length >= 4 ? digits.slice(0, 4) : digits
+  })
+
+const optionalMonthString = z
+  .union([z.string(), z.number(), z.null()])
+  .optional()
+  .transform((value): string | null => {
+    if (value == null || value === "") return null
+    const digits = String(value).replace(/\D/g, "")
+    if (!digits) return null
+    if (digits.length === 1) return `0${digits}`
+    return digits.slice(0, 2)
+  })
+
 export const cvDetectedExperienceSchema = z.object({
   title: z.string(),
   organization: z.string(),
   location: z.string().nullable().optional(),
   employment_type: z.string().nullable().optional(),
   is_current: z.boolean().optional().default(false),
-  start_month: z.string().nullable().optional(),
-  start_year: z.string().nullable().optional(),
-  end_month: z.string().nullable().optional(),
-  end_year: z.string().nullable().optional(),
+  start_month: optionalMonthString,
+  start_year: optionalYearString,
+  end_month: optionalMonthString,
+  end_year: optionalYearString,
   highlights: z.string().optional().default(""),
   skills: z.array(z.string()).optional().default([]),
   evidence_from_cv: z.string().optional().default(""),

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { ExternalLink, KeyRound } from "lucide-react"
 import { toast } from "sonner"
 import { AuthCardShell } from "@/components/auth/auth-card-shell"
+import { OnboardingProgress } from "@/components/onboarding/onboarding-progress"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field } from "@/components/ui/field"
@@ -34,6 +35,8 @@ export function ApiKeysPageClient() {
         const status = (await statusRes.json().catch(() => ({}))) as {
           completed?: boolean
           has_cv?: boolean
+          has_profile_reviewed?: boolean
+          step?: string
         }
 
         if (cancelled) return
@@ -45,6 +48,11 @@ export function ApiKeysPageClient() {
 
         if (!status.has_cv) {
           router.replace("/login?cv=1")
+          return
+        }
+
+        if (!status.has_profile_reviewed && status.step !== "api-keys") {
+          router.replace("/onboarding/profile")
           return
         }
 
@@ -134,7 +142,8 @@ export function ApiKeysPageClient() {
       ) : (
         <Card className="w-full shadow-lg">
           <form onSubmit={handleContinue}>
-            <CardHeader className="text-center">
+            <CardHeader className="space-y-4 text-center">
+              <OnboardingProgress current="api-keys" className="text-left" />
               <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <KeyRound className="h-6 w-6" />
               </div>
@@ -189,8 +198,8 @@ export function ApiKeysPageClient() {
               </Field>
 
               <p className="text-xs text-muted-foreground">
-                Tu pourras modifier cette clé plus tard dans Réglages. Elle reste
-                privée à ton compte JobTracker.
+                Tu pourras aussi ajouter ou modifier cette clé plus tard dans Compte
+                &amp; clés API. Elle reste privée à ton compte JobTracker.
               </p>
 
               <Button
@@ -199,7 +208,35 @@ export function ApiKeysPageClient() {
                 className="w-full"
                 disabled={loading || !canContinue}
               >
-                {loading ? "Enregistrement…" : "Continuer vers le dashboard"}
+                {loading ? "Enregistrement…" : "Enregistrer et continuer"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                className="w-full"
+                disabled={loading}
+                onClick={async () => {
+                  setLoading(true)
+                  try {
+                    await finishOnboarding()
+                    toast.message(
+                      "Tu pourras ajouter ta clé OpenAI dans Compte & clés API."
+                    )
+                    router.push("/dashboard")
+                    router.refresh()
+                  } catch (error) {
+                    toast.error(
+                      error instanceof Error
+                        ? error.message
+                        : "Impossible de finaliser l’inscription"
+                    )
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+              >
+                Passer pour l’instant
               </Button>
             </CardContent>
           </form>

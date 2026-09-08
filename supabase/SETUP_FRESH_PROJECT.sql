@@ -1082,9 +1082,129 @@ comment on column public.user_settings.onboarding_completed_at is
   'Timestamp when onboarding was marked complete.';
 
 
+-- >>> 014_profile_names.sql
+alter table public.profiles
+  add column if not exists first_name text,
+  add column if not exists last_name text;
+
+comment on column public.profiles.first_name is 'Given name collected at signup';
+comment on column public.profiles.last_name is 'Family name collected at signup';
+
+
+-- >>> 015_candidate_profile.sql
+alter table public.profiles
+  add column if not exists phone text,
+  add column if not exists date_of_birth date,
+  add column if not exists linkedin_url text,
+  add column if not exists website_url text,
+  add column if not exists current_city text,
+  add column if not exists current_title text,
+  add column if not exists experience_entries jsonb not null default '[]'::jsonb,
+  add column if not exists education_entries jsonb not null default '[]'::jsonb,
+  add column if not exists language_entries jsonb not null default '[]'::jsonb,
+  add column if not exists extracted_cv_prompt_version text,
+  add column if not exists profile_reviewed_at timestamptz,
+  add column if not exists cv_file_name text,
+  add column if not exists cv_file_path text,
+  add column if not exists cv_file_updated_at timestamptz;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'cv-files',
+  'cv-files',
+  false,
+  8388608,
+  array['application/pdf', 'image/png', 'image/jpeg', 'image/webp']::text[]
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Users can upload own cv files" on storage.objects;
+create policy "Users can upload own cv files"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'cv-files'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "Users can update own cv files" on storage.objects;
+create policy "Users can update own cv files"
+  on storage.objects for update
+  using (
+    bucket_id = 'cv-files'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'cv-files'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "Users can read own cv files" on storage.objects;
+create policy "Users can read own cv files"
+  on storage.objects for select
+  using (
+    bucket_id = 'cv-files'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "Users can delete own cv files" on storage.objects;
+create policy "Users can delete own cv files"
+  on storage.objects for delete
+  using (
+    bucket_id = 'cv-files'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+
+-- >>> 016_profile_contact_email.sql
+alter table public.profiles
+  add column if not exists contact_email text,
+  add column if not exists github_url text;
+
+comment on column public.profiles.contact_email is 'Contact email extracted from CV or entered by user (not auth email)';
+comment on column public.profiles.github_url is 'GitHub profile URL';
+
+-- >>> 017_cv_files_image_mimes.sql
+update storage.buckets
+set allowed_mime_types = array[
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/webp'
+]::text[]
+where id = 'cv-files';
+
+-- >>> 018_tracked_search_wttj_filters.sql
+alter table public.tracked_searches
+  add column if not exists languages text[] not null default '{}'::text[],
+  add column if not exists expertises text[] not null default '{}'::text[],
+  add column if not exists salary_period text not null default 'year',
+  add column if not exists maximum_salary integer,
+  add column if not exists only_with_salary boolean not null default false,
+  add column if not exists exclusive_only boolean not null default false,
+  add column if not exists top_recruiter_only boolean not null default false,
+  add column if not exists start_date_preference text,
+  add column if not exists company_names text[] not null default '{}'::text[],
+  add column if not exists publish_window text;
+
+
+-- >>> 019_product_welcome.sql
+alter table public.user_settings
+  add column if not exists product_welcome_completed boolean not null default false,
+  add column if not exists product_welcome_completed_at timestamptz;
+
+comment on column public.user_settings.product_welcome_completed is
+  'True after the first-visit product welcome (3-step intro) is finished or skipped.';
+
+comment on column public.user_settings.product_welcome_completed_at is
+  'Timestamp when the product welcome was marked complete.';
+
+
 -- >>> bootstrap_local_admin.sql
 -- Bootstrap for JobApp local-auth (admin@gmail.com / admin)
--- Run AFTER all migrations 001→012 on a fresh Supabase project.
+-- Run AFTER all migrations 001→016 on a fresh Supabase project.
 -- Required because the app stores jobs with user_id =
 -- 00000000-0000-4000-a000-000000000001 (local admin), which must exist in auth.users.
 

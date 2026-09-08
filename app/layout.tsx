@@ -3,6 +3,7 @@ import { Geist_Mono, Montserrat } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ResetToLandingButton } from "@/components/reset-to-landing-button";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -16,15 +17,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "JobTracker — PO/PM Job Search",
+  title: "JobTracker — Recherche d’offres PO/PM",
   description:
-    "Personal dashboard to track Product Owner and Product Manager job offers with AI matching and cover letters.",
+    "Tableau de bord personnel pour suivre les offres Product Owner et Product Manager, avec matching IA et lettres de motivation.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
   viewportFit: "cover",
 };
 
@@ -35,7 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="fr"
       className={`dark ${montserrat.variable} ${geistMono.variable} h-full overflow-hidden antialiased`}
       suppressHydrationWarning
     >
@@ -43,6 +44,7 @@ export default function RootLayout({
         <ThemeProvider>
           <TooltipProvider>
             {children}
+            <ResetToLandingButton />
             <Toaster richColors position="top-right" />
           </TooltipProvider>
         </ThemeProvider>

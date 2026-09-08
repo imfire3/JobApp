@@ -1,4 +1,4 @@
-import { JobDetailPage } from "@/components/jobs/job-detail-page";
+import { JobDetailLabPage } from "@/components/jobs/lab/job-detail-lab-page";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -6,5 +6,5 @@ type PageProps = {
 
 export default async function JobByIdPage({ params }: PageProps) {
   const { id } = await params;
-  return <JobDetailPage jobId={id} />;
+  return <JobDetailLabPage jobId={id} />;
 }

@@ -46,28 +46,28 @@ function KpiCard({
 export function KpiCards({ kpis }: KpiCardsProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <KpiCard label="Jobs found today" value={String(kpis.jobsFoundToday)} icon={Briefcase} />
-      <KpiCard label="New jobs" value={String(kpis.newJobs)} icon={Target} />
-      <KpiCard label="Cover letters" value={String(kpis.coverLettersGenerated)} icon={FileText} />
-      <KpiCard label="Applications sent" value={String(kpis.applicationsSent)} icon={Send} />
+      <KpiCard label="Offres trouvées aujourd’hui" value={String(kpis.jobsFoundToday)} icon={Briefcase} />
+      <KpiCard label="Nouvelles offres" value={String(kpis.newJobs)} icon={Target} />
+      <KpiCard label="Lettres générées" value={String(kpis.coverLettersGenerated)} icon={FileText} />
+      <KpiCard label="Candidatures envoyées" value={String(kpis.applicationsSent)} icon={Send} />
       <KpiCard
-        label="Avg. match score"
+        label="Score moyen"
         value={kpis.averageMatchScore !== null ? `${kpis.averageMatchScore}%` : "—"}
         icon={Star}
       />
       <KpiCard
-        label="Last sync"
-        value={kpis.lastSyncTime ? new Date(kpis.lastSyncTime).toLocaleTimeString() : "—"}
+        label="Dernière sync"
+        value={kpis.lastSyncTime ? new Date(kpis.lastSyncTime).toLocaleTimeString("fr-FR") : "—"}
         icon={Clock4}
       />
       <KpiCard
-        label="Next sync"
-        value={kpis.nextSyncTime ? new Date(kpis.nextSyncTime).toLocaleTimeString() : "—"}
+        label="Prochaine sync"
+        value={kpis.nextSyncTime ? new Date(kpis.nextSyncTime).toLocaleTimeString("fr-FR") : "—"}
         icon={TimerReset}
       />
       <KpiCard
-        label="Source health"
-        value={`${kpis.sourceHealth.connected} connected`}
+        label="Santé des sources"
+        value={`${kpis.sourceHealth.connected} connectée(s)`}
         icon={Cable}
         extra={
           <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">

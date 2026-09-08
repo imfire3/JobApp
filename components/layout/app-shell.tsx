@@ -8,14 +8,24 @@ import {
   ChromeExtensionModal,
   EXTENSION_SEEN_KEY,
 } from "@/components/onboarding/chrome-extension-modal";
-import { ProductTour } from "@/components/onboarding/product-tour";
-import { hasSeenProductGuide } from "@/lib/onboarding/product-guide";
+import { ProductWelcomeGate } from "@/components/product-onboarding/product-welcome-gate";
+import {
+  hasCompletedProductWelcomeLocal,
+  PRODUCT_WELCOME_EVENT,
+} from "@/lib/onboarding/product-welcome";
 
 function ChromeExtensionGate() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const [extensionOpen, setExtensionOpen] = useState(false);
+  const [welcomeTick, setWelcomeTick] = useState(0);
+
+  useEffect(() => {
+    const onWelcomeDone = () => setWelcomeTick((n) => n + 1);
+    window.addEventListener(PRODUCT_WELCOME_EVENT, onWelcomeDone);
+    return () => window.removeEventListener(PRODUCT_WELCOME_EVENT, onWelcomeDone);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,8 +41,8 @@ function ChromeExtensionGate() {
       const forceShow = searchParams.get("extension") === "1";
       if (alreadySeen && !forceShow) return;
 
-      // Wait until the product guide is done — Dialog would make the tour inert.
-      if (!forceShow && !hasSeenProductGuide()) return;
+      // Wait until the product welcome is done — Dialog would stack poorly.
+      if (!forceShow && !hasCompletedProductWelcomeLocal()) return;
 
       try {
         const res = await fetch("/api/tracked-searches");
@@ -51,7 +61,7 @@ function ChromeExtensionGate() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, pathname]);
+  }, [searchParams, pathname, welcomeTick]);
 
   function clearExtensionQuery() {
     if (searchParams.get("extension") !== "1") return;
@@ -88,7 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Suspense fallback={null}>
         <ChromeExtensionGate />
       </Suspense>
-      <ProductTour />
+      <ProductWelcomeGate />
     </div>
   );
 }

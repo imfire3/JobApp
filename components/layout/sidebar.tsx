@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { NAV_ITEMS } from "@/components/layout/nav-items";
-import { RelaunchGuideButton } from "@/components/onboarding/page-help-button";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -41,7 +40,6 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              data-tour={item.tourId}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 active
@@ -65,7 +63,6 @@ export function Sidebar() {
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             Importe des offres, compare avec ton CV, génère des lettres.
           </p>
-          <RelaunchGuideButton className="mt-2 h-8 w-full justify-start px-0 text-muted-foreground" />
         </div>
         <Button
           variant="ghost"

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,10 +14,12 @@ import { CvExperiencesCard } from "@/components/settings/cv-experiences-card"
 import { PageHelpButton } from "@/components/onboarding/page-help-button"
 import { StickyPageHeader } from "@/components/layout/sticky-page-header"
 import { mergeExperiencesIntoCvText, type CvExperience } from "@/lib/cv/experiences"
+import { CandidateProfileForm } from "@/components/profile/candidate-profile-form"
 import {
   Briefcase,
   ChevronDown,
   ChevronUp,
+  ClipboardList,
   FileText,
   FileUp,
   GraduationCap,
@@ -31,7 +33,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import type { CvAnalysisResponse } from "@/types"
 
 const SECTIONS = [
-  { id: "profil", label: "Profil", icon: UserRound },
+  { id: "fiche", label: "Fiche candidat", icon: ClipboardList },
+  { id: "profil", label: "Contexte CV", icon: UserRound },
   { id: "experiences", label: "Expériences", icon: Briefcase },
   { id: "competences", label: "Compétences", icon: GraduationCap },
   { id: "langues", label: "Langues", icon: Languages },
@@ -51,8 +54,9 @@ export function SettingsForm() {
   const [analysis, setAnalysis] = useState<CvAnalysisResponse | null>(null)
   const [analysisLoading, setAnalysisLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
-  const [activeSection, setActiveSection] = useState<string>("profil")
+  const [activeSection, setActiveSection] = useState<string>("fiche")
   const [cvTextOpen, setCvTextOpen] = useState(false)
+  const autoAnalyzeStarted = useRef(false)
 
   const loadAnalysis = useCallback(async () => {
     setAnalysisLoading(true)
@@ -60,16 +64,43 @@ export function SettingsForm() {
       const res = await fetch("/api/profile/analyze-cv")
       if (!res.ok) {
         setAnalysis(null)
-        return
+        return null
       }
       const data = (await res.json()) as { analysis: CvAnalysisResponse | null }
-      setAnalysis(data.analysis ?? null)
+      const next = data.analysis ?? null
+      setAnalysis(next)
+      return next
     } catch {
       setAnalysis(null)
+      return null
     } finally {
       setAnalysisLoading(false)
     }
   }, [])
+
+  const runCvAnalysis = useCallback(async (options?: { silent?: boolean }) => {
+    setAnalyzing(true)
+    try {
+      const res = await fetch("/api/profile/analyze-cv", { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error ?? "Analyse CV échouée")
+      }
+      setAnalysis(data.analysis ?? null)
+      if (!options?.silent) {
+        toast.success("Analyse CV terminée")
+        router.push("/profile-ai/optimize")
+      }
+      return data.analysis as CvAnalysisResponse | null
+    } catch (error) {
+      if (!options?.silent) {
+        toast.error(error instanceof Error ? error.message : "Analyse CV échouée")
+      }
+      return null
+    } finally {
+      setAnalyzing(false)
+    }
+  }, [router])
 
   useEffect(() => {
     async function load() {
@@ -93,6 +124,22 @@ export function SettingsForm() {
     void load()
     void loadAnalysis()
   }, [loadAnalysis])
+
+  // Auto-run ATS analysis when CV is saved and analysis is missing/stale
+  useEffect(() => {
+    if (loading || analysisLoading || analyzing || autoAnalyzeStarted.current) return
+    if (savedCvText.trim().length < 200) return
+    if (analysis && !analysis.is_stale) return
+    autoAnalyzeStarted.current = true
+    void runCvAnalysis({ silent: true })
+  }, [
+    loading,
+    analysisLoading,
+    analyzing,
+    savedCvText,
+    analysis,
+    runCvAnalysis,
+  ])
 
   const composedCvText = mergeExperiencesIntoCvText(cvText, experiences)
   const hasUnsavedCv = composedCvText !== savedCvText
@@ -128,8 +175,14 @@ export function SettingsForm() {
       setSavedCvText(text)
       setExperiences([])
       setLastUpdatedAt(data.profile?.updated_at ?? new Date().toISOString())
-      await loadAnalysis()
       toast.success("Contexte CV enregistré")
+      if (text.trim().length >= 200) {
+        autoAnalyzeStarted.current = true
+        await runCvAnalysis({ silent: true })
+        setActiveSection("analyse")
+      } else {
+        await loadAnalysis()
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Échec de l’enregistrement")
     } finally {
@@ -153,7 +206,13 @@ export function SettingsForm() {
         body: formData,
       })
       const raw = await res.text()
-      let data: { extracted_text?: string; error?: string; profile?: { updated_at?: string } }
+      let data: {
+        extracted_text?: string
+        error?: string
+        profile?: { updated_at?: string }
+        analysis?: CvAnalysisResponse | null
+        analysis_error?: string | null
+      }
       try {
         data = JSON.parse(raw) as typeof data
       } catch {
@@ -172,8 +231,20 @@ export function SettingsForm() {
       setLastUpdatedAt(data.profile?.updated_at ?? new Date().toISOString())
       setPdfFile(null)
       setCvTextOpen(true)
-      await loadAnalysis()
-      toast.success("CV importé comme contexte IA.")
+
+      if (data.analysis) {
+        setAnalysis(data.analysis)
+        setActiveSection("analyse")
+        toast.success("CV enregistré et analysé.")
+      } else {
+        await loadAnalysis()
+        if (data.analysis_error) {
+          toast.success("CV enregistré dans Profil & CV.")
+          toast.error(data.analysis_error)
+        } else {
+          toast.success("CV enregistré dans Profil & CV.")
+        }
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Import PDF échoué")
     } finally {
@@ -182,21 +253,7 @@ export function SettingsForm() {
   }
 
   const handleAnalyze = async () => {
-    setAnalyzing(true)
-    try {
-      const res = await fetch("/api/profile/analyze-cv", { method: "POST" })
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error ?? "Analyse CV échouée")
-      }
-      setAnalysis(data.analysis ?? null)
-      toast.success("Analyse CV terminée")
-      router.push("/profile-ai/optimize")
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Analyse CV échouée")
-    } finally {
-      setAnalyzing(false)
-    }
+    await runCvAnalysis({ silent: false })
   }
 
   if (loading) {
@@ -218,7 +275,7 @@ export function SettingsForm() {
         <StickyPageHeader>
           <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight">Mon CV</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Profil & CV</h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground">
                 Ton CV sert à personnaliser les lettres de motivation et à alimenter
                 l’analyse ATS. Organise-le comme un profil candidat.
@@ -254,6 +311,10 @@ export function SettingsForm() {
             })}
           </TabsList>
         </StickyPageHeader>
+
+        <TabsContent value="fiche" className="mt-0">
+          <CandidateProfileForm mode="settings" />
+        </TabsContent>
 
         <TabsContent value="profil" className="mt-0 space-y-8">
           <Card className="rounded-2xl">
@@ -293,7 +354,7 @@ export function SettingsForm() {
             </CardHeader>
           </Card>
 
-          <Card className="rounded-2xl" data-tour="guide-cv-upload">
+          <Card className="rounded-2xl">
             <CardHeader className="space-y-2 p-6 md:p-8">
               <CardTitle className="text-xl font-semibold">Texte du CV</CardTitle>
               <CardDescription className="text-base leading-7">
@@ -324,7 +385,8 @@ export function SettingsForm() {
                   </Button>
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  On extrait le texte du PDF. Seul le texte CV est stocké.
+                  Le texte est enregistré dans Profil & CV et une analyse ATS est
+                  lancée automatiquement.
                 </p>
               </div>
 

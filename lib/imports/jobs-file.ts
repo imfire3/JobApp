@@ -12,6 +12,8 @@ export const EXPECTED_IMPORT_COLUMNS = [
   "description",
 ] as const;
 
+export const WEBSITE_PASTE_SOURCE = "website_paste";
+
 export type ExpectedImportColumn = (typeof EXPECTED_IMPORT_COLUMNS)[number];
 
 export interface ParsedImportRow {
@@ -163,6 +165,18 @@ export function parseJobsImportFile(
     }
 
     fileUrls.add(normalizedUrl);
+    const pastedTextIndex = normalizedHeaders.findIndex(
+      (header) => header === "pasted_text"
+    );
+    const pastedText =
+      pastedTextIndex >= 0 ? asCellText(rawRow[pastedTextIndex]) : "";
+    const rawData: Record<string, unknown> | undefined =
+      pastedText || rowValues.source === WEBSITE_PASTE_SOURCE
+        ? {
+            pasted_text: pastedText || rowValues.description || null,
+          }
+        : undefined;
+
     parsedRows.push({
       rowNumber,
       source: rowValues.source || "CSV Import",
@@ -174,6 +188,7 @@ export function parseJobsImportFile(
       posted_at: postedAt,
       url: normalizedUrl,
       description: rowValues.description || null,
+      ...(rawData ? { raw_data: rawData } : {}),
     });
   }
 
@@ -192,7 +207,62 @@ export function parseJobsImportFile(
   };
 }
 
-export const WEBSITE_PASTE_SOURCE = "website_paste";
+const PASTE_NOISE_LINE =
+  /^(welcome\s+to\s+the\s+jungle|se\s+connecter|candidatures?|offres?\s+d['’]?emploi|voir\s+plus|postuler|enregistrer|partager|accueil|entreprises?|jobs?|fr|en|\|+|·+|•+)$/i;
+
+function humanizeSlug(slug: string): string {
+  return slug
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function createPasteFallbackUrl(): string {
+  const id =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `https://paste.local/job-${id}`;
+}
+
+/** Extract company slug / job slug from a Welcome to the Jungle URL when possible. */
+export function extractWttjMetaFromUrl(urlInput: string): {
+  company: string | null;
+  titleFromPath: string | null;
+} {
+  try {
+    const parsed = new URL(urlInput.trim());
+    const match = parsed.pathname.match(
+      /\/companies\/([^/]+)\/jobs\/([^/?#]+)/i
+    );
+    if (!match) return { company: null, titleFromPath: null };
+    return {
+      company: humanizeSlug(decodeURIComponent(match[1] ?? "")),
+      titleFromPath: humanizeSlug(decodeURIComponent(match[2] ?? "")),
+    };
+  } catch {
+    return { company: null, titleFromPath: null };
+  }
+}
+
+function pickTitleFromPasteLines(
+  lines: string[],
+  fallbackFromUrl: string | null
+): string {
+  for (const line of lines) {
+    if (line.length < 4 || line.length > 160) continue;
+    if (PASTE_NOISE_LINE.test(line)) continue;
+    if (/^https?:\/\//i.test(line)) continue;
+    if (/welcometothejungle\.com/i.test(line)) continue;
+    // Prefer lines that look like role titles (letters, few digits)
+    if (/^[A-Za-zÀ-ÿ0-9][\wÀ-ÿ0-9 /|&+'’\-()]{2,}$/u.test(line)) {
+      return line.slice(0, 160);
+    }
+  }
+  if (fallbackFromUrl) return fallbackFromUrl.slice(0, 160);
+  return (lines[0] ?? "Offre collée").slice(0, 160);
+}
 
 function escapeCsvCell(value: string): string {
   if (/[",\n\r]/.test(value)) {
@@ -215,11 +285,17 @@ export function buildWebsitePasteRow(
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  const title = (lines[0] ?? "Offre collée").slice(0, 160);
 
-  let company = "Site web";
+  const wttj = urlTrimmed ? extractWttjMetaFromUrl(urlTrimmed) : {
+    company: null,
+    titleFromPath: null,
+  };
+
+  const title = pickTitleFromPasteLines(lines, wttj.titleFromPath);
+
+  let company = wttj.company ?? "Site web";
   let url = urlTrimmed;
-  if (urlTrimmed) {
+  if (!wttj.company && urlTrimmed) {
     try {
       const hostname = new URL(urlTrimmed).hostname.replace(/^www\./, "");
       if (hostname) company = hostname;
@@ -228,7 +304,7 @@ export function buildWebsitePasteRow(
     }
   }
   if (!url) {
-    url = `https://paste.local/job-${rowNumber}`;
+    url = createPasteFallbackUrl();
   }
 
   return {
@@ -245,6 +321,7 @@ export function buildWebsitePasteRow(
     raw_data: {
       pasted_url: urlTrimmed || null,
       pasted_text: contentTrimmed,
+      ...(wttj.company ? { wttj_company_slug: wttj.company } : {}),
     },
   };
 }
@@ -254,14 +331,20 @@ export function rowsToCsvFile(
   rows: ParsedImportRow[],
   fileName = "website-paste-import.csv"
 ): File {
-  const header = EXPECTED_IMPORT_COLUMNS.join(",");
-  const lines = rows.map((row) =>
-    EXPECTED_IMPORT_COLUMNS.map((column) => {
+  const header = [...EXPECTED_IMPORT_COLUMNS, "pasted_text"].join(",");
+  const lines = rows.map((row) => {
+    const cells = EXPECTED_IMPORT_COLUMNS.map((column) => {
       if (column === "remote") return row.remote ? "true" : "false";
       const value = row[column];
       return escapeCsvCell(value == null ? "" : String(value));
-    }).join(",")
-  );
+    });
+    const pasted =
+      typeof row.raw_data?.pasted_text === "string"
+        ? row.raw_data.pasted_text
+        : row.description ?? "";
+    cells.push(escapeCsvCell(pasted));
+    return cells.join(",");
+  });
 
   return new File([`${header}\n${lines.join("\n")}`], fileName, {
     type: "text/csv;charset=utf-8",

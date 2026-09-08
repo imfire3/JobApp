@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { parseJobsImportFile } from "@/lib/imports/jobs-file";
 import { parseJobsJsonText } from "@/lib/imports/jobs-json";
-import { importParsedJobs } from "@/lib/imports/run-import";
+import { importParsedJobs, buildImportResultMessage } from "@/lib/imports/run-import";
 
 /**
  * POST /api/import-jobs
@@ -72,7 +72,8 @@ export async function POST(request: Request) {
       summary: result.summary,
       jobs: result.jobs,
       preview: parsed.rows.slice(0, 50),
-      message: "Import complete",
+      message: buildImportResultMessage(result.summary),
+      already_on_board: result.summary.already_on_board,
     });
   } catch (error) {
     return NextResponse.json(

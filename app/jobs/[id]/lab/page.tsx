@@ -1,10 +1,11 @@
-import { JobDetailLabPage } from "@/components/jobs/lab/job-detail-lab-page"
+import { redirect } from "next/navigation";
 
 type PageProps = {
-  params: Promise<{ id: string }>
-}
+  params: Promise<{ id: string }>;
+};
 
-export default async function JobDetailLabRoute({ params }: PageProps) {
-  const { id } = await params
-  return <JobDetailLabPage jobId={id} />
+/** Lab UX is now the default job detail; keep /lab as a stable alias. */
+export default async function JobLabAliasPage({ params }: PageProps) {
+  const { id } = await params;
+  redirect(`/jobs/${id}`);
 }

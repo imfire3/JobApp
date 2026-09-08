@@ -37,18 +37,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from("cv_contexts")
-    .select("cv_text")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: profile, error: profileError }, { data: candidateProfile }] =
+    await Promise.all([
+      supabase.from("cv_contexts").select("cv_text").eq("id", user.id).maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("target_roles,target_locations")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
 
   if (profileError || !profile?.cv_text) {
     return NextResponse.json(
-      { error: "Please add your CV in Settings before analyzing jobs" },
+      {
+        error:
+          "Ajoute ton CV dans Profil & CV avant d’analyser une offre.",
+      },
       { status: 400 }
     );
   }
+
+  const targetRoles = Array.isArray(candidateProfile?.target_roles)
+    ? candidateProfile.target_roles.filter(
+        (role): role is string => typeof role === "string" && role.trim().length > 0
+      )
+    : [];
+  const targetLocations = Array.isArray(candidateProfile?.target_locations)
+    ? candidateProfile.target_locations.filter(
+        (location): location is string =>
+          typeof location === "string" && location.trim().length > 0
+      )
+    : [];
 
   try {
     const view = toJobViewModel(job);
@@ -68,8 +87,8 @@ export async function POST(request: Request) {
     const analysis = await analyzeJobMatch(
       {
         cvText: profile.cv_text,
-        targetRoles: [],
-        targetLocations: [],
+        targetRoles,
+        targetLocations,
         jobTitle: job.title,
         company: job.company,
         jobDescription: job.description ?? "",

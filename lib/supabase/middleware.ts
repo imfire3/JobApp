@@ -24,6 +24,7 @@ function isOnboardingAllowed(pathname: string) {
     pathname.startsWith("/api/profile") ||
     pathname.startsWith("/api/tracked-searches") ||
     pathname.startsWith("/api/settings") ||
+    pathname.startsWith("/api/welcome") ||
     pathname.startsWith("/api/auth")
   );
 }
@@ -69,8 +70,8 @@ export async function updateSession(request: NextRequest) {
 
     if (onboardingPending && !isOnboardingAllowed(pathname) && !isPublicRoute(pathname)) {
       const url = request.nextUrl.clone();
-      // Resume onboarding: API keys page gates to CV as needed, then dashboard
-      url.pathname = "/onboarding/api-keys";
+      // Resume onboarding: profile page gates to CV / API keys as needed
+      url.pathname = "/onboarding/profile";
       return NextResponse.redirect(url);
     }
 

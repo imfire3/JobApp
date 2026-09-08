@@ -78,6 +78,31 @@ export function AtsKeywordsPanel() {
     void load();
   }, [load]);
 
+  // Auto-run when missing or stale
+  useEffect(() => {
+    if (loading || analyzing) return;
+    if (analysis && !analysis.is_stale) return;
+    void handleAnalyzeSilent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot after load
+  }, [loading, analysis]);
+
+  async function handleAnalyzeSilent() {
+    setAnalyzing(true);
+    try {
+      const res = await fetch("/api/profile/analyze-cv", { method: "POST" });
+      const data = (await res.json()) as {
+        analysis?: CvAnalysisResponse;
+        error?: string;
+      };
+      if (!res.ok || !data.analysis) return;
+      setAnalysis(data.analysis);
+    } catch {
+      // keep previous state
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
   async function handleAnalyze() {
     setAnalyzing(true);
     try {

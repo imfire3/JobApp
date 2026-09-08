@@ -22,14 +22,14 @@ import { PageHelpButton } from "@/components/onboarding/page-help-button";
 import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
-  to_apply: "To Apply",
-  applied: "Applied",
-  hr_interview: "HR Interview",
-  technical_interview: "Technical Interview",
-  case_study: "Case Study",
-  offer: "Offer",
-  rejected: "Rejected",
-  accepted: "Accepted",
+  to_apply: "À candidater",
+  applied: "Candidaté",
+  hr_interview: "Entretien RH",
+  technical_interview: "Entretien technique",
+  case_study: "Étude de cas",
+  offer: "Offre",
+  rejected: "Refusé",
+  accepted: "Accepté",
 };
 
 export default function ApplicationsPage() {
@@ -49,10 +49,13 @@ export default function ApplicationsPage() {
     try {
       const res = await fetch("/api/applications");
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to load applications");
+      if (!res.ok) throw new Error(data.error ?? "Impossible de charger les candidatures");
       setApplications(data.applications ?? []);
-    } catch {
+    } catch (error) {
       setApplications([]);
+      toast.error(
+        error instanceof Error ? error.message : "Impossible de charger les candidatures"
+      );
     } finally {
       setLoading(false);
     }
@@ -84,7 +87,7 @@ export default function ApplicationsPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to create application");
+      if (!res.ok) throw new Error(data.error ?? "Impossible de créer la candidature");
       setApplications((prev) => [data.application, ...prev]);
       setForm({
         company: "",
@@ -94,9 +97,9 @@ export default function ApplicationsPage() {
         interview_date: "",
         notes: "",
       });
-      toast.success("Application created");
+      toast.success("Candidature créée");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create application");
+      toast.error(error instanceof Error ? error.message : "Impossible de créer la candidature");
     } finally {
       setCreating(false);
     }
@@ -110,7 +113,7 @@ export default function ApplicationsPage() {
     });
     const data = await res.json();
     if (!res.ok) {
-      toast.error(data.error ?? "Failed to update status");
+      toast.error(data.error ?? "Impossible de mettre à jour le statut");
       return;
     }
     setApplications((prev) => prev.map((app) => (app.id === id ? data.application : app)));
@@ -131,7 +134,7 @@ export default function ApplicationsPage() {
           </div>
         </StickyPageHeader>
 
-        <Card data-tour="guide-applications-form">
+        <Card>
           <CardHeader>
             <CardTitle>Créer une candidature</CardTitle>
           </CardHeader>
@@ -153,7 +156,7 @@ export default function ApplicationsPage() {
                   required
                 />
               </div>
-              <div className="space-y-2" data-tour="guide-applications-status">
+              <div className="space-y-2">
                 <Label>Statut</Label>
                 <Select
                   value={form.status}
@@ -174,7 +177,7 @@ export default function ApplicationsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Date applied</Label>
+                <Label>Date de candidature</Label>
                 <Input
                   type="date"
                   value={form.date_applied}
@@ -184,7 +187,7 @@ export default function ApplicationsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Interview date</Label>
+                <Label>Date d’entretien</Label>
                 <Input
                   type="datetime-local"
                   value={form.interview_date}
@@ -215,7 +218,8 @@ export default function ApplicationsPage() {
         ) : applications.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center text-muted-foreground">
-              No applications yet. Create your first item in the CRM above.
+              Aucune candidature pour l’instant. Crée-en une ci-dessus, ou marque une
+              offre comme « Candidaté » depuis Offres.
             </CardContent>
           </Card>
         ) : (
@@ -235,7 +239,7 @@ export default function ApplicationsPage() {
                       <p className="mt-1 text-xs text-muted-foreground">
                         Applied: {application.date_applied ?? "—"}
                         {application.interview_date
-                          ? ` · Interview: ${formatRelativeDate(application.interview_date)}`
+                          ? ` · Entretien : ${formatRelativeDate(application.interview_date)}`
                           : ""}
                       </p>
                       {application.notes && (

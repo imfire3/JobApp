@@ -43,7 +43,7 @@ export function CoverLetterModal({
   async function handleCopy() {
     if (!text) return;
     await navigator.clipboard.writeText(text);
-    toast.success("Cover letter copied to clipboard");
+    toast.success("Lettre copiée dans le presse-papiers");
   }
 
   async function handleDownload() {
@@ -52,15 +52,15 @@ export function CoverLetterModal({
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `cover-letter-${job!.company.replace(/\s+/g, "-").toLowerCase()}.txt`;
+    anchor.download = `lettre-${job!.company.replace(/\s+/g, "-").toLowerCase()}.txt`;
     anchor.click();
     URL.revokeObjectURL(url);
-    toast.success("Cover letter downloaded");
+    toast.success("Lettre téléchargée");
   }
 
   async function handleSave() {
     await onSave(job!.id, text);
-    toast.success("Cover letter saved");
+    toast.success("Lettre enregistrée");
     onOpenChange(false);
   }
 
@@ -73,9 +73,9 @@ export function CoverLetterModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Cover letter — {job.company}</DialogTitle>
+          <DialogTitle>Lettre de motivation — {job.company}</DialogTitle>
           <DialogDescription>
-            {job.title} · Edit, copy or download before applying
+            {job.title} · Modifie, copie ou télécharge avant d’envoyer
           </DialogDescription>
         </DialogHeader>
 
@@ -94,20 +94,20 @@ export function CoverLetterModal({
               disabled={isRegenerating}
             >
               <RefreshCw className={`mr-2 h-4 w-4 ${isRegenerating ? "animate-spin" : ""}`} />
-              {isRegenerating ? "Regenerating..." : "Regenerate"}
+              {isRegenerating ? "Régénération…" : "Régénérer"}
             </Button>
           ) : null}
           <Button type="button" variant="outline" onClick={handleCopy}>
             <Copy className="mr-2 h-4 w-4" />
-            Copy
+            Copier
           </Button>
           <Button type="button" variant="outline" onClick={handleDownload}>
             <Download className="mr-2 h-4 w-4" />
-            Download
+            Télécharger
           </Button>
           <Button type="button" onClick={handleSave}>
             <Save className="mr-2 h-4 w-4" />
-            Save
+            Enregistrer
           </Button>
         </DialogFooter>
       </DialogContent>

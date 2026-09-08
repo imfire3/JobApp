@@ -148,19 +148,71 @@ export async function runJobCollectionForTarget(
 }
 
 function filterJobsForTrackedSearch(jobs: ImportedJob[], trackedSearch: TrackedSearch) {
-  const excludedKeywords = trackedSearch.excluded_keywords.map((value) => value.toLowerCase());
-  const excludedIndustries = trackedSearch.excluded_industries.map((value) => value.toLowerCase());
+  const excludedKeywords = trackedSearch.excluded_keywords.map((value) => value.toLowerCase())
+  const excludedIndustries = trackedSearch.excluded_industries.map((value) => value.toLowerCase())
+  const companyNames = (trackedSearch.company_names ?? []).map((value) => value.toLowerCase())
+  const expertises = (trackedSearch.expertises ?? []).map((value) => value.toLowerCase())
+  const languages = (trackedSearch.languages ?? []).map((value) => value.toLowerCase())
 
   return jobs.filter((job) => {
-    const haystack = `${job.title} ${job.company} ${job.description ?? ""}`.toLowerCase();
+    const haystack = `${job.title} ${job.company} ${job.description ?? ""}`.toLowerCase()
     if (excludedKeywords.some((keyword) => keyword && haystack.includes(keyword))) {
-      return false;
+      return false
     }
     if (excludedIndustries.some((industry) => industry && haystack.includes(industry))) {
-      return false;
+      return false
     }
-    return true;
-  });
+    if (trackedSearch.only_with_salary && !(job.salary && job.salary.trim())) {
+      return false
+    }
+    if (trackedSearch.remote_preference === "remote_only" && job.remote === false) {
+      return false
+    }
+    if (companyNames.length > 0) {
+      const company = job.company.toLowerCase()
+      if (!companyNames.some((name) => name && company.includes(name))) {
+        return false
+      }
+    }
+    if (expertises.length > 0) {
+      const raw = job as ImportedJob & { raw_data?: Record<string, unknown> }
+      const rawBlob = JSON.stringify(raw.raw_data ?? {}).toLowerCase()
+      const expertiseHay = `${haystack} ${rawBlob}`
+      if (!expertises.some((exp) => exp && expertiseHay.includes(exp))) {
+        // Soft filter: only drop when raw clearly contradicts; keep if no category signal
+        if (rawBlob.includes("category") || rawBlob.includes("expertise")) {
+          return false
+        }
+      }
+    }
+    if (languages.length > 0) {
+      const raw = job as ImportedJob & { language?: string; raw_data?: Record<string, unknown> }
+      const lang = String(raw.language ?? raw.raw_data?.language ?? "").toLowerCase()
+      if (lang && !languages.some((code) => lang.includes(code))) {
+        return false
+      }
+    }
+    if (trackedSearch.exclusive_only || trackedSearch.top_recruiter_only) {
+      const raw = job as ImportedJob & { raw_data?: Record<string, unknown> }
+      const blob = JSON.stringify(raw.raw_data ?? {}).toLowerCase()
+      // Only enforce when the source payload exposes those facets
+      if (
+        trackedSearch.exclusive_only &&
+        /exclusive|exclusiv/.test(blob) &&
+        !/(exclusive["']?\s*:\s*true|is_exclusive|exclusiv)/.test(blob)
+      ) {
+        return false
+      }
+      if (
+        trackedSearch.top_recruiter_only &&
+        /top.?recruiter|top.?recruteur/.test(blob) &&
+        !/(top.?recruiter["']?\s*:\s*true|is_top_recruiter)/.test(blob)
+      ) {
+        return false
+      }
+    }
+    return true
+  })
 }
 
 function partitionByRecency(jobs: ImportedJob[]) {

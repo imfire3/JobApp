@@ -1,12 +1,20 @@
 "use client"
 
+import { useState } from "react"
 import { CircleHelp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  PAGE_HELP,
   pathnameToGuidePage,
-  requestProductGuide,
   type GuidePageId,
-} from "@/lib/onboarding/product-guide"
+} from "@/lib/onboarding/page-help"
 
 type PageHelpButtonProps = {
   pageId?: GuidePageId
@@ -19,43 +27,51 @@ export function PageHelpButton({
   label = "Comprendre cette page",
   className,
 }: PageHelpButtonProps) {
-  const handleClick = () => {
-    const resolved =
-      pageId ??
-      (typeof window !== "undefined"
-        ? pathnameToGuidePage(window.location.pathname)
-        : null)
-    if (!resolved) return
-    requestProductGuide({ type: "page", pageId: resolved })
-  }
+  const [open, setOpen] = useState(false)
+
+  const resolved =
+    pageId ??
+    (typeof window !== "undefined"
+      ? pathnameToGuidePage(window.location.pathname)
+      : null)
+
+  const help = resolved ? PAGE_HELP[resolved] : null
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      className={className}
-      onClick={handleClick}
-      aria-label={label}
-    >
-      <CircleHelp className="mr-1.5 h-4 w-4" />
-      {label}
-    </Button>
-  )
-}
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={className}
+        onClick={() => setOpen(true)}
+        disabled={!help}
+        aria-label={label}
+      >
+        <CircleHelp className="mr-1.5 h-4 w-4" />
+        {label}
+      </Button>
 
-export function RelaunchGuideButton({ className }: { className?: string }) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      className={className}
-      onClick={() => requestProductGuide({ type: "first-visit" })}
-      aria-label="Relancer le guide"
-    >
-      <CircleHelp className="mr-1.5 h-4 w-4" />
-      Aide
-    </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md" showCloseButton>
+          <DialogHeader>
+            <DialogTitle>{help?.title ?? "Aide"}</DialogTitle>
+            <DialogDescription>
+              Quelques repères pour utiliser cette page.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="space-y-4">
+            {help?.tips.map((tip) => (
+              <li key={tip.id} className="space-y-1">
+                <p className="text-sm font-medium">{tip.title}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {tip.body}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

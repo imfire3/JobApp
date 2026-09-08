@@ -31,8 +31,15 @@ type ImportSummary = {
   total_rows: number;
   imported: number;
   duplicates: number;
+  updated?: number;
   invalid: number;
   invalid_rows: Array<{ rowNumber: number; errors: string[] }>;
+  already_on_board?: Array<{
+    id: string;
+    url: string;
+    title: string;
+    company: string;
+  }>;
 };
 
 type WttjImportSummary = {
@@ -50,6 +57,7 @@ type ImportedJobRef = {
   title: string;
   company: string;
   was_duplicate: boolean;
+  was_updated?: boolean;
 };
 
 function rowsToPreviewCards(rows: ParsedImportRow[]): ImportJobCard[] {
@@ -70,6 +78,10 @@ export function ImportsPage() {
   const [websitePaste, setWebsitePaste] = useState("");
   const [summary, setSummary] = useState<ImportSummary | WttjImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const [alreadyOnBoard, setAlreadyOnBoard] = useState<
+    Array<{ id: string; url: string; title: string; company: string }>
+  >([]);
   const [uploading, setUploading] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [activeTab, setActiveTab] = useState<"json" | "sheet" | "chrome">("sheet");
@@ -205,6 +217,8 @@ export function ImportsPage() {
   async function handlePreview(selectedFile: File) {
     setPreviewing(true);
     setError(null);
+    setInfo(null);
+    setAlreadyOnBoard([]);
     setSummary(null);
     setAnalysisCards([]);
     setAnalyzedCount(0);
@@ -288,6 +302,8 @@ export function ImportsPage() {
     });
     setSummary(null);
     setError(null);
+    setInfo(null);
+    setAlreadyOnBoard([]);
   }
 
   async function handleWttjSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -299,6 +315,8 @@ export function ImportsPage() {
 
     setUploading(true);
     setError(null);
+    setInfo(null);
+    setAlreadyOnBoard([]);
     setSummary(null);
 
     try {
@@ -433,6 +451,8 @@ export function ImportsPage() {
 
     setUploading(true);
     setError(null);
+    setInfo(null);
+    setAlreadyOnBoard([]);
     setSummary(null);
 
     try {
@@ -449,9 +469,16 @@ export function ImportsPage() {
       });
       const payload = (await response.json()) as {
         error?: string;
+        message?: string;
         summary?: ImportSummary;
         preview?: ParsedImportRow[];
         jobs?: ImportedJobRef[];
+        already_on_board?: Array<{
+          id: string;
+          url: string;
+          title: string;
+          company: string;
+        }>;
       };
 
       if (!response.ok) {
@@ -464,14 +491,38 @@ export function ImportsPage() {
       }
 
       const jobs = payload.jobs ?? [];
-      if (jobs.length === 0) {
-        setError("Aucune offre importée à analyser (doublons ou fichier vide).");
+      const duplicates =
+        payload.already_on_board ??
+        payload.summary?.already_on_board ??
+        jobs
+          .filter((job) => job.was_duplicate)
+          .map((job) => ({
+            id: job.id,
+            url: job.url,
+            title: job.title,
+            company: job.company,
+          }));
+      const newJobs = jobs.filter((job) => !job.was_duplicate);
+
+      setAlreadyOnBoard(duplicates);
+      if (payload.message) {
+        setInfo(payload.message);
+      } else if (duplicates.length > 0 && newJobs.length === 0) {
+        setInfo(
+          duplicates.length === 1
+            ? "Cette offre est déjà sur ton board — elle n’a pas été réimportée."
+            : `${duplicates.length} offres sont déjà sur ton board — elles n’ont pas été réimportées.`
+        );
+      }
+
+      if (newJobs.length === 0) {
         setAnalysisCards([]);
+        setUploading(false);
         return;
       }
 
       setUploading(false);
-      await analyzeImportedJobs(jobs);
+      await analyzeImportedJobs(newJobs);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import failed");
       setUploading(false);
@@ -583,7 +634,7 @@ export function ImportsPage() {
         </TabsContent>
 
         <TabsContent value="sheet" className="mt-4 space-y-4">
-          <Card data-tour="guide-imports-form">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="h-4 w-4" />
@@ -628,7 +679,7 @@ export function ImportsPage() {
                   />
                 </div>
 
-                <div className="space-y-2" data-tour="guide-imports-paste">
+                <div className="space-y-2">
                   <Label htmlFor="website-paste">
                     Coller le contenu de la page / offre
                   </Label>
@@ -691,6 +742,35 @@ export function ImportsPage() {
         </p>
       ) : null}
 
+      {info ? (
+        <div className="space-y-3 rounded-md border border-border bg-muted/40 p-3 text-sm">
+          <p className="font-medium text-foreground">{info}</p>
+          {alreadyOnBoard.length > 0 ? (
+            <ul className="space-y-2">
+              {alreadyOnBoard.map((job) => (
+                <li
+                  key={job.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{job.title || "Offre"}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {job.company || "Entreprise"} · déjà sur le board
+                    </p>
+                  </div>
+                  <Link
+                    href={`/jobs/${job.id}`}
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    Voir sur le board
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
       {activeTab === "sheet" ? (
         <ImportAnalysisPanel
           cards={analysisCards}
@@ -742,7 +822,10 @@ export function ImportsPage() {
                 <>
                   <Metric label="Total rows" value={summary.total_rows} />
                   <Metric label="Imported" value={summary.imported} />
-                  <Metric label="Duplicates" value={summary.duplicates} />
+                  <Metric
+                    label="Déjà sur le board"
+                    value={summary.duplicates}
+                  />
                   <Metric label="Invalid rows" value={summary.invalid} />
                 </>
               )}

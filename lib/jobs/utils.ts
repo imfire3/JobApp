@@ -34,7 +34,10 @@ export function filterJobs(jobs: Job[], filters: JobFilters): Job[] {
   });
 }
 
-export function computeKpis(jobs: Job[]): DashboardKpis {
+export function computeKpis(
+  jobs: Job[],
+  options?: { applicationsSent?: number }
+): DashboardKpis {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
@@ -45,9 +48,13 @@ export function computeKpis(jobs: Job[]): DashboardKpis {
   const selectedJobs = jobs.filter((j) => j.selected || j.status === "selected").length;
   const newJobs = jobs.filter((j) => j.status === "new").length;
   const coverLettersGenerated = jobs.filter((j) => j.cover_letter).length;
-  const applicationsSent = jobs.filter((j) =>
-    ["applied", "interview", "rejected"].includes(j.status)
-  ).length;
+  // Prefer CRM count when provided; otherwise fall back to job pipeline statuses.
+  const applicationsSent =
+    typeof options?.applicationsSent === "number"
+      ? options.applicationsSent
+      : jobs.filter((j) =>
+          ["applied", "interview", "rejected"].includes(j.status)
+        ).length;
 
   const scored = jobs.filter((j) => j.match_score !== null);
   const averageMatchScore =

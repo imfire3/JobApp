@@ -92,6 +92,30 @@ describe("parseCvAtsAnalysis", () => {
     assert.equal(parsed.overall_score, 60);
   });
 
+  it("coerces numeric experience years and months to strings", () => {
+    const parsed = parseCvAtsAnalysis({
+      ...validV3Analysis,
+      detected_experiences: [
+        {
+          title: "Product Owner",
+          organization: "Acme",
+          is_current: true,
+          start_month: 3,
+          start_year: 2022,
+          end_month: null,
+          end_year: 2024,
+          highlights: "Roadmap",
+          skills: ["Agile"],
+          evidence_from_cv: "PO chez Acme 2022–2024",
+        },
+      ],
+    });
+    assert.equal(parsed.detected_experiences.length, 1);
+    assert.equal(parsed.detected_experiences[0]?.start_year, "2022");
+    assert.equal(parsed.detected_experiences[0]?.end_year, "2024");
+    assert.equal(parsed.detected_experiences[0]?.start_month, "03");
+  });
+
   it("rejects malformed responses", () => {
     assert.throws(
       () => parseCvAtsAnalysis({ scores: { overall_score: "high" } }),

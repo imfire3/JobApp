@@ -116,7 +116,6 @@ export interface JobRecord {
   updated_at: string;
 }
 
-
 export interface JobCvImprovementItem {
   id: string;
   priority: "low" | "medium" | "high";
@@ -439,7 +438,6 @@ export interface CvDetectedLanguage {
   evidence_from_cv?: string;
 }
 
-
 export interface CvDetectedExperience {
   title: string;
   organization: string;
@@ -561,6 +559,8 @@ export interface UserSettings {
   automation_defaults: Record<string, unknown>;
   onboarding_completed: boolean;
   onboarding_completed_at: string | null;
+  product_welcome_completed: boolean;
+  product_welcome_completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -592,11 +592,21 @@ export interface TrackedSearch {
   experience: string[];
   contract_types: string[];
   minimum_salary: number | null;
+  maximum_salary: number | null;
+  salary_period: "year" | "day" | string;
   currency: string;
   industries: string[];
   excluded_industries: string[];
   company_size: string | null;
   company_culture: string | null;
+  company_names: string[];
+  languages: string[];
+  expertises: string[];
+  only_with_salary: boolean;
+  exclusive_only: boolean;
+  top_recruiter_only: boolean;
+  start_date_preference: string | null;
+  publish_window: string | null;
   ai_preferences: Record<string, unknown>;
   minimum_match_score: number | null;
   last_run: string | null;

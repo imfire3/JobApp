@@ -1,85 +1,102 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it } from "node:test"
+import assert from "node:assert/strict"
 import {
   canCompleteOnboarding,
   deriveOnboardingStep,
-} from "./status";
+} from "./status"
 
 describe("deriveOnboardingStep", () => {
   it("starts at cv when nothing is ready", () => {
     assert.equal(
       deriveOnboardingStep({
         hasCv: false,
+        hasProfileReviewed: false,
         hasTargets: false,
         hasAnalysis: false,
         hasTrackedSearch: false,
         completed: false,
       }),
       "cv"
-    );
-  });
+    )
+  })
 
-  it("moves to api-keys once CV is present", () => {
+  it("moves to profile once CV is present", () => {
     assert.equal(
       deriveOnboardingStep({
         hasCv: true,
+        hasProfileReviewed: false,
         hasTargets: false,
         hasAnalysis: false,
         hasTrackedSearch: false,
         completed: false,
       }),
-      "api-keys"
-    );
-  });
+      "profile"
+    )
+  })
 
-  it("stays on api-keys until the user finishes the keys step", () => {
+  it("completes after profile review without requiring API keys", () => {
     assert.equal(
       deriveOnboardingStep({
         hasCv: true,
-        hasTargets: true,
+        hasProfileReviewed: true,
+        hasTargets: false,
         hasAnalysis: false,
-        hasTrackedSearch: true,
+        hasTrackedSearch: false,
         completed: false,
       }),
-      "api-keys"
-    );
-  });
+      "done"
+    )
+  })
 
   it("returns done when completed flag is true", () => {
     assert.equal(
       deriveOnboardingStep({
         hasCv: false,
+        hasProfileReviewed: false,
         hasTargets: false,
         hasAnalysis: false,
         hasTrackedSearch: false,
         completed: true,
       }),
       "done"
-    );
-  });
-});
+    )
+  })
+})
 
 describe("canCompleteOnboarding", () => {
-  it("requires only a CV", () => {
+  it("requires CV and profile review", () => {
     assert.equal(
       canCompleteOnboarding({
         hasCv: true,
+        hasProfileReviewed: true,
         hasTargets: false,
         hasAnalysis: false,
         hasTrackedSearch: false,
         completed: false,
       }),
       true
-    );
+    )
     assert.equal(
       canCompleteOnboarding({
-        hasCv: false,
+        hasCv: true,
+        hasProfileReviewed: false,
         hasTargets: true,
         hasAnalysis: true,
         hasTrackedSearch: true,
         completed: false,
       }),
       false
-    );
-  });
-});
+    )
+    assert.equal(
+      canCompleteOnboarding({
+        hasCv: false,
+        hasProfileReviewed: true,
+        hasTargets: true,
+        hasAnalysis: true,
+        hasTrackedSearch: true,
+        completed: false,
+      }),
+      false
+    )
+  })
+})

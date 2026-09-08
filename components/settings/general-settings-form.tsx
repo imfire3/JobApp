@@ -109,7 +109,7 @@ export function GeneralSettingsForm() {
       if (!res.ok) throw new Error(data.error ?? "Failed to save settings");
       setSettings((prev) => ({ ...prev, theme }));
       setTheme(theme);
-      toast.success("Settings saved");
+      toast.success("Réglages enregistrés");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save settings");
     } finally {
@@ -122,11 +122,11 @@ export function GeneralSettingsForm() {
   }
 
   return (
-    <div className="space-y-6" data-tour="guide-settings">
+    <div className="space-y-6">
       <StickyPageHeader>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Réglages</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Compte & clés API</h1>
             <p className="text-sm text-muted-foreground">
               Langue, thème et paramètres de l’assistant IA.
             </p>
