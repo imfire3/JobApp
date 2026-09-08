@@ -1,18 +1,20 @@
-import { Resend } from "resend"
 import type { DemoRequestInput } from "@/lib/demo-request/schema"
 
 export const DEFAULT_DEMO_NOTIFY_EMAIL = "vincentgiacalonepro@gmail.com"
-export const DEFAULT_RESEND_FROM_EMAIL = "JobTracker <beth.t@example.com>"
+
+export type FormSubmitPayload = {
+  _subject: string
+  _template: "table"
+  _captcha: "false"
+  first_name: string
+  last_name: string
+  email: string
+  message?: string
+}
 
 export type SendDemoRequestEmailDeps = {
-  send: (payload: {
-    from: string
-    to: string
-    subject: string
-    text: string
-  }) => Promise<{ id?: string }>
+  fetch?: typeof fetch
   notifyEmail?: string
-  fromEmail?: string
 }
 
 export function buildDemoRequestEmail(input: DemoRequestInput) {
@@ -31,6 +33,19 @@ export function buildDemoRequestEmail(input: DemoRequestInput) {
   return { subject, text: lines.join("\n") }
 }
 
+export function buildFormSubmitPayload(input: DemoRequestInput): FormSubmitPayload {
+  const { subject } = buildDemoRequestEmail(input)
+  return {
+    _subject: subject,
+    _template: "table",
+    _captcha: "false",
+    first_name: input.first_name,
+    last_name: input.last_name,
+    email: input.email,
+    ...(input.message ? { message: input.message } : {}),
+  }
+}
+
 export async function sendDemoRequestEmail(
   input: DemoRequestInput,
   deps?: SendDemoRequestEmailDeps
@@ -39,33 +54,28 @@ export async function sendDemoRequestEmail(
     deps?.notifyEmail?.trim() ||
     process.env.DEMO_NOTIFY_EMAIL?.trim() ||
     DEFAULT_DEMO_NOTIFY_EMAIL
-  const fromEmail =
-    deps?.fromEmail?.trim() ||
-    process.env.RESEND_FROM_EMAIL?.trim() ||
-    DEFAULT_RESEND_FROM_EMAIL
 
-  const { subject, text } = buildDemoRequestEmail(input)
+  const payload = buildFormSubmitPayload(input)
+  const url = `https://formsubmit.co/ajax/${encodeURIComponent(notifyEmail)}`
+  const doFetch = deps?.fetch ?? fetch
 
-  if (deps?.send) {
-    return deps.send({ from: fromEmail, to: notifyEmail, subject, text })
-  }
-
-  const apiKey = process.env.RESEND_API_KEY?.trim()
-  if (!apiKey) {
-    throw new Error("Missing RESEND_API_KEY")
-  }
-
-  const resend = new Resend(apiKey)
-  const result = await resend.emails.send({
-    from: fromEmail,
-    to: notifyEmail,
-    subject,
-    text,
+  const response = await doFetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
   })
 
-  if (result.error) {
-    throw new Error(result.error.message || "Resend email failed")
+  if (!response.ok) {
+    const bodyText = await response.text().catch(() => "")
+    throw new Error(
+      bodyText
+        ? `FormSubmit failed (${response.status}): ${bodyText.slice(0, 200)}`
+        : `FormSubmit failed (${response.status})`
+    )
   }
 
-  return { id: result.data?.id }
+  return { ok: true as const }
 }

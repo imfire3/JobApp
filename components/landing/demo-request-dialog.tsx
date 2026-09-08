@@ -21,6 +21,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
+  const [website, setWebsite] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -30,6 +31,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
     setLastName("")
     setEmail("")
     setMessage("")
+    setWebsite("")
     setError(null)
     setLoading(false)
   }
@@ -55,6 +57,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
           last_name: lastName,
           email,
           message: message.trim() || undefined,
+          website: website.trim() || undefined,
         }),
       })
       const payload = (await response.json().catch(() => ({}))) as {
@@ -106,7 +109,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
+          <form onSubmit={handleSubmit} className="relative space-y-4 px-5 py-5">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <label htmlFor="demo-first-name" className="text-sm font-medium">
@@ -155,6 +158,18 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
                 placeholder="toi@exemple.com"
                 className={fieldClass}
                 disabled={loading}
+              />
+            </div>
+            <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+              <label htmlFor="demo-website">Site web</label>
+              <input
+                id="demo-website"
+                name="website"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">

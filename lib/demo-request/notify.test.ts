@@ -4,6 +4,7 @@ import { demoRequestSchema } from "./schema"
 import {
   DEFAULT_DEMO_NOTIFY_EMAIL,
   buildDemoRequestEmail,
+  buildFormSubmitPayload,
   sendDemoRequestEmail,
 } from "./notify"
 
@@ -17,6 +18,7 @@ describe("demoRequestSchema", () => {
     })
     assert.equal(parsed.first_name, "Marie")
     assert.equal(parsed.message, "Je suis PO")
+    assert.equal(parsed.website, undefined)
   })
 
   it("rejects missing required fields", () => {
@@ -48,6 +50,16 @@ describe("demoRequestSchema", () => {
     })
     assert.equal(parsed.message, undefined)
   })
+
+  it("keeps honeypot website when filled", () => {
+    const parsed = demoRequestSchema.parse({
+      first_name: "Marie",
+      last_name: "Dupont",
+      email: "marie@example.com",
+      website: "https://spam.example",
+    })
+    assert.equal(parsed.website, "https://spam.example")
+  })
 })
 
 describe("buildDemoRequestEmail", () => {
@@ -64,14 +76,25 @@ describe("buildDemoRequestEmail", () => {
   })
 })
 
+describe("buildFormSubmitPayload", () => {
+  it("builds FormSubmit fields with subject and captcha off", () => {
+    const payload = buildFormSubmitPayload({
+      first_name: "Marie",
+      last_name: "Dupont",
+      email: "marie@example.com",
+      message: "Hello",
+    })
+    assert.equal(payload._template, "table")
+    assert.equal(payload._captcha, "false")
+    assert.match(payload._subject, /Marie Dupont/)
+    assert.equal(payload.email, "marie@example.com")
+    assert.equal(payload.message, "Hello")
+  })
+})
+
 describe("sendDemoRequestEmail", () => {
-  it("sends via injected sender to the default notify address", async () => {
-    const calls: Array<{
-      from: string
-      to: string
-      subject: string
-      text: string
-    }> = []
+  it("POSTs to FormSubmit ajax URL for the notify address", async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = []
 
     await sendDemoRequestEmail(
       {
@@ -81,20 +104,31 @@ describe("sendDemoRequestEmail", () => {
       },
       {
         notifyEmail: DEFAULT_DEMO_NOTIFY_EMAIL,
-        fromEmail: "JobTracker <beth.t@example.com>",
-        send: async (payload) => {
-          calls.push(payload)
-          return { id: "email_1" }
+        fetch: async (url, init) => {
+          calls.push({ url: String(url), init })
+          return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
         },
       }
     )
 
     assert.equal(calls.length, 1)
-    assert.equal(calls[0]?.to, "vincentgiacalonepro@gmail.com")
-    assert.match(calls[0]?.subject ?? "", /Marie Dupont/)
+    assert.equal(
+      calls[0]?.url,
+      `https://formsubmit.co/ajax/${encodeURIComponent("vincentgiacalonepro@gmail.com")}`
+    )
+    assert.equal(calls[0]?.init?.method, "POST")
+    const body = JSON.parse(String(calls[0]?.init?.body ?? "{}")) as {
+      _subject: string
+      email: string
+    }
+    assert.match(body._subject, /Marie Dupont/)
+    assert.equal(body.email, "marie@example.com")
   })
 
-  it("propagates sender failures", async () => {
+  it("propagates FormSubmit HTTP failures", async () => {
     await assert.rejects(
       () =>
         sendDemoRequestEmail(
@@ -104,12 +138,13 @@ describe("sendDemoRequestEmail", () => {
             email: "marie@example.com",
           },
           {
-            send: async () => {
-              throw new Error("Resend down")
-            },
+            fetch: async () =>
+              new Response("rate limited", {
+                status: 429,
+              }),
           }
         ),
-      /Resend down/
+      /FormSubmit failed \(429\)/
     )
   })
 })

@@ -29,6 +29,11 @@ export async function POST(request: Request) {
     )
   }
 
+  // Honeypot filled → pretend success (spam bots)
+  if (input.website) {
+    return NextResponse.json({ ok: true })
+  }
+
   if (!hasServiceRoleKey()) {
     return NextResponse.json(
       { error: "Configuration serveur incomplète (SUPABASE_SERVICE_ROLE_KEY)" },
@@ -64,7 +69,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    await sendDemoRequestEmail(input)
+    await sendDemoRequestEmail({
+      first_name: input.first_name,
+      last_name: input.last_name,
+      email: input.email,
+      message: input.message,
+    })
   } catch (error) {
     return NextResponse.json(
       {
