@@ -13,6 +13,7 @@ function isPublicRoute(pathname: string) {
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/setup/") ||
     pathname.startsWith("/api/auth/") ||
+    pathname === "/api/demo-request" ||
     pathname === "/api/sync-jobs"
   );
 }

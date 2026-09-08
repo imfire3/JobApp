@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, CheckCircle2, Eye, EyeOff, FileUp, FlaskConical } from "lucide-react";
+import { Briefcase, CheckCircle2, Eye, EyeOff, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,95 +32,12 @@ async function readApiJson<T extends Record<string, unknown>>(res: Response): Pr
   }
 }
 
-/** Common email TLDs — reject unknown / incomplete extensions */
-const KNOWN_EMAIL_TLDS = new Set([
-  "com",
-  "net",
-  "org",
-  "edu",
-  "gov",
-  "io",
-  "co",
-  "app",
-  "dev",
-  "ai",
-  "me",
-  "info",
-  "biz",
-  "fr",
-  "be",
-  "ch",
-  "ca",
-  "uk",
-  "de",
-  "es",
-  "it",
-  "nl",
-  "pt",
-  "eu",
-  "us",
-  "online",
-  "tech",
-  "cloud",
-  "email",
-  "pro",
-]);
-
-function isValidEmail(value: string) {
-  const email = value.trim().toLowerCase();
-  const match = email.match(/^[^\s@]+@([^\s@]+\.)+([a-z]{2,24})$/i);
-  if (!match) return false;
-  const tld = match[2]?.toLowerCase() ?? "";
-  return KNOWN_EMAIL_TLDS.has(tld);
-}
-
-type Mode = "login" | "signup" | "cv";
+type Mode = "login" | "cv";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-}
-
-function isStrongPassword(password: string) {
-  return (
-    password.length >= MIN_PASSWORD_LENGTH &&
-    /[A-Z]/.test(password) &&
-    /[^A-Za-z0-9]/.test(password)
-  );
-}
-
-function getPasswordChecks(password: string) {
-  return {
-    minLength: password.length >= MIN_PASSWORD_LENGTH,
-    uppercase: /[A-Z]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-  };
-}
-
-function PasswordRule({
-  ok,
-  active,
-  label,
-}: {
-  ok: boolean;
-  active: boolean;
-  label: string;
-}) {
-  const color = !active
-    ? "text-muted-foreground"
-    : ok
-      ? "text-green-600 dark:text-green-400"
-      : "text-red-600 dark:text-red-400";
-
-  return (
-    <li className={`flex items-center gap-2 text-xs ${color}`}>
-      <span aria-hidden className="font-semibold">
-        {active ? (ok ? "✓" : "✗") : "•"}
-      </span>
-      <span>{label}</span>
-    </li>
-  );
 }
 
 function PasswordField({
@@ -188,42 +106,13 @@ export default function LoginPageClient() {
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState("");
-  const [showPasswordMismatch, setShowPasswordMismatch] = useState(false);
 
   const [cvText, setCvText] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [parsingCv, setParsingCv] = useState(false);
 
-  const passwordChecks = getPasswordChecks(signupPassword);
-  const passwordRulesActive = signupPassword.length > 0;
-  const emailLooksValid = isValidEmail(email);
-  const showEmailError = email.trim().length > 0 && !emailLooksValid;
-  const canSubmitSignup =
-    firstName.trim().length > 0 &&
-    lastName.trim().length > 0 &&
-    emailLooksValid &&
-    isStrongPassword(signupPassword) &&
-    signupPasswordConfirm.length > 0;
-
   const canSubmitCv =
     !parsingCv && (Boolean(pdfFile) || cvText.trim().length > 0);
-
-  const handleFillFakeSignup = () => {
-    const stamp = Date.now().toString(36);
-    const fakePassword = "DevTest1!";
-    setFirstName("Alex");
-    setLastName("Martin");
-    setEmail(`dev.${stamp}@example.com`);
-    setSignupPassword(fakePassword);
-    setSignupPasswordConfirm(fakePassword);
-    setShowPasswordMismatch(false);
-    toast.success("Formulaire signup prérempli (dev)");
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -411,45 +300,6 @@ export default function LoginPageClient() {
     }
   }
 
-  async function handleSignup(e: React.FormEvent) {
-    e.preventDefault();
-    if (!isStrongPassword(signupPassword)) {
-      toast.error(
-        "Mot de passe : 8 caractères min., 1 majuscule et 1 caractère spécial"
-      );
-      return;
-    }
-    if (signupPassword !== signupPasswordConfirm) {
-      setShowPasswordMismatch(true);
-      return;
-    }
-    setShowPasswordMismatch(false);
-    setLoading(true);
-    try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          password: signupPassword,
-        }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Inscription échouée");
-      }
-
-      toast.success("Compte créé — importe ton CV");
-      setMode("cv");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Inscription échouée");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleCv(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -465,12 +315,7 @@ export default function LoginPageClient() {
     }
   }
 
-  const title =
-    mode === "cv"
-      ? "Importe ton CV"
-      : mode === "signup"
-        ? "Créer un compte"
-        : "Connexion";
+  const title = mode === "cv" ? "Importe ton CV" : "Connexion";
   const description =
     mode === "cv"
       ? "Ensuite tu configureras tes clés API, puis tu arrives sur le dashboard."
@@ -595,179 +440,52 @@ export default function LoginPageClient() {
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
-          {mode === "login" ? (
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="identifier">Email or username</Label>
-                <Input
-                  id="identifier"
-                  type="text"
-                  inputMode="email"
-                  autoComplete="username"
-                  enterKeyHint="next"
-                  placeholder="monemail@gmail.com"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  required
-                />
-              </div>
-              <PasswordField
-                id="password"
-                label="Password"
-                value={password}
-                onChange={setPassword}
-                autoComplete="current-password"
-                enterKeyHint="go"
-                minLength={1}
-              />
-              <div className="relative z-10 pt-1">
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="relative z-10 w-full"
-                  disabled={loading}
-                >
-                  {loading ? "Patiente…" : "Se connecter"}
-                </Button>
-              </div>
-            </form>
-          ) : null}
-
-          {mode === "signup" ? (
-            <form onSubmit={handleSignup} className="space-y-5">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="first-name">Prénom</Label>
-                  <Input
-                    id="first-name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                    autoComplete="given-name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="last-name">Nom</Label>
-                  <Input
-                    id="last-name"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    required
-                    autoComplete="family-name"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="text"
-                  inputMode="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value.trim())}
-                  required
-                  autoComplete="email"
-                  autoCorrect="off"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  placeholder="monemail@gmail.com"
-                  aria-invalid={showEmailError || undefined}
-                  aria-describedby={showEmailError ? "email-error" : undefined}
-                />
-                {showEmailError ? (
-                  <p
-                    id="email-error"
-                    className="text-xs text-red-600 dark:text-red-400"
-                    role="alert"
-                  >
-                    Ce n’est pas un bon email
-                  </p>
-                ) : null}
-              </div>
-              <PasswordField
-                id="signup-password"
-                label="Mot de passe"
-                value={signupPassword}
-                onChange={(value) => {
-                  setSignupPassword(value);
-                  setShowPasswordMismatch(false);
-                }}
-                autoComplete="new-password"
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="identifier">Email or username</Label>
+              <Input
+                id="identifier"
+                type="text"
+                inputMode="email"
+                autoComplete="username"
                 enterKeyHint="next"
+                placeholder="monemail@gmail.com"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                required
               />
-              <PasswordField
-                id="signup-password-confirm"
-                label="Confirmer le mot de passe"
-                value={signupPasswordConfirm}
-                onChange={(value) => {
-                  setSignupPasswordConfirm(value);
-                  setShowPasswordMismatch(false);
-                }}
-                autoComplete="new-password"
-                enterKeyHint="done"
-              />
-              <ul className="space-y-1.5" aria-live="polite">
-                <PasswordRule
-                  active={passwordRulesActive}
-                  ok={passwordChecks.minLength}
-                  label="8 caractères minimum"
-                />
-                <PasswordRule
-                  active={passwordRulesActive}
-                  ok={passwordChecks.uppercase}
-                  label="Au moins une majuscule"
-                />
-                <PasswordRule
-                  active={passwordRulesActive}
-                  ok={passwordChecks.special}
-                  label="Au moins un caractère spécial"
-                />
-              </ul>
-              {showPasswordMismatch ? (
-                <p className="text-xs text-red-600 dark:text-red-400" role="alert">
-                  Les deux mots de passe ne correspondent pas
-                </p>
-              ) : null}
-              <div className="relative z-10 space-y-2 pt-1">
-                {process.env.NODE_ENV !== "production" ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-dashed"
-                    onClick={handleFillFakeSignup}
-                    aria-label="Préremplir le formulaire d’inscription (développement)"
-                  >
-                    <FlaskConical className="mr-1.5 h-3.5 w-3.5" />
-                    DEV · Fake signup
-                  </Button>
-                ) : null}
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="relative z-10 w-full"
-                  disabled={loading || !canSubmitSignup}
-                >
-                  {loading ? "Patiente…" : "S'inscrire"}
-                </Button>
-              </div>
-            </form>
-          ) : null}
-
-          <div className="mt-6 flex flex-col items-center gap-2">
-            <p className="text-center text-sm text-muted-foreground">
-              {mode === "signup" ? "Tu as déjà un compte ?" : "Pas encore de compte ?"}
-            </p>
-            <Button
-              type="button"
-              variant="link"
-              size="lg"
-              className="w-full text-muted-foreground underline underline-offset-4 hover:text-foreground"
-              onClick={() => setMode(mode === "signup" ? "login" : "signup")}
+            </div>
+            <PasswordField
+              id="password"
+              label="Password"
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+              enterKeyHint="go"
+              minLength={1}
+            />
+            <div className="relative z-10 pt-1">
+              <Button
+                type="submit"
+                size="lg"
+                className="relative z-10 w-full"
+                disabled={loading}
+              >
+                {loading ? "Patiente…" : "Se connecter"}
+              </Button>
+            </div>
+          </form>
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Pas encore de compte ? Demande un accès démo depuis la{" "}
+            <Link
+              href="/"
+              className="underline underline-offset-4 hover:text-foreground"
+              tabIndex={0}
             >
-              {mode === "signup" ? "Se connecter" : "Créer un compte"}
-            </Button>
-          </div>
+              page d’accueil
+            </Link>
+            .
+          </p>
         </CardContent>
       </Card>
     </AuthCardShell>

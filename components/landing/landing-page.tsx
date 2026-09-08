@@ -4,6 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { ArrowRight, ChevronDown } from "lucide-react"
+import { DemoRequestDialog } from "@/components/landing/demo-request-dialog"
 import { cn } from "@/lib/utils"
 
 const STEPS = [
@@ -68,14 +69,18 @@ const secondaryCtaClass =
 export function LandingPage() {
   const [ready, setReady] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [demoOpen, setDemoOpen] = useState(false)
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setReady(true))
     return () => cancelAnimationFrame(id)
   }, [])
 
+  const handleOpenDemo = () => setDemoOpen(true)
+
   return (
     <div className="relative h-dvh overflow-y-auto overflow-x-hidden overscroll-contain bg-[#eceae6] text-[#111111]">
+      <DemoRequestDialog open={demoOpen} onOpenChange={setDemoOpen} />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.45]"
@@ -106,17 +111,16 @@ export function LandingPage() {
           </a>
         </nav>
         <nav className="flex items-center gap-2 md:gap-3" aria-label="Compte">
-          <Link href="/login" className={navLinkClass} tabIndex={0}>
-            Connexion
-          </Link>
-          <Link
-            href="/login"
+          <button
+            type="button"
+            onClick={handleOpenDemo}
             className="inline-flex items-center gap-1.5 rounded-full bg-[#111] px-4 py-2.5 text-sm font-medium text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
             tabIndex={0}
+            aria-label="Inscription démo"
           >
-            Commencer
+            Inscription démo
             <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
+          </button>
         </nav>
       </header>
 
@@ -141,15 +145,16 @@ export function LandingPage() {
                 fil de tes candidatures jusqu’aux entretiens.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link
-                  href="/login"
+                <button
+                  type="button"
+                  onClick={handleOpenDemo}
                   className={primaryCtaClass}
                   tabIndex={0}
-                  aria-label="Commencer avec mon CV"
+                  aria-label="Inscription démo"
                 >
-                  Commencer avec mon CV
+                  Inscription démo
                   <ArrowRight className="h-4 w-4" aria-hidden />
-                </Link>
+                </button>
                 <a href="#comment-ca-marche" className={secondaryCtaClass} tabIndex={0}>
                   Voir comment ça marche
                 </a>
@@ -491,21 +496,17 @@ export function LandingPage() {
                 Commence par ton CV, puis ajoute une offre pour comparer ton profil aux
                 attentes du poste.
               </p>
-              <p className="mt-4 text-sm text-[#eceae6]/55">
-                Déjà un compte ?{" "}
-                <Link href="/login" className="underline underline-offset-4 hover:text-[#eceae6]">
-                  Se connecter
-                </Link>
-              </p>
             </div>
-            <Link
-              href="/login"
+            <button
+              type="button"
+              onClick={handleOpenDemo}
               className="relative z-10 inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-[#eceae6] px-6 py-3 text-sm font-semibold text-[#111] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               tabIndex={0}
+              aria-label="Inscription démo"
             >
-              Commencer avec mon CV
+              Inscription démo
               <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
+            </button>
           </div>
         </section>
       </main>
@@ -524,9 +525,15 @@ export function LandingPage() {
             className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-[#111]/55"
             aria-label="Pied de page"
           >
-            <Link href="/login" className="hover:text-[#111]" tabIndex={0}>
-              Connexion
-            </Link>
+            <button
+              type="button"
+              onClick={handleOpenDemo}
+              className="hover:text-[#111]"
+              tabIndex={0}
+              aria-label="Inscription démo"
+            >
+              Inscription démo
+            </button>
             <a href="#confidentialite" className="hover:text-[#111]" tabIndex={0}>
               Confidentialité
             </a>
