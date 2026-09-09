@@ -9,7 +9,7 @@ export type OnboardingFlags = {
   completed: boolean
 }
 
-/** CV → profile review → app. Clés API optionnelles (Réglages). */
+/** CV → profile review → app. OpenAI is platform-managed (no user key step). */
 export function deriveOnboardingStep(flags: OnboardingFlags): OnboardingStep {
   if (flags.completed) return "done"
   if (!flags.hasCv) return "cv"

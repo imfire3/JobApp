@@ -24,5 +24,5 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/extension", label: "Extension", icon: Puzzle },
   { href: "/sources", label: "Sources", icon: Cable },
   { href: "/profile-ai", label: "Profil & CV", icon: Bot },
-  { href: "/settings", label: "Compte & clés API", icon: Settings },
+  { href: "/settings", label: "Compte", icon: Settings },
 ]

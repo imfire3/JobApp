@@ -1,5 +1,6 @@
-import { ApiKeysPageClient } from "@/components/onboarding/api-keys-page";
+import { redirect } from "next/navigation";
 
+/** API keys are platform-managed — skip this onboarding step. */
 export default function OnboardingApiKeysPage() {
-  return <ApiKeysPageClient />;
+  redirect("/dashboard");
 }

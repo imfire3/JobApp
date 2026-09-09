@@ -9,11 +9,18 @@ import {
 } from "./api-key";
 
 describe("resolveOpenAIApiKey", () => {
-  it("prefers the user key", () => {
-    assert.equal(resolveOpenAIApiKey(" sk-user "), "sk-user");
+  it("always uses the platform env key even when a user key is passed", () => {
+    const previous = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "sk-env";
+    try {
+      assert.equal(resolveOpenAIApiKey(" sk-user "), "sk-env");
+    } finally {
+      if (previous === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = previous;
+    }
   });
 
-  it("falls back to env when user key is empty", () => {
+  it("uses env when no user key is provided", () => {
     const previous = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = "sk-env";
     try {
@@ -25,11 +32,11 @@ describe("resolveOpenAIApiKey", () => {
     }
   });
 
-  it("throws a clear message when no key exists", () => {
+  it("throws a clear message when no platform key exists", () => {
     const previous = process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_API_KEY;
     try {
-      assert.throws(() => resolveOpenAIApiKey(null), (error: Error) => {
+      assert.throws(() => resolveOpenAIApiKey("sk-user"), (error: Error) => {
         assert.equal(error.message, MISSING_OPENAI_KEY_MESSAGE);
         return true;
       });

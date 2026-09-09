@@ -1,38 +1,35 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const MISSING_OPENAI_KEY_MESSAGE =
-  "Ajoute ta clé API OpenAI dans Réglages (compte OpenAI avec crédit disponible sur platform.openai.com).";
+  "L’IA n’est pas disponible pour le moment. Réessaie plus tard ou contacte le support.";
 
 export const INVALID_OPENAI_KEY_MESSAGE =
-  "Clé OpenAI invalide ou sans crédit. Vérifie ta clé et ton solde sur platform.openai.com.";
+  "L’IA n’est pas disponible pour le moment (clé serveur invalide). Réessaie plus tard.";
 
 export const QUOTA_OPENAI_MESSAGE =
-  "Quota OpenAI dépassé ou facturation inactive. Ajoute du crédit sur platform.openai.com.";
+  "Quota IA temporairement dépassé. Réessaie dans quelques minutes.";
 
-export function resolveOpenAIApiKey(userKey?: string | null): string {
-  const key = userKey?.trim() || process.env.OPENAI_API_KEY?.trim() || "";
+/**
+ * Always use the platform OPENAI_API_KEY from the server environment.
+ * User-provided keys are ignored so demo users never configure OpenAI.
+ */
+export function resolveOpenAIApiKey(_userKey?: string | null): string {
+  const key = process.env.OPENAI_API_KEY?.trim() || "";
   if (!key) {
     throw new Error(MISSING_OPENAI_KEY_MESSAGE);
   }
   return key;
 }
 
+/**
+ * Returns the platform OpenAI key when configured.
+ * Kept for call-site compatibility; no longer reads user_settings.openai_key.
+ */
 export async function loadUserOpenAIKey(
-  supabase: SupabaseClient,
-  userId: string
+  _supabase: SupabaseClient,
+  _userId: string
 ): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("user_settings")
-    .select("openai_key")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error && error.code !== "42P01" && error.code !== "42703") {
-    throw new Error(error.message);
-  }
-
-  const key = typeof data?.openai_key === "string" ? data.openai_key.trim() : "";
-  return key || null;
+  return process.env.OPENAI_API_KEY?.trim() || null;
 }
 
 export function mapOpenAIError(error: unknown): Error {

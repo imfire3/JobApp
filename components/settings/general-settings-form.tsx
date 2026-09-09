@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -97,9 +97,10 @@ export function GeneralSettingsForm() {
         body: JSON.stringify({
           ...settings,
           theme,
-          openai_key: settings.openai_key || null,
-          anthropic_key: settings.anthropic_key || null,
-          gemini_key: settings.gemini_key || null,
+          ai_provider: "openai",
+          openai_key: null,
+          anthropic_key: null,
+          gemini_key: null,
           resume_defaults: JSON.parse(settings.resume_defaults || "{}"),
           cover_letter_defaults: JSON.parse(settings.cover_letter_defaults || "{}"),
           automation_defaults: JSON.parse(settings.automation_defaults || "{}"),
@@ -126,9 +127,10 @@ export function GeneralSettingsForm() {
       <StickyPageHeader>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Compte & clés API</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Compte</h1>
             <p className="text-sm text-muted-foreground">
-              Langue, thème et paramètres de l’assistant IA.
+              Thème, langue et préférences. L’IA est déjà incluse — aucune clé à
+              configurer.
             </p>
           </div>
           <PageHelpButton pageId="settings" />
@@ -182,73 +184,6 @@ export function GeneralSettingsForm() {
               onCheckedChange={(checked) =>
                 setSettings((prev) => ({ ...prev, notifications_enabled: checked }))
               }
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Clé OpenAI</CardTitle>
-          <CardDescription>
-            Utilise ta propre clé OpenAI. Le compte OpenAI doit avoir du crédit
-            (Billing sur platform.openai.com), sinon l’analyse des offres et les
-            lettres échouent.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Provider</Label>
-            <Select
-              value={settings.ai_provider}
-              onValueChange={(value) =>
-                setSettings((prev) => ({
-                  ...prev,
-                  ai_provider: value as SettingsState["ai_provider"],
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="openai">OpenAI</SelectItem>
-                <SelectItem value="anthropic">Anthropic</SelectItem>
-                <SelectItem value="gemini">Gemini</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Clé API OpenAI</Label>
-            <Input
-              type="password"
-              autoComplete="off"
-              placeholder="sk-…"
-              value={settings.openai_key}
-              onChange={(e) => setSettings((prev) => ({ ...prev, openai_key: e.target.value }))}
-            />
-            <p className="text-xs leading-5 text-muted-foreground">
-              Sans clé valide + crédit OpenAI, le matching et les lettres ne
-              fonctionnent pas. Les offres déjà importées peuvent être
-              ré-analysées ensuite depuis la fiche offre.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label>Anthropic key</Label>
-            <Input
-              type="password"
-              value={settings.anthropic_key}
-              onChange={(e) =>
-                setSettings((prev) => ({ ...prev, anthropic_key: e.target.value }))
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Gemini key</Label>
-            <Input
-              type="password"
-              value={settings.gemini_key}
-              onChange={(e) => setSettings((prev) => ({ ...prev, gemini_key: e.target.value }))}
             />
           </div>
         </CardContent>

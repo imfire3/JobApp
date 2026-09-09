@@ -132,7 +132,7 @@ export const PAGE_HELP: Record<GuidePageId, { title: string; tips: PageHelpTip[]
       {
         id: "settings-intro",
         title: "Adapte JobTracker à tes besoins",
-        body: "Choisis la langue, le thème et les paramètres de l’assistant IA. Les options avancées permettent d’ajuster les analyses et les lettres.",
+        body: "Choisis la langue et le thème. L’IA (analyse CV, matching, lettres) est déjà incluse — tu n’as pas de clé à configurer.",
       },
     ],
   },

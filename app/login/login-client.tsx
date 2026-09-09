@@ -318,7 +318,7 @@ export default function LoginPageClient() {
   const title = mode === "cv" ? "Importe ton CV" : "Connexion";
   const description =
     mode === "cv"
-      ? "Ensuite tu configureras tes clés API, puis tu arrives sur le dashboard."
+      ? "Ensuite on analyse ton profil, puis tu arrives sur le dashboard."
       : "Track PO/PM offers, score matches, generate cover letters.";
 
   if (mode === "cv") {
