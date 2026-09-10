@@ -29,7 +29,7 @@ function formatSalary(row: ParsedImportRow): string {
 export function ImportJobsTable({ rows }: ImportJobsTableProps) {
   if (rows.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+      <p className="rounded-lg border border-dashed p-8 text-center text-base text-muted-foreground">
         No valid jobs to preview.
       </p>
     );
@@ -59,12 +59,12 @@ export function ImportJobsTable({ rows }: ImportJobsTableProps) {
               </TableCell>
               <TableCell>{row.company}</TableCell>
               <TableCell>
-                <Badge variant="outline">{formatSourceLabel(row.source)}</Badge>
+                <Badge variant="tag">{formatSourceLabel(row.source)}</Badge>
               </TableCell>
               <TableCell>{row.location ?? "—"}</TableCell>
               <TableCell>{row.contract_type ?? "—"}</TableCell>
               <TableCell>
-                <Badge variant="secondary">{row.remote_mode ?? (row.remote ? "remote" : "onsite")}</Badge>
+                <Badge variant="tag">{row.remote_mode ?? (row.remote ? "remote" : "onsite")}</Badge>
               </TableCell>
               <TableCell>{formatSalary(row)}</TableCell>
               <TableCell>

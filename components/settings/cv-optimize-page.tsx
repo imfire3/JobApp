@@ -219,7 +219,7 @@ export function CvOptimizePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 text-base text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Chargement de l’optimisation CV…
       </div>
@@ -270,13 +270,13 @@ export function CvOptimizePage() {
         <div>
           <Link
             href="/profile-ai"
-            className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            className="mb-2 inline-flex items-center gap-1 text-base text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             CV Context
           </Link>
           <h1 className="text-2xl font-bold tracking-tight">Optimisation CV</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Compare CV avant / après, vois les mots-clés en table, et suis le taux d’utilisation.
           </p>
         </div>
@@ -304,7 +304,7 @@ export function CvOptimizePage() {
               {utilization.percent}%
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          <CardContent className="text-base text-muted-foreground">
             {utilization.covered} / {utilization.total} présents dans le CV après
           </CardContent>
         </Card>
@@ -324,7 +324,7 @@ export function CvOptimizePage() {
                 : "n/a"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          <CardContent className="text-base text-muted-foreground">
             Overall{" "}
             {typeof analysis.analysis.overall_score === "number"
               ? analysis.analysis.overall_score
@@ -336,7 +336,7 @@ export function CvOptimizePage() {
             <CardDescription>Ajouts en cours</CardDescription>
             <CardTitle className="text-3xl">{addedKeywords.size}</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          <CardContent className="text-base text-muted-foreground">
             Mots-clés ajoutés depuis le CV avant
           </CardContent>
         </Card>
@@ -440,7 +440,7 @@ export function CvOptimizePage() {
               value={cvBefore}
               readOnly
               rows={18}
-              className="h-80 max-h-80 resize-none overflow-y-auto font-mono text-sm [field-sizing:fixed]"
+              className="h-80 max-h-80 resize-none overflow-y-auto font-mono text-base [field-sizing:fixed]"
             />
           </CardContent>
         </Card>
@@ -471,7 +471,7 @@ export function CvOptimizePage() {
               readOnly={!editingAfter}
               rows={18}
               className={cn(
-                "h-80 max-h-80 resize-none overflow-y-auto font-mono text-sm [field-sizing:fixed]",
+                "h-80 max-h-80 resize-none overflow-y-auto font-mono text-base [field-sizing:fixed]",
                 !editingAfter && "bg-muted/40"
               )}
             />

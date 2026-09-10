@@ -103,7 +103,7 @@ export function SourceDetailPage({ sourceSlug }: { sourceSlug: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{source.name}</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Connection status, authentication, health, and sync logs.
           </p>
         </div>
@@ -158,10 +158,10 @@ export function SourceDetailPage({ sourceSlug }: { sourceSlug: string }) {
               }
             />
           </div>
-          <p className="text-sm text-muted-foreground">Last sync: {source.last_sync_at ? new Date(source.last_sync_at).toLocaleString() : "—"}</p>
-          <p className="text-sm text-muted-foreground">Next sync: {source.next_sync_at ? new Date(source.next_sync_at).toLocaleString() : "—"}</p>
-          <p className="text-sm text-muted-foreground">Authentication: Not configured (mock)</p>
-          <p className="text-sm text-muted-foreground">Health: Healthy</p>
+          <p className="text-base text-muted-foreground">Last sync: {source.last_sync_at ? new Date(source.last_sync_at).toLocaleString() : "—"}</p>
+          <p className="text-base text-muted-foreground">Next sync: {source.next_sync_at ? new Date(source.next_sync_at).toLocaleString() : "—"}</p>
+          <p className="text-base text-muted-foreground">Authentication: Not configured (mock)</p>
+          <p className="text-base text-muted-foreground">Health: Healthy</p>
         </CardContent>
       </Card>
 
@@ -171,10 +171,10 @@ export function SourceDetailPage({ sourceSlug }: { sourceSlug: string }) {
         </CardHeader>
         <CardContent className="space-y-2">
           {runs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No sync logs yet.</p>
+            <p className="text-base text-muted-foreground">No sync logs yet.</p>
           ) : (
             runs.map((run) => (
-              <div key={run.id} className="rounded-md border p-3 text-sm">
+              <div key={run.id} className="rounded-md border p-3 text-base">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Badge variant={run.status === "failed" ? "destructive" : "secondary"}>
                     {run.status}
@@ -187,7 +187,7 @@ export function SourceDetailPage({ sourceSlug }: { sourceSlug: string }) {
                   Found {run.jobs_found} · Imported {run.jobs_imported} · Duplicates {run.jobs_skipped_duplicates}
                 </p>
                 {run.error_message && (
-                  <p className="mt-1 text-xs text-red-500">{run.error_message}</p>
+                  <p className="mt-1 text-base text-red-500">{run.error_message}</p>
                 )}
               </div>
             ))

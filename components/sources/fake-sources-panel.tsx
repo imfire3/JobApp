@@ -117,7 +117,7 @@ export function FakeSourcesPanel() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           {connectedCount} connectée{connectedCount === 1 ? "" : "s"} · démo locale (non persistée)
         </p>
         <Button type="button" size="sm" onClick={handleOpenDialog}>

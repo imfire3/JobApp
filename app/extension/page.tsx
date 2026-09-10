@@ -11,7 +11,7 @@ export default function ExtensionPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Extension</h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 Télécharge l’extension Chrome, installe-la en mode développeur, puis enregistre
                 des offres Welcome to the Jungle en CSV.
               </p>

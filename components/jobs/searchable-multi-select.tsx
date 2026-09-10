@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { X } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,9 @@ type SearchableMultiSelectProps = {
   onChange: (values: string[]) => void
   placeholder?: string
   allowCustom?: boolean
+  /** When set, shows an explicit add CTA next to the input. */
+  addButtonLabel?: string
+  emptyLabel?: string
   className?: string
 }
 
@@ -43,6 +46,8 @@ export function SearchableMultiSelect({
   onChange,
   placeholder = "Rechercher…",
   allowCustom = true,
+  addButtonLabel,
+  emptyLabel,
   className,
 }: SearchableMultiSelectProps) {
   const [query, setQuery] = useState("")
@@ -67,6 +72,16 @@ export function SearchableMultiSelect({
     setQuery("")
   }
 
+  const handleAddFromInput = () => {
+    if (filtered[0]) {
+      handleAdd(filtered[0].value)
+      return
+    }
+    if (allowCustom && query.trim()) {
+      handleAdd(query)
+    }
+  }
+
   const handleRemove = (value: string) => {
     onChange(values.filter((item) => item !== value))
   }
@@ -74,62 +89,54 @@ export function SearchableMultiSelect({
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault()
-      if (filtered[0]) {
-        handleAdd(filtered[0].value)
-        return
-      }
-      if (allowCustom && query.trim()) {
-        handleAdd(query)
-      }
+      handleAddFromInput()
     }
     if (event.key === "Escape") {
       setOpen(false)
     }
   }
 
+  const showList =
+    open && (filtered.length > 0 || (allowCustom && query.trim()))
+
   return (
     <div className={cn("space-y-2", className)}>
-      {values.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {values.map((value) => (
-            <Badge key={value} variant="secondary" className="gap-1">
-              {labelFor(catalog, value)}
-              <button
-                type="button"
-                aria-label={`Retirer ${labelFor(catalog, value)}`}
-                onClick={() => handleRemove(value)}
-                className="rounded-sm hover:text-foreground"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      ) : null}
-
       <div className="relative">
-        <Input
-          id={id}
-          value={query}
-          placeholder={placeholder}
-          autoComplete="off"
-          onChange={(e) => {
-            setQuery(e.target.value)
-            setOpen(true)
-          }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => {
-            // Delay so option click registers
-            window.setTimeout(() => setOpen(false), 150)
-          }}
-          onKeyDown={handleKeyDown}
-          aria-autocomplete="list"
-          aria-expanded={open}
-        />
-        {open && (filtered.length > 0 || (allowCustom && query.trim())) ? (
+        <div className={cn(addButtonLabel ? "flex gap-2" : undefined)}>
+          <Input
+            id={id}
+            value={query}
+            placeholder={placeholder}
+            autoComplete="off"
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setOpen(true)
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => {
+              // Delay so option click registers
+              window.setTimeout(() => setOpen(false), 150)
+            }}
+            onKeyDown={handleKeyDown}
+            aria-autocomplete="list"
+            aria-expanded={open}
+            className={addButtonLabel ? "flex-1" : undefined}
+          />
+          {addButtonLabel ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleAddFromInput}
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              {addButtonLabel}
+            </Button>
+          ) : null}
+        </div>
+        {showList ? (
           <ul
             role="listbox"
-            className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-sm shadow-md"
+            className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-base shadow-md"
           >
             {filtered.slice(0, 80).map((opt) => (
               <li key={opt.value}>
@@ -168,6 +175,173 @@ export function SearchableMultiSelect({
           </ul>
         ) : null}
       </div>
+
+      {values.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {values.map((value) => {
+            const label = labelFor(catalog, value)
+            return (
+              <Badge
+                key={value}
+                variant="tag"
+                className="gap-1.5"
+              >
+                {label}
+                <button
+                  type="button"
+                  aria-label={`Retirer ${label}`}
+                  onClick={() => handleRemove(value)}
+                  className="rounded-full opacity-70 transition-opacity hover:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </Badge>
+            )
+          })}
+        </div>
+      ) : emptyLabel ? (
+        <p className="text-base text-muted-foreground">{emptyLabel}</p>
+      ) : null}
+    </div>
+  )
+}
+
+type SearchableSelectProps = {
+  id?: string
+  options: CatalogOption[] | string[]
+  value: string | null
+  onChange: (value: string | null) => void
+  placeholder?: string
+  allowCustom?: boolean
+  emptyOptionLabel?: string
+  className?: string
+}
+
+/** Searchable single-select dropdown (filterable list). */
+export function SearchableSelect({
+  id,
+  options,
+  value,
+  onChange,
+  placeholder = "Rechercher…",
+  allowCustom = false,
+  emptyOptionLabel = "Choisir…",
+  className,
+}: SearchableSelectProps) {
+  const [query, setQuery] = useState("")
+  const [open, setOpen] = useState(false)
+  const catalog = useMemo(() => toOptions(options), [options])
+  const selectedLabel = value ? labelFor(catalog, value) : ""
+
+  const filtered = useMemo(() => {
+    const base = filterCatalogOptions(catalog, query)
+    if (value && !base.some((opt) => opt.value === value)) {
+      return [{ value, label: selectedLabel }, ...base]
+    }
+    return base
+  }, [catalog, query, value, selectedLabel])
+
+  const handleSelect = (next: string | null) => {
+    onChange(next)
+    setQuery("")
+    setOpen(false)
+  }
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      if (filtered[0]) {
+        handleSelect(filtered[0].value)
+        return
+      }
+      if (allowCustom && query.trim()) {
+        handleSelect(query.trim())
+      }
+    }
+    if (event.key === "Escape") {
+      setOpen(false)
+    }
+  }
+
+  const displayValue = open ? query : selectedLabel
+  const showList = open && (filtered.length > 0 || (allowCustom && query.trim()))
+
+  return (
+    <div className={cn("relative", className)}>
+      <Input
+        id={id}
+        value={displayValue}
+        placeholder={placeholder}
+        autoComplete="off"
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => {
+          setQuery("")
+          setOpen(true)
+        }}
+        onBlur={() => {
+          window.setTimeout(() => setOpen(false), 150)
+        }}
+        onKeyDown={handleKeyDown}
+        aria-autocomplete="list"
+        aria-expanded={open}
+        role="combobox"
+      />
+      {showList ? (
+        <ul
+          role="listbox"
+          className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-base shadow-md"
+        >
+          <li>
+            <button
+              type="button"
+              role="option"
+              className="flex w-full rounded-sm px-2 py-2 text-left text-muted-foreground hover:bg-muted"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => handleSelect(null)}
+            >
+              {emptyOptionLabel}
+            </button>
+          </li>
+          {filtered.slice(0, 120).map((opt) => (
+            <li key={opt.value}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={opt.value === value}
+                className={cn(
+                  "flex w-full rounded-sm px-2 py-2 text-left hover:bg-muted",
+                  opt.value === value && "bg-primary/10 font-medium"
+                )}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSelect(opt.value)}
+              >
+                {opt.label}
+              </button>
+            </li>
+          ))}
+          {allowCustom &&
+          query.trim() &&
+          !catalog.some(
+            (opt) =>
+              opt.value.toLowerCase() === query.trim().toLowerCase() ||
+              opt.label.toLowerCase() === query.trim().toLowerCase()
+          ) ? (
+            <li>
+              <button
+                type="button"
+                className="flex w-full rounded-sm px-2 py-2 text-left hover:bg-muted"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSelect(query.trim())}
+              >
+                Utiliser « {query.trim()} »
+              </button>
+            </li>
+          ) : null}
+        </ul>
+      ) : null}
     </div>
   )
 }

@@ -130,7 +130,7 @@
     color-scheme: dark;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-base leading-6 text-foreground;
   }
   button,
   [role="button"],

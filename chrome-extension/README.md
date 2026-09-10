@@ -1,6 +1,6 @@
-# JobTracker — Extension WTTJ (Chrome / Arc)
+# JobTracker — Extension Chrome / Arc (WTTJ + Indeed)
 
-Parse une page offre Welcome to the Jungle et met à jour **un seul fichier CSV** (ouvrable dans Excel) — pas de nouveaux fichiers à chaque export.
+Parse une page offre **Welcome to the Jungle** ou **Indeed** et met à jour **un seul fichier CSV** (ouvrable dans Excel) — pas de nouveaux fichiers à chaque export.
 
 ## Installer sur Arc (ou Chrome)
 
@@ -13,10 +13,12 @@ Parse une page offre Welcome to the Jungle et met à jour **un seul fichier CSV*
 
 ## Utilisation
 
-1. Ouvre une offre WTTJ : `.../companies/.../jobs/...`
+1. Ouvre une offre :
+   - WTTJ : `.../companies/.../jobs/...`
+   - Indeed : `fr.indeed.com/viewjob?jk=...` ou `www.indeed.com/viewjob?jk=...`
 2. Clique l’onglet **JobTracker** à droite (ou l’icône de l’extension)
 3. **Lier / créer le fichier** → choisis ou crée `jobtracker-wttj-jobs.csv` (une seule fois)
-4. **Ajouter cette offre** → l’offre est ajoutée et le **même fichier** est réécrit
+4. **Ajouter cette offre** → l’offre est ajoutée (`source` = `welcome_to_the_jungle` ou `indeed`) et le **même fichier** est réécrit
 5. Répète sur d’autres offres (toujours le même fichier)
 6. **Mettre à jour le fichier** si besoin de forcer une réécriture
 7. Importe ce CSV dans JobTracker → **Imports**
@@ -30,3 +32,8 @@ Parse une page offre Welcome to the Jungle et met à jour **un seul fichier CSV*
 ## Colonnes exportées
 
 `source, title, company, location, remote, salary, posted_at, url, apply_url, description`
+
+## Parsing
+
+- Priorité : JSON-LD `JobPosting` quand présent
+- Fallback DOM : sélecteurs WTTJ et Indeed (`#jobDescriptionText`, en-têtes Indeed, etc.)

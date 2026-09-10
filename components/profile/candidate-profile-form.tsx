@@ -51,6 +51,7 @@ export type CandidateProfileData = {
   date_of_birth: string | null
   current_city: string | null
   current_title: string | null
+  bio: string | null
   linkedin_url: string | null
   github_url: string | null
   website_url: string | null
@@ -98,6 +99,7 @@ function emptyProfile(): CandidateProfileData {
     date_of_birth: null,
     current_city: null,
     current_title: null,
+    bio: null,
     linkedin_url: null,
     github_url: null,
     website_url: null,
@@ -189,7 +191,10 @@ export function CandidateProfileForm({
         const extractRes = await fetch("/api/profile/extract", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ force }),
+          body: JSON.stringify({
+            force,
+            persist: mode === "onboarding" || force,
+          }),
         })
         const extractData = (await extractRes.json().catch(() => ({}))) as {
           draft?: Partial<CandidateProfileData> & { suggested_roles?: string[] }
@@ -257,7 +262,7 @@ export function CandidateProfileForm({
         setExtracting(false)
       }
     },
-    [applyDraftOnce, applyProfile]
+    [applyDraftOnce, applyProfile, mode]
   )
 
   const loadAndMaybeExtract = useCallback(async () => {
@@ -275,10 +280,19 @@ export function CandidateProfileForm({
         mode === "onboarding" &&
         !loaded.profile_reviewed_at &&
         !extractAppliedRef.current &&
-        loaded.cv_text.trim().length >= 200
+        loaded.cv_text.trim().length >= 200 &&
+        !loaded.first_name?.trim() &&
+        !loaded.last_name?.trim() &&
+        loaded.experience_entries.length === 0 &&
+        loaded.skills.length === 0
 
       if (shouldExtractOnboarding) {
         await runExtract(loaded, true)
+      } else if (
+        mode === "onboarding" &&
+        (loaded.first_name?.trim() || loaded.experience_entries.length > 0)
+      ) {
+        setExtractDone(true)
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Chargement échoué")
@@ -520,7 +534,7 @@ export function CandidateProfileForm({
               type="button"
               onClick={() => setActiveSection(section.id)}
               className={cn(
-                "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors",
+                "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-base transition-colors",
                 active
                   ? "bg-primary/15 font-medium text-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -538,7 +552,7 @@ export function CandidateProfileForm({
         {extractDone && !extractError ? (
           <div
             role="status"
-            className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+            className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-base text-emerald-100"
           >
             CV analysé — vérifie et complète les champs avant d’enregistrer.
           </div>
@@ -546,7 +560,7 @@ export function CandidateProfileForm({
         {extractError ? (
           <div
             role="status"
-            className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+            className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-base text-amber-100"
           >
             Extraction IA incomplète : {extractError}. Les champs restent
             éditables.
@@ -709,7 +723,11 @@ export function CandidateProfileForm({
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {profile.target_roles.map((role) => (
-                    <Badge key={role} variant="secondary" className="gap-1">
+                    <Badge
+                      key={role}
+                      variant="tag"
+                      className="gap-1.5"
+                    >
                       {role}
                       <button
                         type="button"
@@ -720,8 +738,9 @@ export function CandidateProfileForm({
                             profile.target_roles.filter((item) => item !== role)
                           )
                         }
+                        className="rounded-full opacity-70 transition-opacity hover:opacity-100"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </Badge>
                   ))}
@@ -759,7 +778,11 @@ export function CandidateProfileForm({
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {profile.target_locations.map((location) => (
-                    <Badge key={location} variant="secondary" className="gap-1">
+                    <Badge
+                      key={location}
+                      variant="tag"
+                      className="gap-1.5"
+                    >
                       {location}
                       <button
                         type="button"
@@ -772,8 +795,9 @@ export function CandidateProfileForm({
                             )
                           )
                         }
+                        className="rounded-full opacity-70 transition-opacity hover:opacity-100"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </Badge>
                   ))}
@@ -792,9 +816,9 @@ export function CandidateProfileForm({
                         type="button"
                         onClick={() => handleToggleContract(contract)}
                         className={cn(
-                          "rounded-full border px-3 py-1 text-sm transition-colors",
+                          "rounded-full border px-3.5 py-1.5 text-base font-medium transition-colors",
                           selected
-                            ? "border-primary bg-primary/15 text-foreground"
+                            ? "border-emerald-500/50 bg-transparent text-emerald-700 dark:border-emerald-500/60 dark:text-emerald-400"
                             : "border-border text-muted-foreground hover:bg-muted"
                         )}
                         aria-pressed={selected}
@@ -812,7 +836,7 @@ export function CandidateProfileForm({
                   {REMOTE_PREFERENCE_OPTIONS.map((option) => (
                     <label
                       key={option.value}
-                      className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm"
+                      className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-base"
                     >
                       <Checkbox
                         checked={profile.remote_preference === option.value}
@@ -887,19 +911,24 @@ export function CandidateProfileForm({
               </div>
               <div className="flex flex-wrap gap-2">
                 {profile.skills.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     Aucune compétence pour l’instant.
                   </p>
                 ) : (
                   profile.skills.map((skill) => (
-                    <Badge key={skill} variant="secondary" className="gap-1">
+                    <Badge
+                      key={skill}
+                      variant="tag"
+                      className="gap-1.5"
+                    >
                       {skill}
                       <button
                         type="button"
                         aria-label={`Retirer ${skill}`}
                         onClick={() => handleRemoveSkill(skill)}
+                        className="rounded-full opacity-70 transition-opacity hover:opacity-100"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </Badge>
                   ))
@@ -949,7 +978,7 @@ export function CandidateProfileForm({
                       {entry.language}
                     </span>
                     <select
-                      className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+                      className="h-9 rounded-md border border-input bg-transparent px-2 text-base"
                       value={entry.level}
                       onChange={(e) =>
                         updateField(
@@ -1017,7 +1046,7 @@ export function CandidateProfileForm({
             </CardHeader>
             <CardContent className="space-y-4">
               {profile.education_entries.length === 0 && !educationDraft ? (
-                <p className="rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">
+                <p className="rounded-2xl border border-dashed p-6 text-base text-muted-foreground">
                   Aucun diplôme pour l’instant.
                 </p>
               ) : null}
@@ -1030,10 +1059,10 @@ export function CandidateProfileForm({
                   >
                     <div>
                       <p className="font-semibold">{entry.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-base text-muted-foreground">
                         {[entry.school, entry.level].filter(Boolean).join(" · ")}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-base text-muted-foreground">
                         {[
                           entry.startMonth
                             ? MONTH_OPTIONS.find((m) => m.value === entry.startMonth)
@@ -1133,7 +1162,7 @@ export function CandidateProfileForm({
                       <Label>Du</Label>
                       <div className="flex gap-2">
                         <select
-                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-sm"
+                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
                           value={educationDraft.startMonth}
                           onChange={(e) =>
                             setEducationDraft({
@@ -1150,7 +1179,7 @@ export function CandidateProfileForm({
                           ))}
                         </select>
                         <select
-                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-sm"
+                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
                           value={educationDraft.startYear}
                           onChange={(e) =>
                             setEducationDraft({
@@ -1172,7 +1201,7 @@ export function CandidateProfileForm({
                       <Label>Au</Label>
                       <div className="flex gap-2">
                         <select
-                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-sm"
+                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
                           value={educationDraft.endMonth}
                           disabled={educationDraft.isCurrent}
                           onChange={(e) =>
@@ -1190,7 +1219,7 @@ export function CandidateProfileForm({
                           ))}
                         </select>
                         <select
-                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-sm"
+                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
                           value={educationDraft.endYear}
                           disabled={educationDraft.isCurrent}
                           onChange={(e) =>
@@ -1210,7 +1239,7 @@ export function CandidateProfileForm({
                       </div>
                     </div>
                   </div>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className="flex items-center gap-2 text-base">
                     <Checkbox
                       checked={educationDraft.isCurrent}
                       onCheckedChange={(checked) =>
@@ -1272,7 +1301,7 @@ export function CandidateProfileForm({
                   <Badge variant="secondary">Recommandé</Badge>
                 </div>
                 {profile.cv_file_name ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     {profile.cv_file_name}
                     {profile.cv_file_updated_at
                       ? ` · mis à jour le ${new Date(
@@ -1281,7 +1310,7 @@ export function CandidateProfileForm({
                       : null}
                   </p>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     Aucun fichier PDF enregistré (collage texte uniquement).
                   </p>
                 )}
@@ -1302,7 +1331,7 @@ export function CandidateProfileForm({
                     {importingPdf ? "Import…" : "Importer un fichier"}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   PDF ou image (PNG/JPEG/WebP). OCR Vision si le texte natif est
                   insuffisant.
                 </p>

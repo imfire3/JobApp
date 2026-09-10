@@ -86,15 +86,28 @@ export async function PATCH(request: Request) {
     .eq("user_id", user.id)
     .single();
 
-  const history = Array.isArray(existing?.history) ? existing.history : [];
-  if (payload.status && payload.status !== existing?.status) {
+  const history = Array.isArray(existing?.history) ? [...existing.history] : [];
+  const statusChanged =
+    Boolean(payload.status) && payload.status !== existing?.status;
+  const historyNote = payload.history_note?.trim();
+
+  if (statusChanged) {
     history.push({
       at: new Date().toISOString(),
       status: payload.status,
-      note: payload.history_note ?? `Status changed to ${payload.status}`,
+      note: historyNote || `Status changed to ${payload.status}`,
+    });
+  } else if (historyNote) {
+    history.push({
+      at: new Date().toISOString(),
+      status: (payload.status ?? existing?.status ?? "applied") as
+        (typeof APPLICATION_STATUSES)[number],
+      note: historyNote,
     });
   }
 
+  // Strip history_note from the DB update payload (consumed above for history).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omit from updates
   const { id, history_note, ...updates } = payload;
   const { data, error: updateError } = await supabase
     .from("applications")

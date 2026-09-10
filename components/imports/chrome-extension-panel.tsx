@@ -59,35 +59,35 @@ export function ChromeExtensionPanel({ onGoToCsv }: ChromeExtensionPanelProps) {
         </div>
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold">Comment l’installer</h3>
-          <ol className="space-y-3 text-sm text-muted-foreground">
+          <h3 className="mb-3 text-base font-semibold">Comment l’installer</h3>
+          <ol className="space-y-3 text-base text-muted-foreground">
             <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
                 1
               </span>
               <span>
                 Clique sur <strong className="text-foreground">Télécharger l’extension</strong>,
                 puis dézippe le fichier{" "}
-                <code className="rounded bg-muted px-1 py-0.5 text-xs">
+                <code className="rounded bg-muted px-1 py-0.5 text-base">
                   jobtracker-chrome-extension.zip
                 </code>{" "}
                 (tu obtiens un dossier).
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
                 2
               </span>
               <span>
                 Ouvre{" "}
-                <code className="rounded bg-muted px-1 py-0.5 text-xs">chrome://extensions</code>{" "}
+                <code className="rounded bg-muted px-1 py-0.5 text-base">chrome://extensions</code>{" "}
                 (Chrome) ou{" "}
-                <code className="rounded bg-muted px-1 py-0.5 text-xs">arc://extensions</code>{" "}
+                <code className="rounded bg-muted px-1 py-0.5 text-base">arc://extensions</code>{" "}
                 (Arc) dans la barre d’adresse.
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
                 3
               </span>
               <span className="flex items-start gap-2">
@@ -98,7 +98,7 @@ export function ChromeExtensionPanel({ onGoToCsv }: ChromeExtensionPanelProps) {
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
                 4
               </span>
               <span>
@@ -107,7 +107,7 @@ export function ChromeExtensionPanel({ onGoToCsv }: ChromeExtensionPanelProps) {
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
                 5
               </span>
               <span>
@@ -118,7 +118,7 @@ export function ChromeExtensionPanel({ onGoToCsv }: ChromeExtensionPanelProps) {
           </ol>
         </div>
 
-        <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+        <div className="rounded-lg border bg-muted/30 p-4 text-base text-muted-foreground">
           <p className="font-medium text-foreground">Fichier CSV</p>
           <p className="mt-1">
             Un seul fichier est réécrit à chaque ajout (pas de nouveaux fichiers). Colonnes :

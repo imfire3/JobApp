@@ -664,10 +664,10 @@ export function TrackedJobsPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Offres</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               Choisis une alerte pour voir ses offres. Collecte auto tous les jours à 08:00.
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-base text-muted-foreground">
               Dernière sync : {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Jamais"} ·
               Prochaine : {nextSyncAt ? new Date(nextSyncAt).toLocaleString() : "Non planifiée"}
             </p>
@@ -712,7 +712,7 @@ export function TrackedJobsPage() {
             {loading ? (
               <div className="h-11 animate-pulse rounded-lg bg-muted" />
             ) : trackedSearches.length === 0 ? (
-              <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              <p className="rounded-lg border border-dashed p-4 text-base text-muted-foreground">
                 Aucune alerte pour l’instant. Crée-en une pour suivre des offres, ou importe un
                 CSV.
               </p>
@@ -740,7 +740,7 @@ export function TrackedJobsPage() {
 
           {selectedSearch ? (
             <div className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 text-sm text-muted-foreground">
+              <div className="min-w-0 text-base text-muted-foreground">
                 <p className="truncate font-medium text-foreground">{selectedSearch.name}</p>
                 <p className="truncate">
                   {(selectedSearch.job_titles.join(", ") || "Tous postes") +
@@ -807,7 +807,7 @@ export function TrackedJobsPage() {
 
       {bulkProgress && (
         <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-base">
             <span>
               Selected: {bulkProgress.total} · Current: {bulkProgress.current} · Success:{" "}
               {bulkProgress.success} · Failed: {bulkProgress.failed}
@@ -840,7 +840,7 @@ export function TrackedJobsPage() {
           <JobDateFilter filters={filters} onChange={setFilters} />
         </div>
         {jobs.length > 0 && filteredJobs.length !== jobs.length ? (
-          <p className="mb-3 text-sm text-muted-foreground">
+          <p className="mb-3 text-base text-muted-foreground">
             {filteredJobs.length} offre{filteredJobs.length > 1 ? "s" : ""} affichée
             {filteredJobs.length > 1 ? "s" : ""} sur {jobs.length} — élargis le filtre Date
             ou désactive « 24 h seulement ».
@@ -850,13 +850,13 @@ export function TrackedJobsPage() {
         <TabsContent value="cards" className="mt-0">
           {filteredJobs.length === 0 ? (
             jobs.length > 0 ? (
-              <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+              <p className="rounded-lg border border-dashed p-8 text-center text-base text-muted-foreground">
                 Aucune offre ne correspond aux filtres actifs. Élargis la date ou
                 désactive « 24 h seulement ».
               </p>
             ) : (
               <div className="rounded-lg border border-dashed p-8 text-center space-y-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   Aucune offre pour l’instant. Choisis comment en ajouter :
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">
@@ -911,13 +911,13 @@ export function TrackedJobsPage() {
         <TabsContent value="table" className="mt-0">
           {filteredJobs.length === 0 ? (
             jobs.length > 0 ? (
-              <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+              <p className="rounded-lg border border-dashed p-8 text-center text-base text-muted-foreground">
                 Aucune offre ne correspond aux filtres actifs. Élargis la date ou
                 désactive « 24 h seulement ».
               </p>
             ) : (
               <div className="rounded-lg border border-dashed p-8 text-center space-y-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   Aucune offre pour l’instant. Choisis comment en ajouter :
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">

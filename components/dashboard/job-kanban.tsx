@@ -153,15 +153,15 @@ export function JobKanban({ jobs, loading, onJobsChange }: JobKanbanProps) {
             }}
           >
             <header className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold">{COLUMN_LABELS[status]}</h3>
-              <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">
+              <h3 className="text-base font-semibold">{COLUMN_LABELS[status]}</h3>
+              <span className="rounded-full bg-background px-2 py-0.5 text-base text-muted-foreground">
                 {columnJobs.length}
               </span>
             </header>
 
             <div className="flex min-h-[120px] flex-1 flex-col gap-2">
               {columnJobs.length === 0 ? (
-                <p className="rounded-lg border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
+                <p className="rounded-lg border border-dashed px-3 py-6 text-center text-base text-muted-foreground">
                   Glisse une offre ici
                 </p>
               ) : (
@@ -191,10 +191,10 @@ export function JobKanban({ jobs, loading, onJobsChange }: JobKanbanProps) {
                         if (draggingId) event.preventDefault();
                       }}
                     >
-                      <p className="line-clamp-2 text-sm font-medium leading-snug">
+                      <p className="line-clamp-2 text-base font-medium leading-snug">
                         {job.title}
                       </p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="truncate text-base text-muted-foreground">
                         {job.company}
                       </p>
                       <div className="flex items-center justify-between gap-2 pt-1">

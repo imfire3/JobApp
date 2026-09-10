@@ -128,7 +128,7 @@ export function GeneralSettingsForm() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Compte</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               Thème, langue et préférences. L’IA est déjà incluse — aucune clé à
               configurer.
             </p>
@@ -198,7 +198,7 @@ export function GeneralSettingsForm() {
             <Label>Resume defaults (JSON)</Label>
             <Textarea
               rows={4}
-              className="font-mono text-xs"
+              className="font-mono text-base"
               value={settings.resume_defaults}
               onChange={(e) =>
                 setSettings((prev) => ({ ...prev, resume_defaults: e.target.value }))
@@ -209,7 +209,7 @@ export function GeneralSettingsForm() {
             <Label>Cover letter defaults (JSON)</Label>
             <Textarea
               rows={4}
-              className="font-mono text-xs"
+              className="font-mono text-base"
               value={settings.cover_letter_defaults}
               onChange={(e) =>
                 setSettings((prev) => ({ ...prev, cover_letter_defaults: e.target.value }))
@@ -220,7 +220,7 @@ export function GeneralSettingsForm() {
             <Label>Automation defaults (JSON)</Label>
             <Textarea
               rows={4}
-              className="font-mono text-xs"
+              className="font-mono text-base"
               value={settings.automation_defaults}
               onChange={(e) =>
                 setSettings((prev) => ({ ...prev, automation_defaults: e.target.value }))

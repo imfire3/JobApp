@@ -1,7 +1,16 @@
+import { emptyCvExperience } from "@/lib/cv/experiences"
 import type {
   ProfileEducationEntry,
+  ProfileExperienceEntry,
   ProfileLanguageEntry,
 } from "@/lib/profile/types"
+
+export function emptyExperienceEntry(): ProfileExperienceEntry {
+  return {
+    id: crypto.randomUUID(),
+    ...emptyCvExperience(),
+  }
+}
 
 export function emptyEducationEntry(): ProfileEducationEntry {
   const now = new Date()

@@ -73,7 +73,7 @@ export function ImportAnalysisPanel({
           <Sparkles className="h-4 w-4" />
           Analyse des offres
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           {analyzing
             ? `Analyse en cours… ${analyzedCount}/${totalCount} · global ${progressPercent}%`
             : canValidate
@@ -97,7 +97,7 @@ export function ImportAnalysisPanel({
                     <h3 className="line-clamp-2 font-semibold leading-tight">
                       {card.title || "Sans titre"}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       {card.company || "—"}
                       {card.location ? ` · ${card.location}` : ""}
                     </p>
@@ -107,7 +107,7 @@ export function ImportAnalysisPanel({
 
                 {showBar ? (
                   <div className="mb-3 space-y-1.5">
-                    <div className="flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center justify-between gap-2 text-base">
                       <span className="flex items-center gap-1.5 text-muted-foreground">
                         {card.status === "analyzing" ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -133,13 +133,13 @@ export function ImportAnalysisPanel({
                     </div>
                   </div>
                 ) : (
-                  <p className="mb-3 text-xs text-muted-foreground">
+                  <p className="mb-3 text-base text-muted-foreground">
                     En aperçu — lance l’import pour analyser
                   </p>
                 )}
 
                 {card.status === "error" && card.error ? (
-                  <p className="mb-3 text-xs text-destructive">{card.error}</p>
+                  <p className="mb-3 text-base text-destructive">{card.error}</p>
                 ) : null}
 
                 <div className="mt-auto flex items-center justify-between gap-2 pt-1">
@@ -153,7 +153,7 @@ export function ImportAnalysisPanel({
                     Voir
                   </a>
                   {typeof card.matchScore === "number" ? (
-                    <span className="text-sm font-bold">{card.matchScore}%</span>
+                    <span className="text-base font-bold">{card.matchScore}%</span>
                   ) : null}
                 </div>
               </article>
@@ -164,7 +164,7 @@ export function ImportAnalysisPanel({
         {canValidate ? (
           <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 p-3">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            <p className="flex-1 text-sm">
+            <p className="flex-1 text-base">
               Analyse terminée. Valide pour ouvrir le board Jobs.
             </p>
             <Link href="/jobs" className={buttonVariants()}>

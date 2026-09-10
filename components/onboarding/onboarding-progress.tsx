@@ -25,8 +25,8 @@ export function OnboardingProgress({ current, className }: OnboardingProgressPro
   const percent = Math.round(((currentIndex + 1) / ONBOARDING_STEPS.length) * 100)
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="flex items-center justify-between gap-3 text-sm">
+    <div className={cn("space-y-4", className)}>
+      <div className="flex items-center justify-between gap-4 text-base leading-6">
         <p className="text-muted-foreground">
           Étape {currentIndex + 1} sur {ONBOARDING_STEPS.length}
           <span className="text-foreground">
@@ -59,7 +59,7 @@ export function OnboardingProgress({ current, className }: OnboardingProgressPro
             <li
               key={step.id}
               className={cn(
-                "flex-1 rounded-lg border px-2 py-1.5 text-center text-xs font-medium transition-colors",
+                "flex-1 rounded-lg border px-4 py-2 text-center text-base font-medium leading-6 transition-colors",
                 done && "border-primary/40 bg-primary/10 text-foreground",
                 active && "border-primary bg-primary/15 text-foreground",
                 !done && !active && "border-border text-muted-foreground"
@@ -89,15 +89,19 @@ export function ExtractionProgress({
   const [percent, setPercent] = useState(8)
 
   useEffect(() => {
-    if (!active) return
+    if (!active) {
+      setPercent(8)
+      return
+    }
 
+    setPercent(12)
     const timer = window.setInterval(() => {
       setPercent((current) => {
-        if (current >= 90) return current
-        const step = current < 40 ? 6 : current < 70 ? 3 : 1
-        return Math.min(90, current + step)
+        if (current >= 92) return current
+        const step = current < 35 ? 9 : current < 60 ? 5 : current < 80 ? 2 : 1
+        return Math.min(92, current + step)
       })
-    }, 400)
+    }, 280)
 
     return () => window.clearInterval(timer)
   }, [active])
@@ -105,13 +109,15 @@ export function ExtractionProgress({
   const shown = active ? percent : 100
 
   return (
-    <div className={cn("space-y-2", className)}>
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <p className="text-muted-foreground">{label}</p>
-        <span className="tabular-nums text-muted-foreground">{shown}%</span>
+    <div className={cn("space-y-3 rounded-2xl border border-primary/30 bg-primary/5 p-4", className)}>
+      <div className="flex items-center justify-between gap-3 text-base">
+        <p className="font-medium text-foreground">{label}</p>
+        <span className="tabular-nums text-lg font-semibold text-foreground">
+          {shown}%
+        </span>
       </div>
       <div
-        className="h-2 overflow-hidden rounded-full bg-muted"
+        className="h-3 overflow-hidden rounded-full bg-muted"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}

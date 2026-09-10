@@ -23,21 +23,19 @@ function KeywordGroup({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">{title}</p>
+      <p className="text-base font-medium">{title}</p>
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{emptyLabel}</p>
+        <p className="text-base text-muted-foreground">{emptyLabel}</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {items.map((item) => (
             <Badge
               key={item}
-              variant={tone === "neutral" ? "secondary" : "outline"}
+              variant={tone === "missing" ? "outline" : "tag"}
               className={
                 tone === "missing"
-                  ? "border-amber-500/30 bg-amber-500/10 text-amber-800"
-                  : tone === "strong"
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800"
-                    : undefined
+                  ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                  : undefined
               }
             >
               {item}
@@ -156,14 +154,14 @@ export function AtsKeywordsPanel() {
       </CardHeader>
       <CardContent className="space-y-5">
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-base text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Chargement…
           </div>
         ) : null}
 
         {!loading && !ats ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Aucune analyse CV.{" "}
             <Link href="/profile-ai" className={buttonVariants({ variant: "link", className: "h-auto p-0" })}>
               Ajoute ton CV dans CV Context
@@ -176,7 +174,7 @@ export function AtsKeywordsPanel() {
           <>
             <div className="flex flex-wrap items-end gap-4">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                <p className="text-base uppercase tracking-wide text-muted-foreground">
                   Score keywords
                 </p>
                 {typeof ats.keyword_score === "number" ? (
@@ -188,7 +186,7 @@ export function AtsKeywordsPanel() {
                 )}
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall</p>
+                <p className="text-base uppercase tracking-wide text-muted-foreground">Overall</p>
                 {typeof ats.overall_score === "number" ? (
                   <p className={`text-2xl font-bold ${getMatchScoreColor(ats.overall_score)}`}>
                     {ats.overall_score}

@@ -4,7 +4,11 @@ import {
   candidateProfileUpdateSchema,
   preferredContractsFromAiPreferences,
 } from "@/lib/profile/schema"
-import { loadCandidateProfile } from "@/lib/profile/extract-service"
+import {
+  loadCandidateProfile,
+  runCvProfileExtraction,
+} from "@/lib/profile/extract-service"
+import { MIN_CV_PARSE_LENGTH } from "@/lib/resume/types"
 
 /**
  * GET /api/profile — CV context + structured candidate profile
@@ -66,6 +70,7 @@ export async function PUT(request: Request) {
     body.date_of_birth !== undefined ||
     body.current_city !== undefined ||
     body.current_title !== undefined ||
+    body.bio !== undefined ||
     body.linkedin_url !== undefined ||
     body.github_url !== undefined ||
     body.website_url !== undefined ||
@@ -115,6 +120,7 @@ export async function PUT(request: Request) {
     if (body.current_title !== undefined) {
       upsertPayload.current_title = body.current_title
     }
+    if (body.bio !== undefined) upsertPayload.bio = body.bio
     if (body.linkedin_url !== undefined) upsertPayload.linkedin_url = body.linkedin_url
     if (body.github_url !== undefined) upsertPayload.github_url = body.github_url
     if (body.website_url !== undefined) upsertPayload.website_url = body.website_url
@@ -176,6 +182,34 @@ export async function PUT(request: Request) {
 
     if (profileError && profileError.code !== "42P01" && profileError.code !== "42703") {
       return NextResponse.json({ error: profileError.message }, { status: 500 })
+    }
+  }
+
+  // CV text saved without structured fields → fill profile in DB if still empty
+  if (
+    body.cv_text !== undefined &&
+    !hasProfileFields &&
+    body.cv_text.trim().length >= MIN_CV_PARSE_LENGTH
+  ) {
+    try {
+      const current = await loadCandidateProfile(supabase, user.id)
+      const structurallyEmpty =
+        !String(current.first_name ?? "").trim() &&
+        !String(current.last_name ?? "").trim() &&
+        (!Array.isArray(current.experience_entries) ||
+          current.experience_entries.length === 0) &&
+        (!Array.isArray(current.skills) || current.skills.length === 0)
+      if (structurallyEmpty) {
+        await runCvProfileExtraction(supabase, user.id, {
+          force: true,
+          persist: true,
+        })
+      }
+    } catch (extractError) {
+      console.warn(
+        "[profile PUT] auto extract failed:",
+        extractError instanceof Error ? extractError.message : extractError
+      )
     }
   }
 

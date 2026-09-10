@@ -153,7 +153,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                   <p className="text-base font-medium text-foreground">
                     {experience.organization}
                   </p>
-                  <p className="text-sm leading-6 text-muted-foreground">
+                  <p className="text-base leading-6 text-muted-foreground">
                     {[
                       experience.startMonth
                         ? MONTH_OPTIONS.find((m) => m.value === experience.startMonth)?.label
@@ -182,7 +182,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                   {experience.skills.length > 0 ? (
                     <div className="flex flex-wrap gap-2 pt-2">
                       {experience.skills.map((skill) => (
-                        <Badge key={skill} variant="secondary" className="px-3 py-1 text-sm">
+                        <Badge key={skill} variant="tag">
                           {skill}
                         </Badge>
                       ))}
@@ -422,7 +422,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                 placeholder="Réalisations, impact, contexte…"
                 className="text-base leading-7"
               />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 {draft.highlights.length}/{MAX_HIGHLIGHTS}
               </p>
             </Field>
@@ -431,7 +431,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
               <Label htmlFor="exp-skill" className="mb-0 text-base">
                 Compétences
               </Label>
-              <p className="text-sm leading-6 text-muted-foreground">
+              <p className="text-base leading-6 text-muted-foreground">
                 Ajoute des compétences pour afficher tes points forts.
               </p>
               <div className="flex gap-2">
@@ -460,7 +460,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                       key={skill}
                       type="button"
                       onClick={() => handleRemoveSkill(skill)}
-                      className="inline-flex min-h-8 items-center gap-2 rounded-full border border-border bg-muted/40 px-4 py-2 text-sm font-medium touch-manipulation"
+                      className="inline-flex min-h-8 items-center gap-2 rounded-full border border-border bg-muted/40 px-4 py-2 text-base font-medium touch-manipulation"
                       aria-label={`Retirer ${skill}`}
                     >
                       {skill}

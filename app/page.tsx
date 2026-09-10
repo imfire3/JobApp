@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Syne } from "next/font/google"
 import { LandingPage } from "@/components/landing/landing-page"
+import { isSelfSignupAllowed } from "@/lib/auth/self-signup"
 
 const syne = Syne({
   subsets: ["latin"],
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className={`${syne.variable} h-full min-h-0 overflow-y-auto`}>
-      <LandingPage />
+      <LandingPage allowSelfSignup={isSelfSignupAllowed()} />
     </div>
   )
 }

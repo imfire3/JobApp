@@ -108,23 +108,23 @@ export function JobCard({
               <h3 className="font-semibold leading-tight">{job.title}</h3>
               {job.match_score !== null && (
                 <span
-                  className={`text-sm font-bold ${getMatchScoreColor(job.match_score)}`}
+                  className={`text-base font-bold ${getMatchScoreColor(job.match_score)}`}
                 >
                   {job.match_score}%
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">{job.company}</p>
+            <p className="text-base text-muted-foreground">{job.company}</p>
           </div>
           <Badge className={getStatusColor(job.status)} variant="secondary">
             {job.status.replace(/_/g, " ")}
           </Badge>
         </div>
 
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <Badge variant="outline">{job.source}</Badge>
+        <div className="flex flex-wrap gap-2 text-base text-muted-foreground">
+          <Badge variant="tag">{job.source}</Badge>
           {job.tracked_search_name && (
-            <Badge variant="outline">Search: {job.tracked_search_name}</Badge>
+            <Badge variant="tag">Search: {job.tracked_search_name}</Badge>
           )}
           {job.location && (
             <span className="inline-flex items-center gap-1">
@@ -133,7 +133,7 @@ export function JobCard({
             </span>
           )}
           {job.contract_type && (
-            <Badge variant="outline">{job.contract_type}</Badge>
+            <Badge variant="tag">{job.contract_type}</Badge>
           )}
           {job.remote_mode && job.remote_mode !== "unknown" && (
             <span className="inline-flex items-center gap-1">
@@ -142,9 +142,9 @@ export function JobCard({
             </span>
           )}
           {job.experience_level !== null && job.experience_level !== undefined && (
-            <Badge variant="outline">{job.experience_level}+ yrs</Badge>
+            <Badge variant="tag">{job.experience_level}+ yrs</Badge>
           )}
-          {job.salary && <Badge variant="outline">{job.salary}</Badge>}
+          {job.salary && <Badge variant="tag">{job.salary}</Badge>}
           {job.posted_at && (
             <span>{formatRelativeDate(job.posted_at)}</span>
           )}
@@ -162,14 +162,14 @@ export function JobCard({
             />
           </div>
         ) : null}
-        <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+        <p className="line-clamp-3 text-base leading-relaxed text-muted-foreground">
           {job.summary ?? job.ai_summary ?? job.description}
         </p>
 
         {job.match_reasons && job.match_reasons.length > 0 && (
           <div className="mt-3 space-y-1">
-            <p className="text-xs font-medium text-foreground">Top matches</p>
-            <ul className="space-y-0.5 text-xs text-muted-foreground">
+            <p className="text-base font-medium text-foreground">Top matches</p>
+            <ul className="space-y-0.5 text-base text-muted-foreground">
               {job.match_reasons.slice(0, 2).map((reason, i) => (
                 <li key={i}>• {reason}</li>
               ))}

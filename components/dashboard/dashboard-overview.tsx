@@ -83,7 +83,7 @@ export function DashboardOverview() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               Vue d’ensemble de ta recherche et de ton activité récente.
             </p>
           </div>
@@ -114,13 +114,13 @@ export function DashboardOverview() {
             {loading ? (
               <div className="h-24 animate-pulse rounded-lg bg-muted" />
             ) : (data?.recent_activity?.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 Pas encore d’activité. Lance une collecte depuis Offres, Imports ou
                 Sources.
               </p>
             ) : (
               data?.recent_activity.map((item, index) => (
-                <div key={`${item.time}-${index}`} className="rounded-md border p-3 text-sm">
+                <div key={`${item.time}-${index}`} className="rounded-md border p-3 text-base">
                   <p className="font-medium">
                     {new Date(item.time).toLocaleTimeString("fr-FR", {
                       hour: "2-digit",
@@ -144,7 +144,7 @@ export function DashboardOverview() {
           </CardHeader>
           <CardContent className="space-y-3">
             {(data?.ai_recommendations ?? []).map((recommendation, index) => (
-              <div key={index} className="rounded-md border p-3 text-sm">
+              <div key={index} className="rounded-md border p-3 text-base">
                 <p className="flex items-start gap-2">
                   <Sparkles className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
                   <span>{recommendation}</span>

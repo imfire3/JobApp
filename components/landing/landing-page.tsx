@@ -7,6 +7,11 @@ import { ArrowRight, ChevronDown } from "lucide-react"
 import { DemoRequestDialog } from "@/components/landing/demo-request-dialog"
 import { cn } from "@/lib/utils"
 
+type LandingPageProps = {
+  /** Local Mode dév only — hidden on Vercel (demo request instead). */
+  allowSelfSignup?: boolean
+}
+
 const STEPS = [
   {
     n: "01",
@@ -58,15 +63,15 @@ const FAQ = [
 ] as const
 
 const navLinkClass =
-  "rounded-full px-3 py-2 text-sm font-medium text-[#111]/70 transition hover:text-[#111] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+  "rounded-full px-3 py-2 text-base font-medium text-[#111]/70 transition hover:text-[#111] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
 
 const primaryCtaClass =
-  "inline-flex min-h-12 items-center gap-2 rounded-full bg-[#111] px-6 py-3 text-sm font-semibold text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+  "inline-flex min-h-12 items-center gap-2 rounded-full bg-[#111] px-6 py-3 text-base font-semibold text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
 
 const secondaryCtaClass =
-  "inline-flex min-h-12 items-center rounded-full border border-[#111]/25 px-6 py-3 text-sm font-medium transition hover:border-[#111]/45 hover:bg-white/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+  "inline-flex min-h-12 items-center rounded-full border border-[#111]/25 px-6 py-3 text-base font-medium transition hover:border-[#111]/45 hover:bg-white/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
 
-export function LandingPage() {
+export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
   const [ready, setReady] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const [demoOpen, setDemoOpen] = useState(false)
@@ -111,10 +116,29 @@ export function LandingPage() {
           </a>
         </nav>
         <nav className="flex items-center gap-2 md:gap-3" aria-label="Compte">
+          {allowSelfSignup ? (
+            <Link
+              href="/login"
+              className={navLinkClass}
+              tabIndex={0}
+              aria-label="Mode dév — connexion ou inscription"
+            >
+              Mode dév
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className={navLinkClass}
+              tabIndex={0}
+              aria-label="Connexion"
+            >
+              Connexion
+            </Link>
+          )}
           <button
             type="button"
             onClick={handleOpenDemo}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#111] px-4 py-2.5 text-sm font-medium text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#111] px-4 py-2.5 text-base font-medium text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
             tabIndex={0}
             aria-label="Inscription démo"
           >
@@ -133,7 +157,7 @@ export function LandingPage() {
                 ready ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
               )}
             >
-              <p className="mb-4 font-[family-name:var(--font-landing-display)] text-sm font-medium uppercase tracking-[0.18em] text-[#111]/55">
+              <p className="mb-4 font-[family-name:var(--font-landing-display)] text-base font-medium uppercase tracking-[0.18em] text-[#111]/55">
                 Pour les Product Owners et Product Managers
               </p>
               <h1 className="font-[family-name:var(--font-landing-display)] text-[clamp(2.4rem,6.5vw,4.4rem)] leading-[0.98] font-semibold tracking-[-0.03em]">
@@ -159,7 +183,7 @@ export function LandingPage() {
                   Voir comment ça marche
                 </a>
               </div>
-              <p className="mt-4 text-sm text-[#111]/55">
+              <p className="mt-4 text-base text-[#111]/55">
                 Importe ton CV en PDF ou colle simplement son texte.
               </p>
             </div>
@@ -175,7 +199,7 @@ export function LandingPage() {
                   <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
                   <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
                   <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
-                  <span className="ml-3 text-xs text-white/40">jobtracker — Offres</span>
+                  <span className="ml-3 text-base text-white/40">jobtracker — Offres</span>
                 </div>
                 <div className="relative aspect-[16/10] w-full bg-[#0a0a0a]">
                   <Image
@@ -213,7 +237,7 @@ export function LandingPage() {
                   sizes="(max-width: 1024px) 100vw, 50vw"
                 />
               </div>
-              <figcaption className="border-t border-white/10 px-4 py-3 text-sm text-[#eceae6]/55">
+              <figcaption className="border-t border-white/10 px-4 py-3 text-base text-[#eceae6]/55">
                 Vue détaillée d’une offre : correspondance avec le CV, conseils et lettre
                 de motivation.
               </figcaption>
@@ -239,13 +263,13 @@ export function LandingPage() {
                   )}
                   style={{ animationDelay: `${0.12 + index * 0.08}s` }}
                 >
-                  <span className="font-[family-name:var(--font-landing-display)] text-sm text-[#111]/45">
+                  <span className="font-[family-name:var(--font-landing-display)] text-base text-[#111]/45">
                     {step.n}
                   </span>
                   <h3 className="mt-3 font-[family-name:var(--font-landing-display)] text-xl font-semibold">
                     {step.title}
                   </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-[#111]/65">{step.text}</p>
+                  <p className="mt-3 text-base leading-relaxed text-[#111]/65">{step.text}</p>
                 </li>
               ))}
             </ol>
@@ -267,7 +291,7 @@ export function LandingPage() {
                   adaptées à ton parcours. JobTracker compare le contenu de l’offre à ton
                   CV pour t’aider à décider où concentrer tes efforts.
                 </p>
-                <ul className="mt-6 space-y-3 text-sm text-[#111]/75">
+                <ul className="mt-6 space-y-3 text-base text-[#111]/75">
                   <li className="border-l-2 border-[#111]/20 pl-3">
                     Les compétences et expériences en commun.
                   </li>
@@ -278,7 +302,7 @@ export function LandingPage() {
                     Des suggestions ciblées pour mieux présenter ton parcours.
                   </li>
                 </ul>
-                <p className="mt-5 text-sm italic text-[#111]/55">
+                <p className="mt-5 text-base italic text-[#111]/55">
                   Le score de correspondance est une aide à la lecture, pas une
                   probabilité d’embauche.
                 </p>
@@ -318,7 +342,7 @@ export function LandingPage() {
                   et les mots-clés à mieux mettre en valeur lorsqu’ils correspondent à ton
                   expérience.
                 </p>
-                <ul className="mt-6 space-y-3 text-sm text-[#111]/75">
+                <ul className="mt-6 space-y-3 text-base text-[#111]/75">
                   <li className="border-l-2 border-[#111]/20 pl-3">
                     Une évaluation de la lisibilité du contenu analysé.
                   </li>
@@ -329,7 +353,7 @@ export function LandingPage() {
                     Des conseils pour rendre tes missions et tes résultats plus concrets.
                   </li>
                 </ul>
-                <p className="mt-5 text-sm italic text-[#111]/55">
+                <p className="mt-5 text-base italic text-[#111]/55">
                   L’analyse fournit des repères d’amélioration. Elle ne garantit pas le
                   passage d’un logiciel de recrutement.
                 </p>
@@ -346,7 +370,7 @@ export function LandingPage() {
                   CV. Tu disposes d’une base adaptée à l’offre, à relire et à ajuster avec
                   tes mots.
                 </p>
-                <ul className="mt-6 space-y-3 text-sm text-[#111]/75">
+                <ul className="mt-6 space-y-3 text-base text-[#111]/75">
                   <li className="border-l-2 border-[#111]/20 pl-3">
                     Une accroche liée à la mission.
                   </li>
@@ -406,7 +430,7 @@ export function LandingPage() {
         >
           <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-14">
             <div>
-              <p className="mb-3 text-sm font-medium uppercase tracking-[0.16em] text-[#111]/5">
+              <p className="mb-3 text-base font-medium uppercase tracking-[0.16em] text-[#111]/5">
                 Extension Chrome — optionnelle
               </p>
               <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
@@ -426,7 +450,7 @@ export function LandingPage() {
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
               </div>
-              <p className="mt-4 text-sm italic text-[#111]/55">
+              <p className="mt-4 text-base italic text-[#111]/55">
                 L’installation actuelle se fait en mode développeur sur Chrome ou Arc.
               </p>
             </div>
@@ -475,7 +499,7 @@ export function LandingPage() {
                       />
                     </button>
                     {isOpen ? (
-                      <p className="pb-5 text-sm leading-relaxed text-[#eceae6]/65 md:text-base">
+                      <p className="pb-5 text-base leading-relaxed text-[#eceae6]/65 md:text-base">
                         {item.a}
                       </p>
                     ) : null}
@@ -500,7 +524,7 @@ export function LandingPage() {
             <button
               type="button"
               onClick={handleOpenDemo}
-              className="relative z-10 inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-[#eceae6] px-6 py-3 text-sm font-semibold text-[#111] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              className="relative z-10 inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-[#eceae6] px-6 py-3 text-base font-semibold text-[#111] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               tabIndex={0}
               aria-label="Inscription démo"
             >
@@ -517,12 +541,12 @@ export function LandingPage() {
             <p className="font-[family-name:var(--font-landing-display)] text-lg font-semibold text-[#111]">
               JobTracker
             </p>
-            <p className="text-sm leading-relaxed text-[#111]/55">
+            <p className="text-base leading-relaxed text-[#111]/55">
               Prépare et suis tes candidatures Product Owner et Product Manager.
             </p>
           </div>
           <nav
-            className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-[#111]/55"
+            className="flex flex-wrap gap-x-5 gap-y-2 text-base text-[#111]/55"
             aria-label="Pied de page"
           >
             <button
@@ -534,6 +558,25 @@ export function LandingPage() {
             >
               Inscription démo
             </button>
+            {allowSelfSignup ? (
+              <Link
+                href="/login"
+                className="hover:text-[#111]"
+                tabIndex={0}
+                aria-label="Mode dév — connexion ou inscription"
+              >
+                Mode dév
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="hover:text-[#111]"
+                tabIndex={0}
+                aria-label="Connexion"
+              >
+                Connexion
+              </Link>
+            )}
             <a href="#confidentialite" className="hover:text-[#111]" tabIndex={0}>
               Confidentialité
             </a>
@@ -545,7 +588,7 @@ export function LandingPage() {
             </a>
           </nav>
         </div>
-        <div className="mx-auto mt-8 max-w-6xl space-y-4 border-t border-[#111]/10 pt-6 text-xs leading-relaxed text-[#111]/45">
+        <div className="mx-auto mt-8 max-w-6xl space-y-4 border-t border-[#111]/10 pt-6 text-base leading-relaxed text-[#111]/45">
           <p id="confidentialite" className="scroll-mt-8">
             <strong className="font-medium text-[#111]/60">Confidentialité —</strong>{" "}
             Tes CV, offres et candidatures restent dans ton compte. Les analyses IA

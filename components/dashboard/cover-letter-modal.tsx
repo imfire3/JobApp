@@ -83,7 +83,7 @@ export function CoverLetterModal({
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={16}
-          className="font-mono text-sm leading-relaxed"
+          className="font-mono text-base leading-relaxed"
         />
         <DialogFooter className="flex flex-wrap gap-2 sm:justify-end">
           {onRegenerate ? (

@@ -125,20 +125,18 @@ function KeywordChips({
   tone: "matched" | "missing" | "job";
 }) {
   if (!items?.length) {
-    return <p className="text-sm text-muted-foreground">{emptyLabel}</p>;
+    return <p className="text-base text-muted-foreground">{emptyLabel}</p>;
   }
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((item) => (
         <Badge
           key={item}
-          variant="outline"
+          variant={tone === "missing" ? "outline" : "tag"}
           className={
-            tone === "matched"
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
-              : tone === "missing"
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                : "border-border bg-muted/40 text-foreground"
+            tone === "missing"
+              ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+              : undefined
           }
         >
           {item}
@@ -150,10 +148,10 @@ function KeywordChips({
 
 function BulletList({ items, emptyLabel }: { items: string[]; emptyLabel: string }) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyLabel}</p>;
+    return <p className="text-base text-muted-foreground">{emptyLabel}</p>;
   }
   return (
-    <ul className="space-y-1.5 text-sm text-muted-foreground">
+    <ul className="space-y-1.5 text-base text-muted-foreground">
       {items.map((item, index) => (
         <li key={`${item}-${index}`}>• {item}</li>
       ))}
@@ -358,7 +356,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
   if (loading) {
     return (
       <AppShell>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-base text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Chargement de l’offre…
         </div>
@@ -370,7 +368,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
     return (
       <AppShell>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Offre introuvable.</p>
+          <p className="text-base text-muted-foreground">Offre introuvable.</p>
           <Link href="/jobs" className={buttonVariants({ variant: "outline" })}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour aux jobs
@@ -398,8 +396,8 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                 </Link>
                 <h1 className="text-2xl font-bold tracking-tight">{job.title}</h1>
                 <p className="text-muted-foreground">{job.company}</p>
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline">{job.source}</Badge>
+                <div className="flex flex-wrap gap-2 text-base text-muted-foreground">
+                  <Badge variant="tag">{job.source}</Badge>
                   {job.location ? (
                     <span className="inline-flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
@@ -407,9 +405,9 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     </span>
                   ) : null}
                   {job.contract_type ? (
-                    <Badge variant="outline">{job.contract_type}</Badge>
+                    <Badge variant="tag">{job.contract_type}</Badge>
                   ) : null}
-                  {job.salary ? <Badge variant="outline">{job.salary}</Badge> : null}
+                  {job.salary ? <Badge variant="tag">{job.salary}</Badge> : null}
                   <Badge className={getStatusColor(job.status)} variant="secondary">
                     {job.status.replace(/_/g, " ")}
                   </Badge>
@@ -471,7 +469,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
               <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                 <div>
                   <CardTitle>Comparatif CV ↔ fiche de poste</CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-1 text-base text-muted-foreground">
                     Résumé de l’offre, preuves trouvées dans ton CV pour ce poste,
                     et écarts / mots-clés à traiter. Les analyses se lancent
                     automatiquement.
@@ -489,7 +487,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
               </CardHeader>
               <CardContent className="space-y-6">
                 {analyzing && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-base text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Analyse de l’offre en cours…
                   </div>
@@ -500,20 +498,20 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     Match {job.match_score}%
                   </p>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     Lance l’analyse de l’offre pour obtenir le score de match.
                   </p>
                 )}
 
                 <div className="grid gap-4 lg:grid-cols-3">
                   <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
-                    <p className="text-sm font-semibold">Offre importée</p>
+                    <p className="text-base font-semibold">Offre importée</p>
                     {job.job_posting_summary ? (
-                      <p className="text-sm leading-relaxed text-foreground">
+                      <p className="text-base leading-relaxed text-foreground">
                         {job.job_posting_summary}
                       </p>
                     ) : (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-base text-muted-foreground">
                         Résumé pas encore disponible — relance l’analyse de l’offre.
                       </p>
                     )}
@@ -521,12 +519,12 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                       <div className="space-y-2">
                         {job.skills?.length ? (
                           <div>
-                            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            <p className="mb-1 text-base font-medium uppercase tracking-wide text-muted-foreground">
                               Compétences demandées
                             </p>
                             <div className="flex flex-wrap gap-1.5">
                               {job.skills.slice(0, 12).map((skill) => (
-                                <Badge key={skill} variant="outline">
+                                <Badge key={skill} variant="tag">
                                   {skill}
                                 </Badge>
                               ))}
@@ -535,12 +533,12 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                         ) : null}
                         {job.tools?.length ? (
                           <div>
-                            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            <p className="mb-1 text-base font-medium uppercase tracking-wide text-muted-foreground">
                               Outils demandés
                             </p>
                             <div className="flex flex-wrap gap-1.5">
                               {job.tools.slice(0, 12).map((tool) => (
-                                <Badge key={tool} variant="secondary">
+                                <Badge key={tool} variant="tag">
                                   {tool}
                                 </Badge>
                               ))}
@@ -551,7 +549,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     ) : null}
                     {resolveJobKeywords(job).length > 0 ? (
                       <div>
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <p className="mb-1 text-base font-medium uppercase tracking-wide text-muted-foreground">
                           Mots-clés de l’offre
                         </p>
                         <KeywordChips
@@ -563,10 +561,10 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     ) : null}
                     {jobImportedDescription(job) ? (
                       <details className="rounded-lg border border-border/80 bg-background/80 p-3">
-                        <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                        <summary className="cursor-pointer text-base font-medium text-muted-foreground">
                           Voir le texte importé brut
                         </summary>
-                        <p className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                        <p className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
                           {jobDescriptionPreview(job, 2000)}
                         </p>
                       </details>
@@ -574,20 +572,20 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                   </div>
 
                   <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
-                    <p className="text-sm font-semibold">Ton CV pour cette offre</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-base font-semibold">Ton CV pour cette offre</p>
+                    <p className="text-base text-muted-foreground">
                       Preuves issues du match avec <span className="font-medium text-foreground">{job.title}</span>
                       {" "}chez {job.company} — pas l’analyse ATS globale.
                     </p>
                     <div>
-                      <p className="mb-1 text-sm font-medium">Correspondances / overlaps</p>
+                      <p className="mb-1 text-base font-medium">Correspondances / overlaps</p>
                       <BulletList
                         items={job.match_reasons ?? []}
                         emptyLabel="Pas encore analysé pour cette offre."
                       />
                     </div>
                     <div>
-                      <p className="mb-1 text-sm font-medium">Mots-clés déjà dans ton CV</p>
+                      <p className="mb-1 text-base font-medium">Mots-clés déjà dans ton CV</p>
                       <KeywordChips
                         items={job.keywords_matched}
                         emptyLabel="Aucun mot-clé commun détecté."
@@ -597,18 +595,18 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                   </div>
 
                   <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                    <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                    <p className="text-base font-semibold text-amber-900 dark:text-amber-200">
                       À améliorer pour cette offre
                     </p>
                     <div>
-                      <p className="mb-1 text-sm font-medium">Écarts</p>
+                      <p className="mb-1 text-base font-medium">Écarts</p>
                       <BulletList
                         items={job.match_gaps ?? []}
                         emptyLabel="Aucun écart listé."
                       />
                     </div>
                     <div>
-                      <p className="mb-1 text-sm font-medium">Mots-clés ATS à ajouter</p>
+                      <p className="mb-1 text-base font-medium">Mots-clés ATS à ajouter</p>
                       <KeywordChips
                         items={job.keywords_missing}
                         emptyLabel="Aucun mot-clé manquant listé."
@@ -616,7 +614,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                       />
                     </div>
                     <div>
-                      <p className="mb-1 text-sm font-medium">Actions CV</p>
+                      <p className="mb-1 text-base font-medium">Actions CV</p>
                       <BulletList
                         items={job.cv_improvements ?? []}
                         emptyLabel="Les améliorations apparaîtront après l’analyse."
@@ -633,7 +631,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
               <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                 <div>
                   <CardTitle>Mon CV</CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-1 text-base text-muted-foreground">
                     Ton profil à gauche, et en dessous les reformulations adaptées à
                     cette fiche de poste.
                   </p>
@@ -661,13 +659,13 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
               </CardHeader>
               <CardContent className="space-y-6">
                 {(cvLoading || cvAnalyzing || analyzing) && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-base text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Mise à jour des analyses…
                   </div>
                 )}
                 {cvError ? (
-                  <p className="text-sm text-destructive">
+                  <p className="text-base text-destructive">
                     {cvError}{" "}
                     <Link href="/profile-ai" className="underline">
                       Vérifier le CV dans Profil & CV
@@ -678,7 +676,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                   <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-semibold">Profil & CV</p>
+                      <p className="text-base font-semibold">Profil & CV</p>
                       {typeof ats?.overall_score === "number" ? (
                         <Badge variant="secondary">
                           Score ATS {ats.overall_score}
@@ -687,7 +685,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     </div>
 
                     {!ats && !cvLoading ? (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-base text-muted-foreground">
                         Analyse CV absente. Importe ton CV dans{" "}
                     <Link href="/profile-ai" className="underline">
                       Profil & CV
@@ -698,12 +696,12 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
 
                     {ats?.detected_roles?.length ? (
                       <div>
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <p className="mb-1 text-base font-medium uppercase tracking-wide text-muted-foreground">
                           Rôles
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {ats.detected_roles.slice(0, 6).map((role) => (
-                            <Badge key={role} variant="outline">
+                            <Badge key={role} variant="tag">
                               {role}
                             </Badge>
                           ))}
@@ -712,7 +710,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     ) : null}
 
                     <div>
-                      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <p className="mb-2 text-base font-medium uppercase tracking-wide text-muted-foreground">
                         Expériences
                       </p>
                       {ats?.detected_experiences && ats.detected_experiences.length > 0 ? (
@@ -731,15 +729,15 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                                 key={`${exp.title}-${exp.organization}-${index}`}
                                 className="rounded-lg border bg-background p-3"
                               >
-                                <p className="text-sm font-medium text-foreground">
+                                <p className="text-base font-medium text-foreground">
                                   {exp.title}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-base text-muted-foreground">
                                   {exp.organization}
                                   {dates ? ` · ${dates}` : ""}
                                 </p>
                                 {exp.highlights ? (
-                                  <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
+                                  <p className="mt-1 line-clamp-3 text-base leading-relaxed text-muted-foreground">
                                     {exp.highlights}
                                   </p>
                                 ) : null}
@@ -748,7 +746,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                           })}
                         </ul>
                       ) : (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-base text-muted-foreground">
                           Aucune expérience structurée détectée pour l’instant.
                         </p>
                       )}
@@ -756,12 +754,12 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
 
                     {ats?.detected_skills?.length ? (
                       <div>
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <p className="mb-1 text-base font-medium uppercase tracking-wide text-muted-foreground">
                           Compétences
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {ats.detected_skills.slice(0, 18).map((skill) => (
-                            <Badge key={skill} variant="secondary">
+                            <Badge key={skill} variant="tag">
                               {skill}
                             </Badge>
                           ))}
@@ -771,12 +769,12 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
 
                     {ats?.detected_languages?.length ? (
                       <div>
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <p className="mb-1 text-base font-medium uppercase tracking-wide text-muted-foreground">
                           Langues
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {ats.detected_languages.slice(0, 8).map((lang) => (
-                            <Badge key={lang.language} variant="outline">
+                            <Badge key={lang.language} variant="tag">
                               {lang.language}
                               {lang.level ? ` · ${lang.level}` : ""}
                             </Badge>
@@ -787,19 +785,19 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                   </div>
 
                   <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
-                    <p className="text-sm font-semibold">Pour cette offre</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-base font-semibold">Pour cette offre</p>
+                    <p className="text-base text-muted-foreground">
                       {job.title} · {job.company}
                     </p>
                     <div>
-                      <p className="mb-1 text-sm font-medium">Correspondances</p>
+                      <p className="mb-1 text-base font-medium">Correspondances</p>
                       <BulletList
                         items={job.match_reasons ?? []}
                         emptyLabel="Pas encore analysé."
                       />
                     </div>
                     <div>
-                      <p className="mb-1 text-sm font-medium">Mots-clés manquants</p>
+                      <p className="mb-1 text-base font-medium">Mots-clés manquants</p>
                       <KeywordChips
                         items={job.keywords_missing}
                         emptyLabel="Aucun mot-clé manquant."
@@ -811,10 +809,10 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
 
                 <div className="space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
                   <div>
-                    <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                    <p className="text-base font-semibold text-emerald-900 dark:text-emerald-200">
                       Améliorations de tournure (vs fiche de poste)
                     </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-base text-muted-foreground">
                       Reformulations concrètes pour aligner ton CV sur les attentes de
                       cette offre — sans inventer d’expérience.
                     </p>
@@ -842,26 +840,26 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                               {item.priority}
                             </Badge>
                           </div>
-                          <p className="mt-2 text-sm font-medium text-foreground">
+                          <p className="mt-2 text-base font-medium text-foreground">
                             {item.action}
                           </p>
                           {item.evidence_from_job ? (
-                            <p className="mt-1 text-xs text-muted-foreground">
+                            <p className="mt-1 text-base text-muted-foreground">
                               Offre : {item.evidence_from_job}
                             </p>
                           ) : null}
                           {item.evidence_from_cv ? (
-                            <p className="mt-1 text-xs text-muted-foreground">
+                            <p className="mt-1 text-base text-muted-foreground">
                               CV actuel : {item.evidence_from_cv}
                             </p>
                           ) : null}
                           {item.suggested_rewrite ? (
-                            <p className="mt-2 rounded-md border border-emerald-500/20 bg-emerald-500/10 p-2 text-sm leading-relaxed text-emerald-900 dark:text-emerald-200">
+                            <p className="mt-2 rounded-md border border-emerald-500/20 bg-emerald-500/10 p-2 text-base leading-relaxed text-emerald-900 dark:text-emerald-200">
                               Suggestion : {item.suggested_rewrite}
                             </p>
                           ) : null}
                           {item.information_to_confirm ? (
-                            <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                            <p className="mt-1 text-base text-amber-700 dark:text-amber-300">
                               À confirmer : {item.information_to_confirm}
                             </p>
                           ) : null}
@@ -884,7 +882,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
               <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                 <div>
                   <CardTitle>Fiche de poste</CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-1 text-base text-muted-foreground">
                     Est-ce que ton profil correspond à cette offre ? Si des écarts ou
                     problèmes ATS apparaissent, on propose des améliorations.
                   </p>
@@ -901,7 +899,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
               </CardHeader>
               <CardContent className="space-y-6">
                 {analyzing ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-base text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Comparaison du CV avec la fiche de poste…
                   </div>
@@ -921,24 +919,24 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     <div className={`space-y-3 rounded-xl border p-4 ${toneClass}`}>
                       <div className="flex flex-wrap items-end justify-between gap-3">
                         <div>
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          <p className="text-base font-medium uppercase tracking-wide text-muted-foreground">
                             Verdict profil ↔ offre
                           </p>
                           <p className="mt-1 text-lg font-semibold text-foreground">
                             {verdict.label}
                           </p>
-                          <p className="mt-1 text-sm text-muted-foreground">{verdict.detail}</p>
+                          <p className="mt-1 text-base text-muted-foreground">{verdict.detail}</p>
                         </div>
                         {typeof job.match_score === "number" ? (
                           <p className={`text-3xl font-bold ${getMatchScoreColor(job.match_score)}`}>
                             {job.match_score}%
                           </p>
                         ) : (
-                          <p className="text-sm text-muted-foreground">Score n/a</p>
+                          <p className="text-base text-muted-foreground">Score n/a</p>
                         )}
                       </div>
                       {job.job_posting_summary ? (
-                        <p className="text-sm leading-relaxed text-muted-foreground">
+                        <p className="text-base leading-relaxed text-muted-foreground">
                           <span className="font-medium text-foreground">Résumé de l’offre : </span>
                           {job.job_posting_summary}
                         </p>
@@ -949,7 +947,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
 
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="space-y-2 rounded-xl border border-border p-4">
-                    <p className="text-sm font-semibold">Ce qui correspond</p>
+                    <p className="text-base font-semibold">Ce qui correspond</p>
                     <BulletList
                       items={job.match_reasons ?? []}
                       emptyLabel={
@@ -960,7 +958,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     />
                   </div>
                   <div className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                    <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                    <p className="text-base font-semibold text-amber-900 dark:text-amber-200">
                       Écarts / risques ATS
                     </p>
                     <BulletList
@@ -985,10 +983,10 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                   job.match_gaps?.length) ? (
                   <div className="space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
                     <div>
-                      <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                      <p className="text-base font-semibold text-emerald-900 dark:text-emerald-200">
                         Améliorations proposées
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p className="mt-1 text-base text-muted-foreground">
                         Suggestions pour mieux coller à cette fiche — uniquement si ton
                         expérience le permet vraiment.
                       </p>
@@ -1006,9 +1004,9 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                               ) : null}
                               <Badge variant="secondary">{item.priority}</Badge>
                             </div>
-                            <p className="mt-2 text-sm font-medium">{item.action}</p>
+                            <p className="mt-2 text-base font-medium">{item.action}</p>
                             {item.suggested_rewrite ? (
-                              <p className="mt-2 rounded-md border border-emerald-500/20 bg-emerald-500/10 p-2 text-sm text-emerald-900 dark:text-emerald-200">
+                              <p className="mt-2 rounded-md border border-emerald-500/20 bg-emerald-500/10 p-2 text-base text-emerald-900 dark:text-emerald-200">
                                 Suggestion : {item.suggested_rewrite}
                               </p>
                             ) : null}
@@ -1023,7 +1021,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     )}
                     {job.keywords_missing && job.keywords_missing.length > 0 ? (
                       <div>
-                        <p className="mb-1 text-sm font-medium">Mots-clés ATS à intégrer</p>
+                        <p className="mb-1 text-base font-medium">Mots-clés ATS à intégrer</p>
                         <KeywordChips
                           items={job.keywords_missing}
                           emptyLabel=""
@@ -1033,21 +1031,21 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     ) : null}
                   </div>
                 ) : typeof job.match_score === "number" && job.match_score >= 70 ? (
-                  <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm text-emerald-900 dark:text-emerald-200">
+                  <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-base text-emerald-900 dark:text-emerald-200">
                     Bon fit : pas d’amélioration bloquante détectée pour cette offre.
                   </p>
                 ) : null}
 
                 <details className="rounded-lg border p-3">
-                  <summary className="cursor-pointer text-sm font-medium">
+                  <summary className="cursor-pointer text-base font-medium">
                     Voir le texte importé de l’offre
                   </summary>
                   {jobImportedDescription(job) ? (
-                    <div className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                    <div className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
                       {jobImportedDescription(job)}
                     </div>
                   ) : (
-                    <p className="mt-3 text-sm text-muted-foreground">
+                    <p className="mt-3 text-base text-muted-foreground">
                       Aucune description enregistrée.
                     </p>
                   )}
@@ -1060,14 +1058,14 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
             <Card>
               <CardHeader>
                 <CardTitle>3. Mots-clés en rapport</CardTitle>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   Mots-clés extraits de cette fiche de poste, ceux déjà présents dans
                   ton CV, et ceux à ajouter pour cette candidature.
                 </p>
               </CardHeader>
               <CardContent className="grid gap-4 lg:grid-cols-3">
                 <div className="rounded-xl border border-border p-4">
-                  <p className="mb-2 text-sm font-medium">Mots-clés de la fiche de poste</p>
+                  <p className="mb-2 text-base font-medium">Mots-clés de la fiche de poste</p>
                   <KeywordChips
                     items={resolveJobKeywords(job)}
                     emptyLabel="Relance l’analyse de l’offre pour extraire les mots-clés."
@@ -1075,7 +1073,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                   />
                 </div>
                 <div className="rounded-xl border border-border p-4">
-                  <p className="mb-2 text-sm font-medium">Présents dans ton CV</p>
+                  <p className="mb-2 text-base font-medium">Présents dans ton CV</p>
                   <KeywordChips
                     items={job.keywords_matched}
                     emptyLabel="Aucun mot-clé commun détecté pour l’instant."
@@ -1083,14 +1081,14 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                   />
                 </div>
                 <div className="rounded-xl border border-border p-4">
-                  <p className="mb-2 text-sm font-medium">À ajouter / renforcer</p>
+                  <p className="mb-2 text-base font-medium">À ajouter / renforcer</p>
                   <KeywordChips
                     items={job.keywords_missing}
                     emptyLabel="Aucun mot-clé manquant listé."
                     tone="missing"
                   />
                   {job.keywords_missing && job.keywords_missing.length > 0 ? (
-                    <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                    <p className="mt-3 text-base leading-6 text-muted-foreground">
                       Améliore ton CV en intégrant ces termes seulement s’ils
                       correspondent à ton expérience réelle :{" "}
                       <span className="font-medium text-foreground">
@@ -1108,14 +1106,14 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
             <Card>
               <CardHeader>
                 <CardTitle>4. Améliorations de mon CV</CardTitle>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   Suggestions concrètes pour cette offre uniquement. L’analyse ATS
                   globale reste dans l’onglet Mon CV.
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <p className="mb-2 text-sm font-medium">Pour cette offre</p>
+                  <p className="mb-2 text-base font-medium">Pour cette offre</p>
                   <BulletList
                     items={job.cv_improvements ?? []}
                     emptyLabel="Les suggestions apparaîtront après l’analyse du poste."
@@ -1123,7 +1121,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                 </div>
                 {job.keywords_missing && job.keywords_missing.length > 0 ? (
                   <div>
-                    <p className="mb-2 text-sm font-medium">Mots-clés ATS manquants</p>
+                    <p className="mb-2 text-base font-medium">Mots-clés ATS manquants</p>
                     <KeywordChips
                       items={job.keywords_missing}
                       emptyLabel="Aucun."
@@ -1141,9 +1139,9 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                 <div>
                   <CardTitle>Une lettre adaptée à cette offre</CardTitle>
                   {job.cover_letter_angle ? (
-                    <p className="mt-1 text-sm text-muted-foreground">{job.cover_letter_angle}</p>
+                    <p className="mt-1 text-base text-muted-foreground">{job.cover_letter_angle}</p>
                   ) : (
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-1 text-base text-muted-foreground">
                       Prépare un premier brouillon à partir de ton CV et des besoins du poste.
                       Relis-le et ajuste-le avant de l’utiliser.
                     </p>
@@ -1178,7 +1176,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     className="min-h-48"
                   />
                 ) : (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     Aucune lettre pour l’instant. Clique « Générer » pour en créer une.
                   </p>
                 )}

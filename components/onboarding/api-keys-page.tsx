@@ -135,7 +135,7 @@ export function ApiKeysPageClient() {
     <AuthCardShell>
       {!ready ? (
         <Card className="w-full shadow-lg">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          <CardContent className="py-10 text-center text-base text-muted-foreground">
             Chargement…
           </CardContent>
         </Card>
@@ -155,7 +155,7 @@ export function ApiKeysPageClient() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-xl border border-border bg-muted/40 p-4 text-left text-sm leading-6 text-muted-foreground">
+              <div className="rounded-xl border border-border bg-muted/40 p-4 text-left text-base leading-6 text-muted-foreground">
                 <p className="font-medium text-foreground">Important — crédit OpenAI</p>
                 <ol className="mt-2 list-decimal space-y-1 pl-4">
                   <li>
@@ -197,7 +197,7 @@ export function ApiKeysPageClient() {
                 />
               </Field>
 
-              <p className="text-xs text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 Tu pourras aussi ajouter ou modifier cette clé plus tard dans Compte
                 &amp; clés API. Elle reste privée à ton compte JobTracker.
               </p>

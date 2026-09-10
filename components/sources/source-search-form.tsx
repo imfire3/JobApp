@@ -57,7 +57,7 @@ function MultiValueInput({
       />
       <div className="flex flex-wrap gap-2">
         {values.map((value) => (
-          <Badge key={value} variant="secondary" className="gap-1 pr-1">
+          <Badge key={value} variant="tag" className="gap-1 pr-1">
             {value}
             <button
               type="button"
@@ -266,15 +266,15 @@ export function SourceSearchForm({
       </div>
 
       <div className="space-y-3 rounded-lg border p-3">
-        <Label className="text-sm font-medium">Informations a importer vers la page Jobs</Label>
-        <p className="text-xs text-muted-foreground">
+        <Label className="text-base font-medium">Informations a importer vers la page Jobs</Label>
+        <p className="text-base text-muted-foreground">
           Choisis les champs a recuperer pour cette recherche (cards/table Jobs).
         </p>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {IMPORTABLE_JOB_FIELDS.map((field) => (
             <label
               key={field}
-              className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+              className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-base"
             >
               <span>{field.replace(/_/g, " ")}</span>
               <Switch

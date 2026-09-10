@@ -53,6 +53,7 @@ export type CandidateProfileFields = {
   date_of_birth: string | null
   current_city: string | null
   current_title: string | null
+  bio: string | null
   linkedin_url: string | null
   github_url: string | null
   website_url: string | null

@@ -551,7 +551,7 @@ export function ImportsPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Imports</h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 Importe un CSV/Excel, analyse chaque offre avec une barre de progression, puis
                 valide vers le board.
               </p>
@@ -588,7 +588,7 @@ export function ImportsPage() {
                   <Download className="mr-2 h-4 w-4" />
                   Download JSON sample
                 </Button>
-                <p className="w-full text-xs text-muted-foreground">
+                <p className="w-full text-base text-muted-foreground">
                   Export your Apify dataset as JSON (array or {"{ items: [...] }"}), upload it
                   here, preview, then import.
                 </p>
@@ -615,7 +615,7 @@ export function ImportsPage() {
                     <Label htmlFor="replace-existing" className="mb-0 cursor-pointer">
                       Replace all my existing jobs
                     </Label>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       Deletes your current jobs in Supabase before importing this file.
                     </p>
                   </div>
@@ -694,7 +694,7 @@ export function ImportsPage() {
                     aria-label="Contenu de l'offre collé depuis le site"
                     className="min-h-28"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     La première ligne devient le titre. L&apos;URL sert de lien
                     offre ; le texte collé est stocké dans la description.
                   </p>
@@ -724,11 +724,11 @@ export function ImportsPage() {
 
       {activeTab !== "chrome" ? (
       <div className="rounded-lg border bg-muted/40 p-4">
-        <p className="flex items-center gap-2 text-sm font-medium">
+        <p className="flex items-center gap-2 text-base font-medium">
           <AppWindow className="h-4 w-4" />
           {activeTab === "sheet" ? "CSV workflow" : "Apify workflow"}
         </p>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-base text-muted-foreground">
           {activeTab === "sheet"
             ? "Upload CSV, ou colle une offre (URL + texte) → aperçu → Importer et analyser → Valider vers Jobs."
             : "Run your Apify actor → export dataset as JSON → upload here → preview → import into Jobs."}
@@ -737,13 +737,13 @@ export function ImportsPage() {
       ) : null}
 
       {error ? (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-base text-destructive">
           {error}
         </p>
       ) : null}
 
       {info ? (
-        <div className="space-y-3 rounded-md border border-border bg-muted/40 p-3 text-sm">
+        <div className="space-y-3 rounded-md border border-border bg-muted/40 p-3 text-base">
           <p className="font-medium text-foreground">{info}</p>
           {alreadyOnBoard.length > 0 ? (
             <ul className="space-y-2">
@@ -754,7 +754,7 @@ export function ImportsPage() {
                 >
                   <div className="min-w-0">
                     <p className="truncate font-medium">{job.title || "Offre"}</p>
-                    <p className="truncate text-xs text-muted-foreground">
+                    <p className="truncate text-base text-muted-foreground">
                       {job.company || "Entreprise"} · déjà sur le board
                     </p>
                   </div>
@@ -791,7 +791,7 @@ export function ImportsPage() {
           </CardHeader>
           <CardContent>
             {previewing ? (
-              <p className="text-sm text-muted-foreground">Parsing file...</p>
+              <p className="text-base text-muted-foreground">Parsing file...</p>
             ) : (
               <ImportJobsTable rows={previewRows} />
             )}
@@ -839,10 +839,10 @@ export function ImportsPage() {
 
             {invalidPreview.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Invalid row examples</p>
+                <p className="text-base font-medium">Invalid row examples</p>
                 <div className="space-y-2">
                   {invalidPreview.map((row) => (
-                    <div key={row.rowNumber} className="rounded-md border p-3 text-sm">
+                    <div key={row.rowNumber} className="rounded-md border p-3 text-base">
                       <p className="font-medium">Row {row.rowNumber}</p>
                       <p className="text-muted-foreground">{row.errors.join("; ")}</p>
                     </div>
@@ -860,7 +860,7 @@ export function ImportsPage() {
 function Metric({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border p-3">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-base uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="text-2xl font-semibold">{value}</p>
     </div>
   );

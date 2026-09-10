@@ -64,24 +64,24 @@ export function ChromeExtensionModal({
           Télécharger l’extension
         </a>
 
-        <ol className="space-y-3 text-sm text-muted-foreground">
+        <ol className="space-y-3 text-base text-muted-foreground">
           <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
               1
             </span>
             <span>Télécharge le ZIP, puis dézippe-le.</span>
           </li>
           <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
               2
             </span>
             <span>
-              Ouvre <code className="rounded bg-muted px-1 py-0.5 text-xs">chrome://extensions</code>{" "}
-              (ou <code className="rounded bg-muted px-1 py-0.5 text-xs">arc://extensions</code>)
+              Ouvre <code className="rounded bg-muted px-1 py-0.5 text-base">chrome://extensions</code>{" "}
+              (ou <code className="rounded bg-muted px-1 py-0.5 text-base">arc://extensions</code>)
             </span>
           </li>
           <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
               3
             </span>
             <span className="flex items-start gap-2">
@@ -90,7 +90,7 @@ export function ChromeExtensionModal({
             </span>
           </li>
           <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-foreground">
               4
             </span>
             <span>

@@ -141,7 +141,7 @@ export function TrackedSearchForm({
           placeholder="Product Owner, Product Manager…"
           allowCustom
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           Tape un intitulé puis Entrée pour l’ajouter.
         </p>
       </div>
@@ -224,7 +224,7 @@ export function TrackedSearchForm({
             placeholder={`Min ${salaryUnit}`}
             aria-label="Rémunération minimum"
           />
-          <span className="text-sm text-muted-foreground">à</span>
+          <span className="text-base text-muted-foreground">à</span>
           <Input
             type="number"
             min={0}
@@ -238,7 +238,7 @@ export function TrackedSearchForm({
             aria-label="Rémunération maximum"
           />
         </div>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-base">
           <Checkbox
             checked={value.only_with_salary}
             onCheckedChange={(checked) =>
@@ -271,7 +271,7 @@ export function TrackedSearchForm({
             </option>
           ))}
         </select>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-base">
           <Checkbox
             checked={value.remote_preference === "remote_only"}
             onCheckedChange={(checked) => {
@@ -292,7 +292,7 @@ export function TrackedSearchForm({
 
       <div className="space-y-3">
         <Label>Montrer les opportunités</Label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-base">
           <Checkbox
             checked={value.exclusive_only}
             onCheckedChange={(checked) =>
@@ -301,7 +301,7 @@ export function TrackedSearchForm({
           />
           Uniquement exclusives
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-base">
           <Checkbox
             checked={value.top_recruiter_only}
             onCheckedChange={(checked) =>
@@ -363,7 +363,7 @@ export function TrackedSearchForm({
       </div>
 
       <details className="rounded-xl border border-border p-3">
-        <summary className="cursor-pointer text-sm font-medium">
+        <summary className="cursor-pointer text-base font-medium">
           Options avancées
         </summary>
         <div className="mt-3 space-y-3">
@@ -404,7 +404,7 @@ export function TrackedSearchForm({
               }
             />
           </div>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-base">
             <Checkbox
               checked={value.enabled}
               onCheckedChange={(checked) =>

@@ -99,15 +99,15 @@ export function JobTable({
               </TableCell>
               <TableCell className={cellBorder}>{job.company}</TableCell>
               <TableCell className={cellBorder}>
-                <Badge variant="outline">{job.source}</Badge>
+                <Badge variant="tag">{job.source}</Badge>
               </TableCell>
               <TableCell className={cellBorder}>
                 <div className="flex flex-col gap-0.5">
                   <span>{job.city ?? job.location ?? "—"}</span>
                   {job.remote_mode && job.remote_mode !== "unknown" ? (
-                    <span className="text-xs text-muted-foreground">{job.remote_mode}</span>
+                    <span className="text-base text-muted-foreground">{job.remote_mode}</span>
                   ) : job.remote ? (
-                    <span className="text-xs text-muted-foreground">remote</span>
+                    <span className="text-base text-muted-foreground">remote</span>
                   ) : null}
                 </div>
               </TableCell>
@@ -115,7 +115,7 @@ export function JobTable({
                 <div className="flex flex-col gap-0.5">
                   <span>{job.contract_type ?? "—"}</span>
                   {job.experience_level !== null && job.experience_level !== undefined ? (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-base text-muted-foreground">
                       {job.experience_level}+ yrs
                     </span>
                   ) : null}

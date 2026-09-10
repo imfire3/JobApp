@@ -63,8 +63,8 @@ export function PageHelpButton({
           <ul className="space-y-4">
             {help?.tips.map((tip) => (
               <li key={tip.id} className="space-y-1">
-                <p className="text-sm font-medium">{tip.title}</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">
+                <p className="text-base font-medium">{tip.title}</p>
+                <p className="text-base leading-relaxed text-muted-foreground">
                   {tip.body}
                 </p>
               </li>

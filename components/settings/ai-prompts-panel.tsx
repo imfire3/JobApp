@@ -62,7 +62,7 @@ function PromptEditor({
     <div className="rounded-lg border">
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium"
+        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-base font-medium"
         onClick={() => setOpen((prev) => !prev)}
       >
         <span className="flex flex-wrap items-center gap-2">
@@ -91,11 +91,11 @@ function PromptEditor({
 
       {open ? (
         <div className="space-y-3 border-t px-4 py-4">
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-base text-muted-foreground">{description}</p>
           {focuses?.length ? (
             <div className="flex flex-wrap gap-1">
               {focuses.map((focus) => (
-                <Badge key={focus} variant="secondary">
+                <Badge key={focus} variant="tag">
                   {focus}
                 </Badge>
               ))}
@@ -107,14 +107,14 @@ function PromptEditor({
             onChange={(e) => onChange(e.target.value)}
             rows={14}
             disabled={loading || saving || !editable}
-            className="font-mono text-xs"
+            className="font-mono text-base"
             placeholder={loading ? "Chargement…" : "System prompt…"}
           />
           {userMessageTemplate ? (
             <div className="space-y-2">
               <button
                 type="button"
-                className="text-xs font-medium text-muted-foreground underline-offset-2 hover:underline"
+                className="text-base font-medium text-muted-foreground underline-offset-2 hover:underline"
                 onClick={() => setShowUserMessage((prev) => !prev)}
               >
                 {showUserMessage ? "Masquer" : "Voir"} le template du message utilisateur
@@ -148,7 +148,7 @@ function PromptEditor({
               </Button>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               Ce prompt est défini dans le code pour l’instant. Les prompts CV et match job
               sont éditables ci-dessus.
             </p>
@@ -321,7 +321,7 @@ export function AiPromptsPanel() {
         />
 
         {!loading && !cvDefault && !jobDefault ? (
-          <p className="text-sm text-muted-foreground">Aucun prompt chargé.</p>
+          <p className="text-base text-muted-foreground">Aucun prompt chargé.</p>
         ) : null}
       </CardContent>
     </Card>

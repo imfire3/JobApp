@@ -2,10 +2,14 @@
  * Toggle / open the on-page side panel when the extension icon is clicked.
  */
 
+function isSupportedJobHost(url) {
+  return /welcometothejungle\.com/i.test(url) || /indeed\.com/i.test(url);
+}
+
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab?.id || !tab.url) return;
 
-  if (!/welcometothejungle\.com/i.test(tab.url)) {
+  if (!isSupportedJobHost(tab.url)) {
     return;
   }
 

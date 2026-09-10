@@ -56,8 +56,8 @@ export function OnboardingProfilePageClient() {
 
   if (!ready) {
     return (
-      <AuthCardShell className="!max-w-none">
-        <div className="mx-auto w-full max-w-5xl space-y-4">
+      <AuthCardShell className="!max-w-5xl">
+        <div className="w-full space-y-4">
           <Skeleton className="h-10 w-72" />
           <Skeleton className="h-[480px] w-full rounded-2xl" />
         </div>
@@ -65,46 +65,42 @@ export function OnboardingProfilePageClient() {
     )
   }
 
-  // Viewport-locked shell: card fills available height (touches bottom margin)
-  // but never overflows; long sections scroll inside CardContent.
   return (
-    <div className="box-border flex h-dvh flex-col overflow-hidden bg-muted/30 px-4 py-6">
-      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
-        <Card className="flex min-h-0 max-h-full flex-1 flex-col gap-0 overflow-hidden rounded-2xl">
-          <CardHeader className="shrink-0 space-y-4">
-            <OnboardingProgress current="profile" />
-            <div className="space-y-1.5">
-              <CardTitle>Complète ton profil</CardTitle>
-              <CardDescription>
-                Nous avons prérempli ce que ton CV permet d&apos;extraire. Vérifie,
-                complète, puis continue — les champs vides sont OK.
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
-            <CandidateProfileForm
-              mode="onboarding"
-              onContinue={async () => {
-                const res = await fetch("/api/onboarding", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ completed: true }),
-                })
-                if (!res.ok) {
-                  const data = (await res.json().catch(() => ({}))) as {
-                    error?: string
-                  }
-                  throw new Error(
-                    data.error ?? "Impossible de finaliser l’inscription"
-                  )
+    <AuthCardShell className="!max-w-5xl">
+      <Card className="w-full shadow-lg">
+        <CardHeader className="space-y-4">
+          <OnboardingProgress current="profile" />
+          <div className="space-y-1.5">
+            <CardTitle>Complète ton profil</CardTitle>
+            <CardDescription>
+              Nous avons prérempli ce que ton CV permet d&apos;extraire. Vérifie,
+              complète, puis continue — les champs vides sont OK.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="pb-8">
+          <CandidateProfileForm
+            mode="onboarding"
+            onContinue={async () => {
+              const res = await fetch("/api/onboarding", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ completed: true }),
+              })
+              if (!res.ok) {
+                const data = (await res.json().catch(() => ({}))) as {
+                  error?: string
                 }
-                router.push("/dashboard")
-                router.refresh()
-              }}
-            />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+                throw new Error(
+                  data.error ?? "Impossible de finaliser l’inscription"
+                )
+              }
+              router.push("/dashboard")
+              router.refresh()
+            }}
+          />
+        </CardContent>
+      </Card>
+    </AuthCardShell>
   )
 }

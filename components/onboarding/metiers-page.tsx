@@ -278,7 +278,7 @@ export function MetiersPageClient() {
     <AuthCardShell>
       {!ready ? (
         <Card className="w-full shadow-lg">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          <CardContent className="py-10 text-center text-base text-muted-foreground">
             Chargement…
           </CardContent>
         </Card>
@@ -360,7 +360,7 @@ export function MetiersPageClient() {
                       key={role}
                       type="button"
                       onClick={() => removeRole(role)}
-                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground touch-manipulation"
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-base font-medium text-primary-foreground touch-manipulation"
                       aria-label={`Retirer ${role}`}
                     >
                       {role}
@@ -369,7 +369,7 @@ export function MetiersPageClient() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Aucun poste sélectionné.</p>
+                <p className="text-base text-muted-foreground">Aucun poste sélectionné.</p>
               )}
             </div>
 
@@ -403,7 +403,7 @@ export function MetiersPageClient() {
                       key={place}
                       type="button"
                       onClick={() => removePlace(place)}
-                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground touch-manipulation"
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-base font-medium text-secondary-foreground touch-manipulation"
                       aria-label={`Retirer ${place}`}
                     >
                       {place}
@@ -412,7 +412,7 @@ export function MetiersPageClient() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Aucun lieu sélectionné.</p>
+                <p className="text-base text-muted-foreground">Aucun lieu sélectionné.</p>
               )}
 
               <div className="space-y-2 pt-1">
@@ -420,7 +420,7 @@ export function MetiersPageClient() {
                   <Label htmlFor="distance-slider" className="mb-0">
                     Périmètre
                   </Label>
-                  <span className="text-sm font-medium tabular-nums text-foreground">
+                  <span className="text-base font-medium tabular-nums text-foreground">
                     {distanceKm} km
                   </span>
                 </div>
@@ -439,7 +439,7 @@ export function MetiersPageClient() {
                   aria-valuenow={distanceKm}
                   aria-label="Périmètre en kilomètres"
                 />
-                <div className="flex justify-between text-xs text-muted-foreground">
+                <div className="flex justify-between text-base text-muted-foreground">
                   <span>0 km</span>
                   <span>100 km</span>
                 </div>
@@ -478,7 +478,7 @@ export function MetiersPageClient() {
                       key={mode}
                       type="button"
                       onClick={() => removeRemoteMode(mode)}
-                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground touch-manipulation"
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-base font-medium text-secondary-foreground touch-manipulation"
                       aria-label={`Retirer ${REMOTE_LABELS[mode] ?? mode}`}
                     >
                       {REMOTE_LABELS[mode] ?? mode}
@@ -487,7 +487,7 @@ export function MetiersPageClient() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Aucun mode sélectionné.</p>
+                <p className="text-base text-muted-foreground">Aucun mode sélectionné.</p>
               )}
             </div>
 
@@ -523,7 +523,7 @@ export function MetiersPageClient() {
                       key={contract}
                       type="button"
                       onClick={() => removeContract(contract)}
-                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground touch-manipulation"
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-base font-medium text-secondary-foreground touch-manipulation"
                       aria-label={`Retirer ${contract}`}
                     >
                       {contract}
@@ -532,7 +532,7 @@ export function MetiersPageClient() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Aucun contrat sélectionné.</p>
+                <p className="text-base text-muted-foreground">Aucun contrat sélectionné.</p>
               )}
             </div>
 
@@ -549,7 +549,7 @@ export function MetiersPageClient() {
                 disabled={loading || acceptNoSalary}
                 onChange={(e) => setMinimumSalary(e.target.value)}
               />
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <label className="flex items-center gap-2 text-base text-muted-foreground">
                 <Checkbox
                   checked={acceptNoSalary}
                   disabled={loading}
@@ -568,7 +568,7 @@ export function MetiersPageClient() {
                 <Label htmlFor="experience-slider" className="mb-0">
                   Niveau d’expérience
                 </Label>
-                <span className="text-sm font-medium tabular-nums text-foreground">
+                <span className="text-base font-medium tabular-nums text-foreground">
                   {experienceYears} {experienceYears <= 1 ? "an" : "ans"}
                 </span>
               </div>
@@ -587,7 +587,7 @@ export function MetiersPageClient() {
                 aria-valuenow={experienceYears}
                 aria-label="Niveau d’expérience en années"
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="flex justify-between text-base text-muted-foreground">
                 <span>0</span>
                 <span>10</span>
               </div>

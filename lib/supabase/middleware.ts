@@ -36,9 +36,26 @@ function getLocalUser(request: NextRequest) {
   return verifySessionToken(token, getAuthSecret());
 }
 
+function clearSessionCookies(response: NextResponse) {
+  const secure = process.env.NODE_ENV === "production";
+  const cleared = {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    path: "/",
+    secure,
+    maxAge: 0,
+    expires: new Date(0),
+  };
+  response.cookies.set(SESSION_COOKIE, "", cleared);
+  response.cookies.set(ONBOARDING_COOKIE, "", cleared);
+  response.cookies.delete(SESSION_COOKIE);
+  response.cookies.delete(ONBOARDING_COOKIE);
+}
+
 export async function updateSession(request: NextRequest) {
   const localUser = getLocalUser(request);
   const pathname = request.nextUrl.pathname;
+  const forceLanding = request.nextUrl.searchParams.get("lp") === "1";
   const isAuthRoute =
     pathname.startsWith("/login") || pathname.startsWith("/auth");
   const onboardingCookie = request.cookies.get(ONBOARDING_COOKIE)?.value;
@@ -46,6 +63,15 @@ export async function updateSession(request: NextRequest) {
   // Missing cookie = treat as pending for new signups; existing sessions without
   // cookie can still hit /api/onboarding which may auto-complete.
   const onboardingPending = !onboardingDone;
+
+  // Reset → LP: always allow the landing page and drop the session cookie.
+  if (pathname === "/" && forceLanding) {
+    const url = request.nextUrl.clone();
+    url.searchParams.delete("lp");
+    const response = NextResponse.redirect(url);
+    clearSessionCookies(response);
+    return response;
+  }
 
   if (localUser) {
     if (pathname === "/") {

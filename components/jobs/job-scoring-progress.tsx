@@ -35,7 +35,7 @@ export function JobScoringProgressBar({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-2 text-xs">
+      <div className="flex items-center justify-between gap-2 text-base">
         <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
           {status === "analyzing" ? (
             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />

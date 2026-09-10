@@ -6,13 +6,15 @@ import { runCvProfileExtraction } from "@/lib/profile/extract-service"
 const bodySchema = z
   .object({
     force: z.boolean().optional(),
+    /** Write structured profile columns (name, city, experiences…) after extract. */
+    persist: z.boolean().optional(),
   })
   .optional()
 
 /**
  * POST /api/profile/extract
  * Parse CV text → ParsedResume + profileDraft.
- * Persists extracted_cv snapshot only — structured columns are written on PUT /api/profile.
+ * With persist:true, also writes structured columns so the profile page is prefilled.
  */
 export async function POST(request: Request) {
   const { supabase, user, error: authError, unreachable } = await getAuthenticatedUser()
@@ -31,16 +33,21 @@ export async function POST(request: Request) {
   }
 
   let force = false
+  let persist = false
   try {
     const json = await request.json().catch(() => ({}))
     const body = bodySchema.parse(json) ?? {}
     force = body.force === true
+    persist = body.persist === true
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
   }
 
   try {
-    const result = await runCvProfileExtraction(supabase, user.id, { force })
+    const result = await runCvProfileExtraction(supabase, user.id, {
+      force,
+      persist,
+    })
     if (!result.ok) {
       return NextResponse.json(
         {

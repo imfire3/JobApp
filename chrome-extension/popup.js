@@ -114,20 +114,37 @@ btnParse.addEventListener("click", async () => {
       return;
     }
 
-    if (!/welcometothejungle\.com/i.test(tab.url)) {
-      setStatus("Ouvre une page offre sur welcometothejungle.com", "err");
+    const isWttj = /welcometothejungle\.com/i.test(tab.url);
+    const isIndeed = /indeed\.com/i.test(tab.url);
+
+    if (!isWttj && !isIndeed) {
+      setStatus(
+        "Ouvre une page offre sur welcometothejungle.com ou indeed.com",
+        "err"
+      );
       return;
     }
 
-    if (!/\/jobs\//i.test(tab.url)) {
+    if (isWttj && !/\/jobs\//i.test(tab.url)) {
       setStatus("Va sur une page d’offre (/companies/.../jobs/...).", "err");
+      return;
+    }
+
+    if (
+      isIndeed &&
+      !/viewjob|voir-emploi|\/jobs\/|jk=|vjk=/i.test(tab.url)
+    ) {
+      setStatus(
+        "Va sur une page d’offre Indeed (viewjob / jk=…).",
+        "err"
+      );
       return;
     }
 
     await ensureContentScript(tab.id);
 
     const response = await chrome.tabs.sendMessage(tab.id, {
-      type: "PARSE_WTTJ_JOB",
+      type: "PARSE_JOB",
     });
 
     if (!response?.ok || !response.job) {

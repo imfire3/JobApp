@@ -1,5 +1,5 @@
 /**
- * Floating side panel UI — always present on WTTJ job pages.
+ * Floating side panel UI — present on WTTJ and Indeed job pages.
  * Collapsed: thin tab on the right. Expanded: full panel.
  * Exports always overwrite one linked base CSV (Excel-compatible).
  *
@@ -17,8 +17,8 @@
   const HANDLE_STORE = "handles";
   const HANDLE_KEY = "baseCsv";
   const DEFAULT_BASE_NAME = "jobtracker-wttj-jobs.csv";
-  const JT_DEBUG_VERSION = "1.2.3";
-  const DEFAULT_DEBUG_RUN = "post-fix";
+  const JT_DEBUG_VERSION = "1.3.0";
+  const DEFAULT_DEBUG_RUN = "indeed-support";
 
   function escapeHtml(value) {
     return String(value)
@@ -302,8 +302,8 @@
     panel.innerHTML = `
       <div class="jt-header">
         <div>
-          <h1>JobTracker — WTTJ</h1>
-          <p class="sub">Parse l’offre → un seul fichier Excel/CSV</p>
+          <h1>JobTracker</h1>
+          <p class="sub">WTTJ & Indeed → un seul fichier Excel/CSV</p>
         </div>
         <button type="button" class="jt-close" id="jt-close" aria-label="Masquer le panneau">×</button>
       </div>

@@ -1114,6 +1114,16 @@ comment on column public.user_settings.product_welcome_completed_at is
 
 
 -- ============================================================
+-- >>> 023_profile_bio.sql
+-- ============================================================
+alter table public.profiles
+  add column if not exists bio text;
+
+comment on column public.profiles.bio is
+  'Short candidate bio / about blurb shown on the private profile page';
+
+
+-- ============================================================
 -- >>> bootstrap_local_admin.sql
 -- ============================================================
 -- Bootstrap for JobApp local-auth (admin@gmail.com / admin)

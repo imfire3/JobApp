@@ -284,13 +284,13 @@ export function SettingsForm() {
             <PageHelpButton pageId="cv" />
           </header>
 
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-base text-muted-foreground">
             <Badge variant={hasSavedCv ? "secondary" : "outline"}>
               {hasSavedCv ? "CV enregistré" : "CV à compléter"}
             </Badge>
             <span>{hasUnsavedCv ? "Modifications non enregistrées" : "À jour"}</span>
             {lastUpdatedAt ? (
-              <span className="text-xs">
+              <span className="text-base">
                 · {new Date(lastUpdatedAt).toLocaleString("fr-FR")}
               </span>
             ) : null}
@@ -334,11 +334,11 @@ export function SettingsForm() {
                         : "Importe ou colle ton CV pour enrichir le contexte"}
                     </CardDescription>
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="px-3 py-1 text-sm">
+                      <Badge variant="secondary" className="px-3 py-1 text-base">
                         {composedCvText.trim().length} caractères
                       </Badge>
                       {experiences.length > 0 ? (
-                        <Badge variant="outline" className="px-3 py-1 text-sm">
+                        <Badge variant="outline" className="px-3 py-1 text-base">
                           {experiences.length} expérience
                           {experiences.length > 1 ? "s" : ""} à fusionner
                         </Badge>
@@ -384,7 +384,7 @@ export function SettingsForm() {
                     {importingPdf ? "Import…" : "Importer le PDF"}
                   </Button>
                 </div>
-                <p className="text-sm leading-6 text-muted-foreground">
+                <p className="text-base leading-6 text-muted-foreground">
                   Le texte est enregistré dans Profil & CV et une analyse ATS est
                   lancée automatiquement.
                 </p>
@@ -400,7 +400,7 @@ export function SettingsForm() {
                 >
                   <div className="min-w-0 space-y-1">
                     <p className="text-base font-medium">Contenu du CV</p>
-                    <p className="truncate text-sm text-muted-foreground">
+                    <p className="truncate text-base text-muted-foreground">
                       {cvText.trim().length > 0
                         ? `${cvText.trim().length} caractères — clique pour ${cvTextOpen ? "replier" : "éditer"}`
                         : "Vide — ouvre pour coller ou éditer le texte"}

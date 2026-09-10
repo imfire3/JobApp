@@ -1,68 +1,71 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
 import { getAuthenticatedUser } from "@/lib/auth"
 import { SESSION_COOKIE } from "@/lib/local-auth"
-import {
-  ONBOARDING_COOKIE,
-  getOnboardingCookieOptions,
-} from "@/lib/onboarding/cookie"
+import { ONBOARDING_COOKIE } from "@/lib/onboarding/cookie"
 
-/**
- * POST /api/auth/reset-local
- * Clears session + onboarding cookies and resets onboarding flags for the
- * current user (if any), so the app can return to the landing page cleanly.
- */
-export async function POST() {
-  const { supabase, user } = await getAuthenticatedUser()
-
-  if (user) {
-    try {
-      await supabase.from("user_settings").upsert(
-        {
-          id: user.id,
-          onboarding_completed: false,
-          onboarding_completed_at: null,
-        },
-        { onConflict: "id" }
-      )
-      await supabase
-        .from("profiles")
-        .update({ profile_reviewed_at: null })
-        .eq("id", user.id)
-    } catch {
-      // Best-effort: cookies still get cleared below.
-    }
-  }
-
-  const response = NextResponse.json({ ok: true })
+function clearAuthCookies(response: NextResponse) {
   const secure = process.env.NODE_ENV === "production"
-
-  response.cookies.set(SESSION_COOKIE, "", {
+  const base = {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     secure,
     maxAge: 0,
-  })
-
-  response.cookies.set(ONBOARDING_COOKIE, "", {
-    ...getOnboardingCookieOptions(),
-    maxAge: 0,
-  })
-
-  // Also clear any leftover cookie values from the request jar.
-  const jar = await cookies()
-  for (const cookie of jar.getAll()) {
-    if (cookie.name.startsWith("jobapp_")) {
-      response.cookies.set(cookie.name, "", {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure,
-        maxAge: 0,
-      })
-    }
+    expires: new Date(0),
   }
 
+  response.cookies.set(SESSION_COOKIE, "", base)
+  response.cookies.set(ONBOARDING_COOKIE, "", base)
+  response.cookies.delete(SESSION_COOKIE)
+  response.cookies.delete(ONBOARDING_COOKIE)
+}
+
+async function resetLocalState() {
+  try {
+    const { supabase, user } = await getAuthenticatedUser()
+    if (!user) return
+
+    await supabase.from("user_settings").upsert(
+      {
+        id: user.id,
+        onboarding_completed: false,
+        onboarding_completed_at: null,
+      },
+      { onConflict: "id" }
+    )
+    await supabase
+      .from("profiles")
+      .update({ profile_reviewed_at: null })
+      .eq("id", user.id)
+  } catch {
+    // Best-effort: cookies still get cleared below.
+  }
+}
+
+/**
+ * GET /api/auth/reset-local
+ * Clears session and redirects to /?lp=1 so middleware forces the landing page
+ * even if a stale session cookie briefly remains.
+ */
+export async function GET(request: Request) {
+  await resetLocalState()
+
+  const landing = new URL("/", request.url)
+  landing.searchParams.set("lp", "1")
+  const response = NextResponse.redirect(landing)
+  clearAuthCookies(response)
+
+  return response
+}
+
+/**
+ * POST /api/auth/reset-local
+ * Same clear as GET, JSON response for callers that prefer fetch.
+ */
+export async function POST() {
+  await resetLocalState()
+
+  const response = NextResponse.json({ ok: true, redirect: "/?lp=1" })
+  clearAuthCookies(response)
   return response
 }

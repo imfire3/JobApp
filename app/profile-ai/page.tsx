@@ -1,10 +1,10 @@
-import { AppShell } from "@/components/layout/app-shell";
-import { SettingsForm } from "@/components/settings/settings-form";
+import { AppShell } from "@/components/layout/app-shell"
+import { ProfilePage } from "@/components/profile/profile-page"
 
 export default function ProfileAiPage() {
   return (
     <AppShell>
-      <SettingsForm />
+      <ProfilePage />
     </AppShell>
-  );
+  )
 }

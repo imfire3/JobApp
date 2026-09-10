@@ -76,7 +76,7 @@ export function JobBulkActions({
       role="toolbar"
       aria-label={`Actions pour ${selectedCount} offres sélectionnées`}
     >
-      <span className="mr-1 text-sm font-medium">
+      <span className="mr-1 text-base font-medium">
         {selectedCount} sélectionné{selectedCount > 1 ? "s" : ""}
       </span>
 

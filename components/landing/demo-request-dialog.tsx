@@ -76,7 +76,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
   }
 
   const fieldClass =
-    "w-full rounded-xl border border-[#111]/15 bg-white px-3 py-2.5 text-sm text-[#111] outline-none transition placeholder:text-[#111]/40 focus:border-[#111]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+    "w-full rounded-xl border border-[#111]/15 bg-white px-3 py-2.5 text-base text-[#111] outline-none transition placeholder:text-[#111]/40 focus:border-[#111]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -88,19 +88,19 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
           <DialogTitle className="font-[family-name:var(--font-landing-display)] text-xl font-semibold tracking-tight text-[#111]">
             Inscription démo
           </DialogTitle>
-          <DialogDescription className="text-sm leading-relaxed text-[#111]/65">
+          <DialogDescription className="text-base leading-relaxed text-[#111]/65">
             Laisse tes coordonnées. On te contacte pour t’ouvrir un accès.
           </DialogDescription>
         </DialogHeader>
 
         {success ? (
           <div className="space-y-4 px-5 py-6">
-            <p className="text-sm leading-relaxed text-[#111]/80">
+            <p className="text-base leading-relaxed text-[#111]/80">
               Demande envoyée. On te contacte pour t’ouvrir l’accès.
             </p>
             <button
               type="button"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#111] px-5 py-2.5 text-sm font-semibold text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#111] px-5 py-2.5 text-base font-semibold text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
               onClick={() => handleOpenChange(false)}
               tabIndex={0}
               aria-label="Fermer"
@@ -112,7 +112,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
           <form onSubmit={handleSubmit} className="relative space-y-4 px-5 py-5">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label htmlFor="demo-first-name" className="text-sm font-medium">
+                <label htmlFor="demo-first-name" className="text-base font-medium">
                   Prénom
                 </label>
                 <input
@@ -127,7 +127,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
                 />
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="demo-last-name" className="text-sm font-medium">
+                <label htmlFor="demo-last-name" className="text-base font-medium">
                   Nom
                 </label>
                 <input
@@ -143,7 +143,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
               </div>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="demo-email" className="text-sm font-medium">
+              <label htmlFor="demo-email" className="text-base font-medium">
                 Email
               </label>
               <input
@@ -173,7 +173,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
               />
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="demo-message" className="text-sm font-medium">
+              <label htmlFor="demo-message" className="text-base font-medium">
                 Message{" "}
                 <span className="font-normal text-[#111]/45">(optionnel)</span>
               </label>
@@ -190,7 +190,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
             </div>
 
             {error ? (
-              <p className="text-sm text-red-700" role="alert">
+              <p className="text-base text-red-700" role="alert">
                 {error}
               </p>
             ) : null}
@@ -198,7 +198,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#111] px-5 py-2.5 text-sm font-semibold text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111] disabled:opacity-60"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#111] px-5 py-2.5 text-base font-semibold text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111] disabled:opacity-60"
               aria-label="Envoyer ma demande d’accès démo"
             >
               {loading ? "Envoi…" : "Envoyer ma demande"}

@@ -35,7 +35,7 @@ function severityBadgeClass(severity: CvAnalysisSeverity): string {
 function ScoreCard({ label, score }: { label: string; score: number | null }) {
   return (
     <div className="rounded-2xl border p-4">
-      <p className="text-sm uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-base uppercase tracking-wide text-muted-foreground">{label}</p>
       {typeof score === "number" ? (
         <p className={`mt-2 text-3xl font-semibold ${getMatchScoreColor(score)}`}>{score}</p>
       ) : (
@@ -218,10 +218,10 @@ export function CvAnalysisPanel({
                 onChange={(e) => setPrompt(e.target.value)}
                 rows={12}
                 disabled={promptLoading || promptSaving}
-                className="font-mono text-sm leading-6"
+                className="font-mono text-base leading-6"
                 placeholder={promptLoading ? "Chargement du prompt…" : "Prompt système…"}
               />
-              <p className="text-sm leading-6 text-muted-foreground">
+              <p className="text-base leading-6 text-muted-foreground">
                 Conserve les champs JSON requis si tu modifies ce prompt. Le texte du CV
                 est injecté séparément en message utilisateur.
               </p>
@@ -267,7 +267,7 @@ export function CvAnalysisPanel({
 
         {analysis ? (
           <>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-base text-muted-foreground">
               <span>
                 Dernière analyse :{" "}
                 {new Date(analysis.analyzed_at).toLocaleString("fr-FR")}
@@ -301,7 +301,7 @@ export function CvAnalysisPanel({
                 <div className="flex flex-wrap gap-2">
                   {analysis.analysis.detected_roles.length > 0 ? (
                     analysis.analysis.detected_roles.map((role) => (
-                      <Badge key={role} variant="outline" className="px-3 py-1 text-sm">
+                      <Badge key={role} variant="tag">
                         {role}
                       </Badge>
                     ))
@@ -325,7 +325,7 @@ export function CvAnalysisPanel({
                 <p className="text-base font-semibold">Compétences</p>
                 <div className="flex flex-wrap gap-2">
                   {analysis.analysis.detected_skills.slice(0, 12).map((skill) => (
-                    <Badge key={skill} variant="secondary" className="px-3 py-1 text-sm">
+                    <Badge key={skill} variant="tag">
                       {skill}
                     </Badge>
                   ))}
@@ -335,7 +335,7 @@ export function CvAnalysisPanel({
                 <p className="text-base font-semibold">Outils</p>
                 <div className="flex flex-wrap gap-2">
                   {analysis.analysis.detected_tools.slice(0, 12).map((tool) => (
-                    <Badge key={tool} variant="secondary" className="px-3 py-1 text-sm">
+                    <Badge key={tool} variant="tag">
                       {tool}
                     </Badge>
                   ))}
@@ -364,7 +364,7 @@ export function CvAnalysisPanel({
                 <div className="flex flex-wrap gap-2">
                   {analysis.analysis.detected_industries.length > 0 ? (
                     analysis.analysis.detected_industries.map((industry) => (
-                      <Badge key={industry} variant="outline" className="px-3 py-1 text-sm">
+                      <Badge key={industry} variant="tag">
                         {industry}
                       </Badge>
                     ))
@@ -394,7 +394,7 @@ export function CvAnalysisPanel({
                     <Badge
                       key={keyword}
                       variant="outline"
-                      className="border-amber-500/30 bg-amber-500/10 px-3 py-1 text-sm text-amber-800"
+                      className="border-amber-500/30 bg-amber-500/10 px-3 py-1 text-base text-amber-800"
                     >
                       {keyword}
                     </Badge>
@@ -421,11 +421,11 @@ export function CvAnalysisPanel({
                         <Badge variant="secondary">{rec.category}</Badge>
                       </div>
                       <p className="text-base leading-7 text-muted-foreground">{rec.explanation}</p>
-                      <p className="text-sm leading-6 text-muted-foreground">
+                      <p className="text-base leading-6 text-muted-foreground">
                         <span className="font-medium text-foreground">Preuve : </span>
                         {rec.evidence_from_cv}
                       </p>
-                      <p className="text-sm leading-6 text-muted-foreground">
+                      <p className="text-base leading-6 text-muted-foreground">
                         <span className="font-medium text-foreground">Suggestion : </span>
                         {rec.suggested_improvement}
                       </p>

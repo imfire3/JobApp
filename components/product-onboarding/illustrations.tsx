@@ -20,7 +20,7 @@ const MockJobCard = ({
   meta?: string
 }) => (
   <div className="rounded-lg border bg-background p-2.5 shadow-sm">
-    <p className="truncate text-xs font-medium leading-tight">{title}</p>
+    <p className="truncate text-base font-medium leading-tight">{title}</p>
     <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{company}</p>
     {meta ? (
       <p className="mt-1 truncate text-[10px] text-muted-foreground">{meta}</p>
@@ -62,7 +62,7 @@ export const BoardIllustration = () => {
     >
       <div className="mb-3 flex items-center gap-2 px-1">
         <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">
+        <span className="text-base font-medium text-muted-foreground">
           Board candidatures
         </span>
       </div>
@@ -115,12 +115,12 @@ export const AiWorkflowIllustration = () => (
   <div className="w-full space-y-2" aria-hidden>
     <WorkflowStep label="Offre d’emploi">
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground">
           AL
         </div>
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-sm font-medium leading-tight">Alan</p>
-          <p className="text-xs text-foreground">Product Manager</p>
+          <p className="text-base font-medium leading-tight">Alan</p>
+          <p className="text-base text-foreground">Product Manager</p>
           <p className="text-[11px] text-muted-foreground">
             Paris · 55–65k € · CDI
           </p>
@@ -136,24 +136,24 @@ export const AiWorkflowIllustration = () => (
     </div>
 
     <WorkflowStep label="Analyse IA" highlight>
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 text-base">
         <Sparkles className="h-4 w-4 text-foreground" />
         <span className="font-medium">Extraction des infos clés</span>
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5">
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="tag" className="text-[10px]">
           Entreprise
         </Badge>
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="tag" className="text-[10px]">
           Poste
         </Badge>
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="tag" className="text-[10px]">
           Localisation
         </Badge>
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="tag" className="text-[10px]">
           Salaire
         </Badge>
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="tag" className="text-[10px]">
           Description
         </Badge>
       </div>
@@ -166,7 +166,7 @@ export const AiWorkflowIllustration = () => (
     <WorkflowStep label="Candidature créée">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">Product Manager · Alan</p>
+          <p className="truncate text-base font-medium">Product Manager · Alan</p>
           <p className="text-[11px] text-muted-foreground">Pré-remplie · À revoir</p>
         </div>
         <Badge className="shrink-0 text-[10px]">À postuler</Badge>
@@ -205,8 +205,8 @@ export const BenefitsIllustration = () => {
                 <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0 space-y-1 text-left">
-                <CardTitle className="text-sm">{item.title}</CardTitle>
-                <p className="text-xs leading-relaxed text-muted-foreground">
+                <CardTitle className="text-base">{item.title}</CardTitle>
+                <p className="text-base leading-relaxed text-muted-foreground">
                   {item.body}
                 </p>
               </div>

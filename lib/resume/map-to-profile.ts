@@ -142,6 +142,7 @@ export function mapParsedResumeToProfileDraft(
     date_of_birth: gateString(parsed.personalInformation.birthDate),
     current_city: gateString(parsed.personalInformation.location),
     current_title: gateString(parsed.personalInformation.currentPosition),
+    bio: null,
     linkedin_url: gateString(parsed.resources.linkedin),
     github_url: gateString(parsed.resources.github),
     website_url: gateString(parsed.resources.website),

@@ -331,7 +331,7 @@ export function JobBoard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Job board</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             {filteredJobs.length} jobs · {selectedCount} selected
           </p>
         </div>
@@ -358,7 +358,7 @@ export function JobBoard() {
       <KpiCards kpis={kpis} />
       {bulkProgress && (
         <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-base">
             <span>
               Selected: {bulkProgress.total} · Current: {bulkProgress.current} · Success:{" "}
               {bulkProgress.success} · Failed: {bulkProgress.failed}

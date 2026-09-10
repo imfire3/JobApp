@@ -86,7 +86,7 @@ export function SourcesPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Sources</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               Connecteurs de collecte d’offres. Pour un import manuel, utilise aussi
               Imports ou l’extension Chrome.
             </p>
@@ -121,7 +121,7 @@ export function SourcesPage() {
                   <span>{source.enabled ? "Enabled" : "Disabled"}</span>
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <CardContent className="space-y-3 text-base text-muted-foreground">
                 <p className="flex items-center justify-between">
                   <span>Authentication</span>
                   <span>{source.auth_configured ? "Configured" : "Not configured"}</span>

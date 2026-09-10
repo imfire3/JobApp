@@ -57,6 +57,7 @@ function mapProfileRow(
     date_of_birth: typeof row?.date_of_birth === "string" ? row.date_of_birth : null,
     current_city: typeof row?.current_city === "string" ? row.current_city : null,
     current_title: typeof row?.current_title === "string" ? row.current_title : null,
+    bio: typeof row?.bio === "string" ? row.bio : null,
     linkedin_url: typeof row?.linkedin_url === "string" ? row.linkedin_url : null,
     github_url: typeof row?.github_url === "string" ? row.github_url : null,
     website_url: typeof row?.website_url === "string" ? row.website_url : null,
@@ -89,19 +90,53 @@ export async function loadCandidateProfile(
   supabase: SupabaseClient,
   userId: string
 ) {
-  const [{ data: cvData, error: cvError }, { data: profileRow, error: profileError }] =
-    await Promise.all([
-      supabase
-        .from("cv_contexts")
-        .select("id,cv_text,updated_at,created_at")
-        .eq("id", userId)
-        .maybeSingle(),
-      supabase
-        .from("profiles")
-        .select(profileSelectColumns())
-        .eq("id", userId)
-        .maybeSingle(),
-    ])
+  const [{ data: cvData, error: cvError }, profileQuery] = await Promise.all([
+    supabase
+      .from("cv_contexts")
+      .select("id,cv_text,updated_at,created_at")
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select(profileSelectColumns())
+      .eq("id", userId)
+      .maybeSingle(),
+  ])
+
+  let profileRow = profileQuery.data
+  let profileError = profileQuery.error
+
+  // Missing optional columns (e.g. bio before migration 023) must not wipe the profile:
+  // PostgREST returns 42703 and no row — previously treated as an empty profile.
+  if (profileError?.code === "42703") {
+    resumeDevLog("PROFILE LOAD", "select column missing, retry without bio", {
+      message: profileError.message,
+    })
+    const withoutBio = profileSelectColumns()
+      .split(",")
+      .filter((col) => col !== "bio")
+      .join(",")
+    const retry = await supabase
+      .from("profiles")
+      .select(withoutBio)
+      .eq("id", userId)
+      .maybeSingle()
+    profileRow = retry.data
+    profileError = retry.error
+  }
+
+  if (profileError?.code === "42703") {
+    resumeDevLog("PROFILE LOAD", "select still failing, fallback to *", {
+      message: profileError.message,
+    })
+    const star = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle()
+    profileRow = star.data
+    profileError = star.error
+  }
 
   if (cvError && cvError.code !== "42P01") {
     throw new Error(cvError.message)
@@ -124,12 +159,14 @@ export async function loadCandidateProfile(
     cv = created ?? null
   }
 
-  return mapProfileRow(
+  const mapped = mapProfileRow(
     userId,
     cv?.cv_text ?? "",
     cv,
     (profileRow as Record<string, unknown> | null) ?? null
   )
+
+  return mapped
 }
 
 function emptyDraftFromProfile(existing: Record<string, unknown>): ProfileDraft {
@@ -141,6 +178,7 @@ function emptyDraftFromProfile(existing: Record<string, unknown>): ProfileDraft 
     date_of_birth: null,
     current_city: null,
     current_title: null,
+    bio: null,
     linkedin_url: null,
     github_url: null,
     website_url: null,
@@ -169,13 +207,14 @@ function emptyDraftFromProfile(existing: Record<string, unknown>): ProfileDraft 
 
 /**
  * Parse CV text → draft for the form.
- * Persists only extracted_cv snapshot (+ prompt version). Does NOT upsert
- * structured profile columns — user confirms via PUT /api/profile.
+ * Always persists extracted_cv snapshot.
+ * When options.persist is true, also writes structured profile columns
+ * (name, title, city, experiences, etc.) so /profile-ai is prefilled after signup.
  */
 export async function runCvProfileExtraction(
   supabase: SupabaseClient,
   userId: string,
-  options?: { force?: boolean }
+  options?: { force?: boolean; persist?: boolean }
 ): Promise<ExtractProfileResult> {
   const existing = await loadCandidateProfile(supabase, userId)
   const cvText = existing.cv_text?.trim() ?? ""
@@ -235,30 +274,94 @@ export async function runCvProfileExtraction(
     const snapshot = draftToExtractedSnapshot(draft)
     const promptVersion = parsed.meta.promptVersion ?? "resume-pipeline-v1"
 
-    // Snapshot only — do not overwrite validated structured columns
     const snapshotPayload: Record<string, unknown> = {
       id: userId,
       extracted_cv: snapshot,
       extracted_cv_prompt_version: promptVersion,
     }
 
+    if (options?.persist) {
+      // Prefill structured columns after CV import (user can still edit later)
+      if (draft.first_name != null) snapshotPayload.first_name = draft.first_name
+      if (draft.last_name != null) snapshotPayload.last_name = draft.last_name
+      if (draft.contact_email != null) {
+        snapshotPayload.contact_email = draft.contact_email
+      }
+      if (draft.phone != null) snapshotPayload.phone = draft.phone
+      if (draft.date_of_birth != null) {
+        snapshotPayload.date_of_birth = draft.date_of_birth
+      }
+      if (draft.current_city != null) {
+        snapshotPayload.current_city = draft.current_city
+      }
+      if (draft.current_title != null) {
+        snapshotPayload.current_title = draft.current_title
+      }
+      if (draft.linkedin_url != null) {
+        snapshotPayload.linkedin_url = draft.linkedin_url
+      }
+      if (draft.github_url != null) snapshotPayload.github_url = draft.github_url
+      if (draft.website_url != null) {
+        snapshotPayload.website_url = draft.website_url
+      }
+      // Always write structured arrays on persist so reload shows cards/chips
+      snapshotPayload.skills = draft.skills
+      snapshotPayload.keywords = draft.skills
+      snapshotPayload.experience_entries = draft.experience_entries
+      snapshotPayload.education_entries = draft.education_entries
+      snapshotPayload.education = draft.education_entries.map((entry) =>
+        [entry.name, entry.school].filter(Boolean).join(" — ")
+      )
+      snapshotPayload.language_entries = draft.language_entries
+      snapshotPayload.languages = draft.language_entries.map(
+        (entry) => entry.language
+      )
+    }
+
     const { error: upsertError } = await supabase
       .from("profiles")
       .upsert(snapshotPayload, { onConflict: "id" })
 
-    if (upsertError && upsertError.code !== "42P01" && upsertError.code !== "42703") {
-      resumeDevLog("PROFILE MAPPING", "Snapshot upsert failed", upsertError.message)
-      // Still return draft to the client even if snapshot failed
+    if (upsertError) {
+      resumeDevLog("PROFILE MAPPING", "Snapshot upsert failed", {
+        code: upsertError.code,
+        message: upsertError.message,
+        persist: Boolean(options?.persist),
+      })
+      // Fallback: update existing row (covers partial-schema / upsert edge cases)
+      const { id: profileId, ...updatePayload } = snapshotPayload
+      void profileId
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update(updatePayload)
+        .eq("id", userId)
+      if (updateError) {
+        resumeDevLog("PROFILE MAPPING", "Snapshot update failed", {
+          code: updateError.code,
+          message: updateError.message,
+        })
+      } else {
+        resumeDevLog("PROFILE MAPPING", "Snapshot saved via update fallback")
+      }
+    } else if (options?.persist) {
+      resumeDevLog("PROFILE MAPPING", "Structured profile persisted", {
+        first_name: draft.first_name,
+        experiences: draft.experience_entries.length,
+        education: draft.education_entries.length,
+        skills: draft.skills.length,
+      })
     }
 
-    // Merge draft into a profile-shaped response for backwards-compatible clients,
-    // but keep DB structured columns untouched (reload existing + overlay draft fields).
+    const reloaded = options?.persist
+      ? await loadCandidateProfile(supabase, userId)
+      : existing
+
     const profileForClient = {
-      ...existing,
+      ...reloaded,
       ...draft,
       id: userId,
       cv_text: cvText,
-      profile_reviewed_at: existing.profile_reviewed_at,
+      profile_reviewed_at: reloaded.profile_reviewed_at,
       extracted_cv: snapshot,
       extracted_cv_prompt_version: promptVersion,
     }

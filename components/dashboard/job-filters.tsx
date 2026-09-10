@@ -59,7 +59,7 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
         <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
-          <Label htmlFor="remote-only" className="mb-0 whitespace-nowrap text-sm">
+          <Label htmlFor="remote-only" className="mb-0 whitespace-nowrap text-base">
             Remote uniquement
           </Label>
           <Switch
@@ -71,7 +71,7 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
           />
         </div>
         <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
-          <Label htmlFor="hybrid-only" className="mb-0 whitespace-nowrap text-sm">
+          <Label htmlFor="hybrid-only" className="mb-0 whitespace-nowrap text-base">
             Hybride
           </Label>
           <Switch
@@ -83,7 +83,7 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
           />
         </div>
         <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
-          <Label htmlFor="last-24h" className="mb-0 whitespace-nowrap text-sm">
+          <Label htmlFor="last-24h" className="mb-0 whitespace-nowrap text-base">
             24 h seulement
           </Label>
           <Switch

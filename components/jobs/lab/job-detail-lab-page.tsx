@@ -421,7 +421,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
   if (loading) {
     return (
       <AppShell>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-base text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Chargement de l’offre…
         </div>
@@ -433,7 +433,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
     return (
       <AppShell>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Offre introuvable.</p>
+          <p className="text-base text-muted-foreground">Offre introuvable.</p>
           <Link href="/jobs" className={buttonVariants({ variant: "outline" })}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour aux jobs
@@ -466,13 +466,13 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                   </div>
                   <h1 className="text-2xl font-bold tracking-tight">{job.title}</h1>
                   <p className="text-muted-foreground">{job.company}</p>
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <Badge variant="outline">{job.source}</Badge>
+                  <div className="flex flex-wrap gap-2 text-base text-muted-foreground">
+                    <Badge variant="tag">{job.source}</Badge>
                     {job.location ? <span>{job.location}</span> : null}
                     {job.contract_type ? (
-                      <Badge variant="outline">{job.contract_type}</Badge>
+                      <Badge variant="tag">{job.contract_type}</Badge>
                     ) : null}
-                    {job.remote ? <Badge variant="outline">Remote</Badge> : null}
+                    {job.remote ? <Badge variant="tag">Remote</Badge> : null}
                     <Badge className={getStatusColor(job.status)} variant="secondary">
                       {job.status.replace(/_/g, " ")}
                     </Badge>
@@ -523,7 +523,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 <Card>
                   <CardHeader>
                     <CardTitle>Analyse de ton offre</CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       Comparaison en cours avec ton CV…
                     </p>
                   </CardHeader>
@@ -532,7 +532,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       {ANALYSIS_STEPS.map((step) => (
                         <div
                           key={step}
-                          className="flex items-center gap-2 text-sm text-muted-foreground"
+                          className="flex items-center gap-2 text-base text-muted-foreground"
                         >
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           {step}
@@ -549,7 +549,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 <Card>
                   <CardHeader>
                     <CardTitle>Analyse ton offre</CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       Identifie les compétences communes et les éléments à renforcer avant
                       de candidater.
                     </p>
@@ -570,7 +570,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       <CircleAlert className="h-5 w-5 text-destructive" />
                       Analyse impossible
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       {analyzeError ?? "Une erreur est survenue."}
                     </p>
                   </CardHeader>
@@ -595,7 +595,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                     <CardContent className="space-y-6 pt-6">
                       <div className="flex flex-wrap items-end justify-between gap-4">
                         <div>
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          <p className="text-base font-medium uppercase tracking-wide text-muted-foreground">
                             Match avec ton profil
                           </p>
                           <p
@@ -612,16 +612,16 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                             <span className="text-2xl text-muted-foreground"> / 100</span>
                           </p>
                           <p className="mt-2 text-lg font-medium">{verdict.label}</p>
-                          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                          <p className="mt-1 max-w-2xl text-base text-muted-foreground">
                             {job.score_explanation?.trim() || verdict.summary}
                           </p>
-                          <p className="mt-3 text-xs text-muted-foreground">
+                          <p className="mt-3 text-base text-muted-foreground">
                             Indicateur d’adéquation documentée (critères × preuves), pas une
                             probabilité d’embauche.
                           </p>
                         </div>
                         <div className="min-w-[180px] rounded-xl border border-border/80 bg-background/60 p-4">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          <p className="text-base uppercase tracking-wide text-muted-foreground">
                             Potentiel après optimisation
                           </p>
                           <p className="mt-2 text-2xl font-semibold">
@@ -631,7 +631,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                               {potentialScore ?? "—"}
                             </span>
                           </p>
-                          <p className="mt-2 text-xs text-muted-foreground">
+                          <p className="mt-2 text-base text-muted-foreground">
                             Estimation UI si tu appliques les reformulations sûres. Le
                             backend ne recalcule pas encore ce score.
                           </p>
@@ -642,8 +642,8 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                         <div className="space-y-3">
                           <div className="flex flex-wrap items-end justify-between gap-2">
                             <div>
-                              <p className="text-sm font-medium">Grille critères × preuves</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-base font-medium">Grille critères × preuves</p>
+                              <p className="text-base text-muted-foreground">
                                 Critères extraits de l’offre, pondérés, notés 0–3 selon le CV.
                               </p>
                             </div>
@@ -683,17 +683,17 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                                       ) : null}
                                     </div>
                                     {row.evidenceFromCv ? (
-                                      <p className="mt-2 text-xs text-muted-foreground">
+                                      <p className="mt-2 text-base text-muted-foreground">
                                         CV : {row.evidenceFromCv}
                                       </p>
                                     ) : null}
                                     {row.question ? (
-                                      <p className="mt-2 text-sm text-amber-100/90">
+                                      <p className="mt-2 text-base text-amber-100/90">
                                         À confirmer : {row.question}
                                       </p>
                                     ) : null}
                                   </div>
-                                  <div className="text-right text-sm tabular-nums text-muted-foreground">
+                                  <div className="text-right text-base tabular-nums text-muted-foreground">
                                     +{row.scoreContribution} pts
                                   </div>
                                 </div>
@@ -775,14 +775,14 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                             <div className="mb-2 flex items-center justify-between gap-2">
                               <Tooltip>
                                 <TooltipTrigger
-                                  className="text-left text-sm font-medium underline-offset-2 hover:underline"
+                                  className="text-left text-base font-medium underline-offset-2 hover:underline"
                                   type="button"
                                 >
                                   {score.label}
                                 </TooltipTrigger>
                                 <TooltipContent>{score.tooltip}</TooltipContent>
                               </Tooltip>
-                              <span className="text-sm font-semibold tabular-nums">
+                              <span className="text-base font-semibold tabular-nums">
                                 {typeof score.score === "number" ? `${score.score}%` : "—"}
                               </span>
                             </div>
@@ -814,7 +814,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {actions.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-base text-muted-foreground">
                           Aucune action prioritaire — ton CV couvre déjà bien cette offre.
                         </p>
                       ) : (
@@ -847,11 +847,11 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                                   : "Voir les expériences"}
                               </Button>
                             </div>
-                            <p className="mt-3 text-sm text-muted-foreground">
+                            <p className="mt-3 text-base text-muted-foreground">
                               {action.reason}
                             </p>
                             {action.experienceHint ? (
-                              <p className="mt-2 text-xs text-muted-foreground">
+                              <p className="mt-2 text-base text-muted-foreground">
                                 Expérience concernée : {action.experienceHint}
                               </p>
                             ) : null}
@@ -868,14 +868,14 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       </CardHeader>
                       <CardContent className="space-y-2">
                         {highlights.strengths.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-base text-muted-foreground">
                             Aucun point fort listé pour cette analyse.
                           </p>
                         ) : (
                           highlights.strengths.map((reason) => (
                             <div
                               key={reason}
-                              className="flex items-start gap-2 text-sm text-emerald-300/90"
+                              className="flex items-start gap-2 text-base text-emerald-300/90"
                             >
                               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                               <span>{reason}</span>
@@ -891,7 +891,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       <CardContent className="space-y-2">
                         {highlights.gaps.length === 0 &&
                         (job.keywords_missing ?? []).length === 0 ? (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-base text-muted-foreground">
                             Pas d’écart prioritaire détecté.
                           </p>
                         ) : (
@@ -899,7 +899,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                             {highlights.gaps.map((gap) => (
                               <div
                                 key={gap}
-                                className="flex items-start gap-2 text-sm text-amber-200/90"
+                                className="flex items-start gap-2 text-base text-amber-200/90"
                               >
                                 <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
                                 <span>{gap}</span>
@@ -909,7 +909,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                               ? (job.keywords_missing ?? []).slice(0, 4).map((kw) => (
                                   <div
                                     key={kw}
-                                    className="flex items-start gap-2 text-sm text-amber-200/90"
+                                    className="flex items-start gap-2 text-base text-amber-200/90"
                                   >
                                     <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
                                     <span>{kw}</span>
@@ -942,11 +942,11 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 </CardHeader>
                 <CardContent>
                   {job.job_posting_summary ? (
-                    <p className="text-sm leading-relaxed text-foreground/90">
+                    <p className="text-base leading-relaxed text-foreground/90">
                       {job.job_posting_summary}
                     </p>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       Lance l’analyse pour obtenir un résumé structuré de l’offre.
                     </p>
                   )}
@@ -961,12 +961,12 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                   <CardContent className="space-y-2">
                     {missions.length > 0 ? (
                       missions.map((mission) => (
-                        <p key={mission} className="text-sm text-muted-foreground">
+                        <p key={mission} className="text-base text-muted-foreground">
                           • {mission}
                         </p>
                       ))
                     ) : (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-base text-muted-foreground">
                         Missions non structurées — voir le résumé ou l’offre originale.
                       </p>
                     )}
@@ -976,7 +976,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                   <CardHeader>
                     <CardTitle>Informations</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
+                  <CardContent className="space-y-2 text-base">
                     <p>
                       <span className="text-muted-foreground">Contrat : </span>
                       {job.contract_type || "—"}
@@ -1013,13 +1013,13 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-2">
                   {skills.hard.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       Aucune compétence structurée — les mots-clés ATS ci-dessous
                       complètent la lecture.
                     </p>
                   ) : (
                     skills.hard.map((skill) => (
-                      <Badge key={skill} variant="secondary">
+                      <Badge key={skill} variant="tag">
                         {skill}
                       </Badge>
                     ))
@@ -1030,14 +1030,14 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               <Card>
                 <CardHeader>
                   <CardTitle>Mots-clés ATS</CardTitle>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     Importance estimée à partir des absences / présences détectées.
                     Le nombre d’occurrences n’est pas encore fourni par le backend.
                   </p>
                 </CardHeader>
                 <CardContent>
                   {keywordRows.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       Analyse l’offre pour extraire les mots-clés ATS.
                     </p>
                   ) : (
@@ -1080,10 +1080,10 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               </Card>
 
               <details className="rounded-xl border border-border/70 bg-card p-4">
-                <summary className="cursor-pointer text-sm font-medium">
+                <summary className="cursor-pointer text-base font-medium">
                   Afficher l’offre originale
                 </summary>
-                <pre className="mt-4 max-h-[420px] overflow-auto whitespace-pre-wrap text-sm text-muted-foreground">
+                <pre className="mt-4 max-h-[420px] overflow-auto whitespace-pre-wrap text-base text-muted-foreground">
                   {(job.description || job.summary || "").trim() ||
                     "Aucun texte brut importé."}
                 </pre>
@@ -1095,7 +1095,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
                   <div>
                     <CardTitle>Optimiser mon CV pour cette offre</CardTitle>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-1 text-base text-muted-foreground">
                       Reformulations uniquement à partir de preuves présentes dans ton CV.
                       Jamais d’invention de faits, chiffres ou compétences.
                     </p>
@@ -1116,7 +1116,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-border/70 p-4">
-                    <p className="text-xs uppercase text-muted-foreground">Score actuel</p>
+                    <p className="text-base uppercase text-muted-foreground">Score actuel</p>
                     <p
                       className={cn(
                         "mt-1 text-3xl font-bold",
@@ -1129,13 +1129,13 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                     </p>
                   </div>
                   <div className="rounded-xl border border-border/70 p-4">
-                    <p className="text-xs uppercase text-muted-foreground">
+                    <p className="text-base uppercase text-muted-foreground">
                       Score estimé après optimisation
                     </p>
                     <p className="mt-1 text-3xl font-bold text-emerald-400">
                       {potentialScore ?? "—"}
                     </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-base text-muted-foreground">
                       Heuristique UI — à remplacer par un re-score backend.
                     </p>
                   </div>
@@ -1146,7 +1146,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 <Card className="border-amber-500/30">
                   <CardHeader>
                     <CardTitle>À confirmer</CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       À ajouter uniquement si cela correspond réellement à ton expérience.
                     </p>
                   </CardHeader>
@@ -1159,7 +1159,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                           className="rounded-xl border border-border/70 p-4"
                         >
                           <p className="font-medium">{item.action}</p>
-                          <p className="mt-2 text-sm text-muted-foreground">
+                          <p className="mt-2 text-base text-muted-foreground">
                             {item.information_to_confirm ||
                               item.evidence_from_job ||
                               "Confirmation utilisateur requise."}
@@ -1187,7 +1187,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {!optimize || optimize.byExperience.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       {cvLoading
                         ? "Chargement des expériences CV…"
                         : "Aucune suggestion pour cette offre. Relance l’analyse si besoin."}
@@ -1206,33 +1206,33 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                         >
                           {exp ? (
                             <div className="mb-3">
-                              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                              <p className="text-base uppercase tracking-wide text-muted-foreground">
                                 {exp.organization || "Expérience"}
                               </p>
                               <p className="font-semibold">{exp.title}</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-base text-muted-foreground">
                                 {formatExperiencePeriod(exp)}
                               </p>
                             </div>
                           ) : (
-                            <p className="mb-3 text-sm font-medium">
+                            <p className="mb-3 text-base font-medium">
                               Suggestions non rattachées à une expérience
                             </p>
                           )}
 
                           {exp?.highlights ? (
                             <div className="mb-4 rounded-lg bg-muted/40 p-3">
-                              <p className="text-xs uppercase text-muted-foreground">
+                              <p className="text-base uppercase text-muted-foreground">
                                 Texte actuel
                               </p>
-                              <p className="mt-1 text-sm whitespace-pre-wrap">
+                              <p className="mt-1 text-base whitespace-pre-wrap">
                                 {exp.highlights}
                               </p>
                             </div>
                           ) : null}
 
                           {visibleItems.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-base text-muted-foreground">
                               Pas de suggestion ciblée pour cette expérience.
                             </p>
                           ) : (
@@ -1275,10 +1275,10 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                                       <Badge variant="secondary">Appliquée (aperçu)</Badge>
                                     ) : null}
                                   </div>
-                                  <p className="mt-2 text-sm font-medium">{item.action}</p>
+                                  <p className="mt-2 text-base font-medium">{item.action}</p>
                                   {rewrite ? (
                                     <div className="mt-3 space-y-1">
-                                      <p className="text-xs uppercase text-muted-foreground">
+                                      <p className="text-base uppercase text-muted-foreground">
                                         Suggestion pour cette offre
                                       </p>
                                       <Textarea
@@ -1293,7 +1293,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                                       />
                                     </div>
                                   ) : null}
-                                  <p className="mt-3 text-sm text-muted-foreground">
+                                  <p className="mt-3 text-base text-muted-foreground">
                                     <span className="font-medium text-foreground">
                                       Pourquoi ?{" "}
                                     </span>
@@ -1341,11 +1341,11 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       <FileText className="h-4 w-4" />
                       Lettre de motivation
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       Génère une lettre personnalisée à partir de ton CV et de cette offre.
                     </p>
                     {job.cover_letter_angle ? (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-base text-muted-foreground">
                         Angle suggéré : {job.cover_letter_angle}
                       </p>
                     ) : null}
@@ -1398,7 +1398,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       <MessageSquare className="h-4 w-4" />
                       Message LinkedIn
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       Génère un message court destiné au recruteur ou hiring manager.
                     </p>
                   </CardHeader>
@@ -1415,7 +1415,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       <Mail className="h-4 w-4" />
                       Email de candidature
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       Génère un email adapté à cette candidature.
                     </p>
                   </CardHeader>
@@ -1432,7 +1432,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       <Mic className="h-4 w-4" />
                       Pitch entretien
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       Présentation de 30 à 60 secondes expliquant pourquoi ton profil
                       correspond.
                     </p>
@@ -1448,11 +1448,11 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               <Card className="opacity-90">
                 <CardHeader>
                   <CardTitle>Questions de candidature</CardTitle>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     Réponses guidées aux questions fréquentes — génération à brancher.
                   </p>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                <CardContent className="space-y-2 text-base text-muted-foreground">
                   <p>• Pourquoi souhaitez-vous rejoindre l’entreprise ?</p>
                   <p>• Pourquoi êtes-vous adapté à ce poste ?</p>
                   <p>• Décrivez une expérience pertinente.</p>

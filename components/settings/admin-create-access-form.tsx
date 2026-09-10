@@ -133,7 +133,7 @@ export function AdminCreateAccessForm() {
               autoComplete="off"
               placeholder="Ex. DemoAcces1!"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               8 caractères min., 1 majuscule, 1 caractère spécial.
             </p>
           </div>

@@ -25,7 +25,7 @@ export function OnboardingStep({
     >
       <div className="mb-6 w-full sm:mb-8">{step.illustration}</div>
 
-      <p className="mb-3 text-xs font-medium tabular-nums text-muted-foreground">
+      <p className="mb-3 text-base font-medium tabular-nums text-muted-foreground">
         {stepIndex + 1} / {total}
       </p>
 
@@ -33,12 +33,12 @@ export function OnboardingStep({
         {step.title}
       </h1>
 
-      <p className="mt-3 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
+      <p className="mt-3 max-w-md text-pretty text-base leading-relaxed text-muted-foreground sm:text-[15px]">
         {step.description}
       </p>
 
       {step.footnote ? (
-        <p className="mt-3 max-w-md text-xs text-muted-foreground/90">
+        <p className="mt-3 max-w-md text-base text-muted-foreground/90">
           {step.footnote}
         </p>
       ) : null}

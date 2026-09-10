@@ -32,6 +32,7 @@ describe("candidateProfileUpdateSchema", () => {
       contact_email: "",
       date_of_birth: "",
       github_url: null,
+      bio: "",
     })
 
     assert.equal(parsed.phone, null)
@@ -39,6 +40,14 @@ describe("candidateProfileUpdateSchema", () => {
     assert.equal(parsed.contact_email, null)
     assert.equal(parsed.date_of_birth, null)
     assert.equal(parsed.github_url, null)
+    assert.equal(parsed.bio, null)
+  })
+
+  it("accepts a bio string", () => {
+    const parsed = candidateProfileUpdateSchema.parse({
+      bio: "  Product builder based in Paris  ",
+    })
+    assert.equal(parsed.bio, "Product builder based in Paris")
   })
 
   it("rejects invalid dates of birth", () => {

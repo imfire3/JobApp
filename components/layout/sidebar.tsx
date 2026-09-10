@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Briefcase, LogOut, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,25 @@ import { NAV_ITEMS } from "@/components/layout/nav-items";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
-  async function handleSignOut() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
+  function handleSignOut() {
+    try {
+      for (const key of [
+        "jobtracker-theme",
+        "jobtracker_extension_seen",
+        "jobapp_product_welcome_v1",
+        "jobapp_product_guide_v2",
+        "jobapp_product_guide_seen",
+        "jobapp_product_guide_done",
+      ]) {
+        localStorage.removeItem(key)
+      }
+      sessionStorage.clear()
+    } catch {
+      // ignore
+    }
+    // Same path as Reset → LP: clear cookies server-side and land on /
+    window.location.assign("/api/auth/reset-local")
   }
 
   return (
@@ -25,8 +38,8 @@ export function Sidebar() {
           <Briefcase className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-sm font-semibold tracking-tight">JobTracker</p>
-          <p className="text-xs text-muted-foreground">Recherche d’emploi</p>
+          <p className="text-base font-semibold tracking-tight">JobTracker</p>
+          <p className="text-base text-muted-foreground">Recherche d’emploi</p>
         </div>
       </div>
 
@@ -41,7 +54,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-base font-medium transition-colors",
                 active
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
@@ -56,11 +69,11 @@ export function Sidebar() {
 
       <div className="p-4">
         <div className="mb-3 rounded-lg border bg-background/50 p-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-base text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5" />
             Matching & lettres IA
           </div>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          <p className="mt-1 text-base leading-relaxed text-muted-foreground">
             Importe des offres, compare avec ton CV, génère des lettres.
           </p>
         </div>

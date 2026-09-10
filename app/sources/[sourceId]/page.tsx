@@ -15,7 +15,7 @@ export default async function SourceDetailsRoute({
         <CardHeader>
           <CardTitle>Connector details coming soon</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
+        <CardContent className="space-y-3 text-base text-muted-foreground">
           <p>
             This MVP focuses on importing jobs, selecting opportunities, and generating cover
             letters.
