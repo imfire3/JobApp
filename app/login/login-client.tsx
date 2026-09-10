@@ -336,6 +336,43 @@ export default function LoginPageClient({
     }
   }
 
+  /** Localhost only: fill + create a disposable test account. */
+  async function handleFakeFillSignup() {
+    if (!allowSelfSignup) return
+    const stamp = Date.now().toString(36)
+    const fakeEmail = `dev+${stamp}@jobapp.local`
+    const fakePassword = "password1"
+    setIdentifier(fakeEmail)
+    setPassword(fakePassword)
+    setPasswordConfirm(fakePassword)
+    setLoading(true)
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: fakeEmail,
+          password: fakePassword,
+        }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string
+      }
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Inscription échouée")
+      }
+      toast.success("Compte test créé")
+      setPassword("")
+      setPasswordConfirm("")
+      setMode("cv")
+      toast.message("Importe ton CV pour continuer")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Inscription échouée")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -598,7 +635,18 @@ export default function LoginPageClient({
                 Au moins {MIN_PASSWORD_LENGTH} caractères. Les deux champs doivent
                 être identiques.
               </p>
-              <div className="relative z-10 pt-2">
+              <div className="relative z-10 space-y-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="relative z-10 w-full"
+                  disabled={loading}
+                  onClick={() => void handleFakeFillSignup()}
+                  aria-label="Remplir avec des données de test"
+                >
+                  Fake fill data
+                </Button>
                 <Button
                   type="submit"
                   size="lg"

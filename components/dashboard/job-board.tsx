@@ -36,6 +36,7 @@ export function JobBoard() {
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{
     total: number;
     current: number;
@@ -159,7 +160,9 @@ export function JobBoard() {
   }
 
   async function handleBulkStatusUpdate(
-    updates: Partial<Pick<Job, "status" | "selected">>
+    updates: Partial<Pick<Job, "status" | "selected">> & {
+      selection_only?: boolean;
+    }
   ) {
     const selected = jobs.filter((j) => j.selected);
     if (selected.length === 0) {
@@ -196,6 +199,78 @@ export function JobBoard() {
       toast.error(error instanceof Error ? error.message : "Mise à jour groupée échouée");
     } finally {
       setBulkStatusLoading(false);
+    }
+  }
+
+  async function handleSelectAllVisible(selected: boolean) {
+    const ids = filteredJobs.map((job) => job.id);
+    if (ids.length === 0) return;
+
+    setBulkStatusLoading(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, selected, selection_only: true }),
+      });
+      const data = (await readJsonSafe(res)) as {
+        jobs?: Job[];
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(data.error ?? "Sélection groupée échouée");
+      }
+      const updatedJobs = data.jobs ?? [];
+      if (updatedJobs.length) {
+        const byId = new Map(updatedJobs.map((job) => [job.id, job]));
+        setJobs((prev) => prev.map((job) => byId.get(job.id) ?? job));
+      } else {
+        await fetchJobs();
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Sélection groupée échouée");
+    } finally {
+      setBulkStatusLoading(false);
+    }
+  }
+
+  async function handleBulkDelete() {
+    const selected = jobs.filter((j) => j.selected);
+    if (selected.length === 0) {
+      toast.error("Sélectionne au moins une offre");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Supprimer définitivement ${selected.length} offre${selected.length > 1 ? "s" : ""} ?`
+      )
+    ) {
+      return;
+    }
+
+    setBulkDeleteLoading(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selected.map((job) => job.id) }),
+      });
+      const data = (await readJsonSafe(res)) as {
+        ids?: string[];
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(data.error ?? "Suppression groupée échouée");
+      }
+      const deletedIds = new Set(data.ids ?? selected.map((job) => job.id));
+      setJobs((prev) => prev.filter((job) => !deletedIds.has(job.id)));
+      toast.success(
+        `${deletedIds.size} offre${deletedIds.size > 1 ? "s" : ""} supprimée${deletedIds.size > 1 ? "s" : ""}`
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Suppression groupée échouée");
+    } finally {
+      setBulkDeleteLoading(false);
     }
   }
 
@@ -351,8 +426,10 @@ export function JobBoard() {
         selectedCount={selectedCount}
         loading={bulkStatusLoading}
         coverLetterLoading={bulkLoading}
+        deleteLoading={bulkDeleteLoading}
         onBulkUpdate={handleBulkStatusUpdate}
         onGenerateCoverLetters={handleBulkGenerateCoverLetters}
+        onBulkDelete={handleBulkDelete}
       />
 
       <KpiCards kpis={kpis} />
@@ -436,6 +513,7 @@ export function JobBoard() {
             <JobTable
               jobs={filteredJobs}
               onSelect={(id, selected) => updateJob(id, { selected })}
+              onSelectAll={handleSelectAllVisible}
               onStatusChange={(id, status) => updateJob(id, { status })}
               onAnalyze={handleAnalyze}
               onViewCoverLetter={setCoverLetterJob}

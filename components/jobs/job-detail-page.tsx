@@ -34,8 +34,20 @@ import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
 import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 import { getMatchScoreColor, getStatusColor } from "@/lib/jobs/utils";
+import { cn } from "@/lib/utils";
 import type { CvAnalysisResponse, Job, JobStatus } from "@/types";
 import { JOB_STATUSES } from "@/types";
+
+const ATS_SUBSCORE_LABELS: Array<{
+  key: "skills" | "keywords" | "experience" | "title" | "tools";
+  label: string;
+}> = [
+  { key: "skills", label: "Compétences" },
+  { key: "keywords", label: "Mots-clés" },
+  { key: "experience", label: "Expérience" },
+  { key: "title", label: "Titre" },
+  { key: "tools", label: "Outils" },
+];
 
 const ANALYSIS_TABS: Array<{
   value: string;
@@ -142,6 +154,27 @@ function KeywordChips({
           {item}
         </Badge>
       ))}
+    </div>
+  );
+}
+
+function AtsScoreBar({ value }: { value: number | null }) {
+  const pct = typeof value === "number" ? Math.max(0, Math.min(100, value)) : 0;
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div
+        className={cn(
+          "h-full rounded-full transition-all",
+          typeof value !== "number"
+            ? "bg-muted-foreground/20"
+            : value >= 70
+              ? "bg-emerald-500"
+              : value >= 45
+                ? "bg-amber-500"
+                : "bg-orange-500"
+        )}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
@@ -502,6 +535,85 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     Lance l’analyse de l’offre pour obtenir le score de match.
                   </p>
                 )}
+
+                {typeof job.ats_score === "number" || job.ats_breakdown ? (
+                  <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4">
+                    <div className="flex flex-wrap items-end justify-between gap-3">
+                      <div>
+                        <p className="text-base font-medium text-muted-foreground">
+                          Score ATS
+                        </p>
+                        {typeof job.ats_score === "number" ? (
+                          <p
+                            className={`text-3xl font-bold ${getMatchScoreColor(job.ats_score)}`}
+                          >
+                            {job.ats_score}%
+                          </p>
+                        ) : (
+                          <p className="text-base text-muted-foreground">
+                            Sous-scores disponibles — score global non calculable.
+                          </p>
+                        )}
+                      </div>
+                      <p className="max-w-md text-base text-muted-foreground">
+                        Couverture compétences, mots-clés, expérience, titre et
+                        outils entre ton CV et cette offre.
+                      </p>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                      {ATS_SUBSCORE_LABELS.map(({ key, label }) => {
+                        const value = job.ats_breakdown?.[key] ?? null;
+                        return (
+                          <div key={key} className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-base font-medium">{label}</p>
+                              <p
+                                className={cn(
+                                  "text-base font-semibold tabular-nums",
+                                  typeof value === "number"
+                                    ? getMatchScoreColor(value)
+                                    : "text-muted-foreground"
+                                )}
+                              >
+                                {typeof value === "number" ? `${value}%` : "—"}
+                              </p>
+                            </div>
+                            <AtsScoreBar value={value} />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <p className="mb-1 text-base font-medium">
+                          Mots-clés présents
+                        </p>
+                        <KeywordChips
+                          items={job.keywords_matched}
+                          emptyLabel="Aucun mot-clé commun détecté."
+                          tone="matched"
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-1 text-base font-medium">
+                          Mots-clés manquants
+                        </p>
+                        <KeywordChips
+                          items={job.keywords_missing}
+                          emptyLabel="Aucun mot-clé manquant listé."
+                          tone="missing"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : typeof job.match_score === "number" ? (
+                  <p className="text-base text-muted-foreground">
+                    Relance l’analyse de l’offre pour calculer le score ATS (compétences,
+                    mots-clés, expérience, titre, outils).
+                  </p>
+                ) : null}
 
                 <div className="grid gap-4 lg:grid-cols-3">
                   <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">

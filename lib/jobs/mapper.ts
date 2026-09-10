@@ -10,6 +10,7 @@ import {
 } from "@/lib/jobs/normalize";
 import { deriveMatchScore } from "@/lib/jobs/derive-match-score";
 import { computeScoreFromCriteria } from "@/lib/jobs/criteria-score";
+import { parseAtsBreakdown } from "@/lib/jobs/ats-offer-score";
 import type {
   ImportedJob,
   Job,
@@ -160,6 +161,11 @@ export function toJobViewModel(row: JobRow): Job {
   const criteriaAssessment = Array.isArray(jobFit?.criteria_assessment)
     ? (jobFit.criteria_assessment as JobCriterionAssessment[])
     : null;
+  const atsBreakdown = parseAtsBreakdown(jobFit?.ats_breakdown);
+  const atsScore =
+    typeof jobFit?.ats_score === "number" && Number.isFinite(jobFit.ats_score)
+      ? Math.max(0, Math.min(100, Math.round(jobFit.ats_score)))
+      : null;
 
   const criteriaScore =
     criteriaAssessment && criteriaAssessment.length > 0
@@ -266,6 +272,8 @@ export function toJobViewModel(row: JobRow): Job {
       : null,
     criteria_assessment: criteriaAssessment,
     score_breakdown: scoreBreakdown,
+    ats_score: atsScore,
+    ats_breakdown: atsBreakdown,
     score_explanation: scoreExplanation,
     job_posting_summary:
       typeof jobFit?.job_posting_summary === "string" ? jobFit.job_posting_summary : null,

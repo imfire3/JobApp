@@ -67,11 +67,15 @@ export function ChromeExtensionPanel({ onGoToCsv }: ChromeExtensionPanelProps) {
               </span>
               <span>
                 Clique sur <strong className="text-foreground">Télécharger l’extension</strong>,
-                puis dézippe le fichier{" "}
+                puis dézippe{" "}
                 <code className="rounded bg-muted px-1 py-0.5 text-base">
                   jobtracker-chrome-extension.zip
+                </code>
+                . Tu dois obtenir un dossier qui contient{" "}
+                <code className="rounded bg-muted px-1 py-0.5 text-base">
+                  manifest.json
                 </code>{" "}
-                (tu obtiens un dossier).
+                (pas le fichier .zip).
               </span>
             </li>
             <li className="flex gap-3">
@@ -94,7 +98,11 @@ export function ChromeExtensionPanel({ onGoToCsv }: ChromeExtensionPanelProps) {
                 <FolderOpen className="mt-0.5 h-4 w-4 shrink-0" />
                 Active le <strong className="text-foreground">mode développeur</strong>, puis
                 clique sur <strong className="text-foreground">Charger l’extension non
-                empaquetée</strong> et sélectionne le dossier dézippé.
+                empaquetée</strong> et sélectionne le dossier dézippé (celui où tu vois{" "}
+                <code className="rounded bg-muted px-1 py-0.5 text-base">
+                  manifest.json
+                </code>
+                ). Ne sélectionne pas le .zip, et n’entre pas un chemin à la main.
               </span>
             </li>
             <li className="flex gap-3">

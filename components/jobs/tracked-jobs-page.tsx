@@ -55,7 +55,11 @@ type ImportJobsPayload = {
 
 const emptySearch: TrackedSearchPayload = emptyTrackedSearchForm();
 
-export function TrackedJobsPage() {
+export function TrackedJobsPage({
+  allowLocalDevTools = false,
+}: {
+  allowLocalDevTools?: boolean
+}) {
   const router = useRouter();
   const [trackedSearches, setTrackedSearches] = useState<TrackedSearch[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -64,6 +68,7 @@ export function TrackedJobsPage() {
   const [searchForm, setSearchForm] = useState<TrackedSearchPayload>(emptySearch);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [csvImporting, setCsvImporting] = useState(false);
+  const [seedingFakeJobs, setSeedingFakeJobs] = useState(false);
   const [analysisByJobId, setAnalysisByJobId] = useState<
     Record<string, JobScoringProgress>
   >({});
@@ -78,6 +83,7 @@ export function TrackedJobsPage() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [selectedSearchId, setSelectedSearchId] = useState<string>("all");
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{
     total: number;
     current: number;
@@ -249,6 +255,68 @@ export function TrackedJobsPage() {
     }
   }
 
+  async function seedFakeJobs() {
+    if (!allowLocalDevTools) return
+    setSeedingFakeJobs(true)
+    try {
+      const res = await fetch("/api/dev/seed-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count: 12 }),
+      })
+      const data = (await readJsonSafe(res)) as ImportJobsPayload & {
+        imported?: number
+      }
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string"
+            ? data.error
+            : "Impossible d’ajouter les offres fake"
+        )
+      }
+      const importedJobs = (data.jobs ?? []).filter((job) => !job.was_duplicate)
+      const imported = importedJobs.length
+      toast.success(
+        imported === 1
+          ? "1 offre fake ajoutée — analyse du match…"
+          : `${imported} offres fake ajoutées — analyse du match…`
+      )
+
+      if (importedJobs.length === 0) {
+        await loadAll({ silent: true })
+        return
+      }
+
+      setAnalysisByJobId(
+        Object.fromEntries(
+          importedJobs.map((job, index) => [
+            job.id,
+            {
+              status: index === 0 ? "analyzing" : "queued",
+              progress: index === 0 ? 12 : 5,
+            } satisfies JobScoringProgress,
+          ])
+        )
+      )
+      await loadAll({ silent: true })
+      setJobs((prev) => {
+        const importedIds = new Set(importedJobs.map((job) => job.id))
+        const first = prev.filter((job) => importedIds.has(job.id))
+        const rest = prev.filter((job) => !importedIds.has(job.id))
+        return [...first, ...rest]
+      })
+      await analyzeImportedJobs(importedJobs.map((job) => job.id))
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Impossible d’ajouter les offres fake"
+      )
+    } finally {
+      setSeedingFakeJobs(false)
+    }
+  }
+
   function editSearch(search: TrackedSearch) {
     setEditingSearch(search);
     setSearchForm({
@@ -305,7 +373,9 @@ export function TrackedJobsPage() {
   }
 
   async function handleBulkStatusUpdate(
-    updates: Partial<Pick<Job, "status" | "selected">>
+    updates: Partial<Pick<Job, "status" | "selected">> & {
+      selection_only?: boolean;
+    }
   ) {
     const selected = jobs.filter((job) => job.selected);
     if (selected.length === 0) {
@@ -346,6 +416,80 @@ export function TrackedJobsPage() {
       toast.error(error instanceof Error ? error.message : "Mise à jour groupée échouée");
     } finally {
       setBulkStatusLoading(false);
+    }
+  }
+
+  async function handleSelectAllVisible(selected: boolean) {
+    const ids = filteredJobs.map((job) => job.id);
+    if (ids.length === 0) return;
+
+    setBulkStatusLoading(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, selected, selection_only: true }),
+      });
+      const data = await readJsonSafe(res);
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Sélection groupée échouée"
+        );
+      }
+      const updatedJobs = Array.isArray(data.jobs) ? (data.jobs as Job[]) : [];
+      if (updatedJobs.length) {
+        const byId = new Map(updatedJobs.map((job) => [job.id, job]));
+        setJobs((prev) => prev.map((job) => byId.get(job.id) ?? job));
+      } else {
+        await loadAll();
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Sélection groupée échouée");
+    } finally {
+      setBulkStatusLoading(false);
+    }
+  }
+
+  async function handleBulkDelete() {
+    const selected = jobs.filter((job) => job.selected);
+    if (selected.length === 0) {
+      toast.error("Sélectionne au moins une offre");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Supprimer définitivement ${selected.length} offre${selected.length > 1 ? "s" : ""} ?`
+      )
+    ) {
+      return;
+    }
+
+    setBulkDeleteLoading(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selected.map((job) => job.id) }),
+      });
+      const data = await readJsonSafe(res);
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Suppression groupée échouée"
+        );
+      }
+      const deletedIds = new Set(
+        Array.isArray(data.ids)
+          ? data.ids.filter((id): id is string => typeof id === "string")
+          : selected.map((job) => job.id)
+      );
+      setJobs((prev) => prev.filter((job) => !deletedIds.has(job.id)));
+      toast.success(
+        `${deletedIds.size} offre${deletedIds.size > 1 ? "s" : ""} supprimée${deletedIds.size > 1 ? "s" : ""}`
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Suppression groupée échouée");
+    } finally {
+      setBulkDeleteLoading(false);
     }
   }
 
@@ -519,14 +663,17 @@ export function TrackedJobsPage() {
       }
 
       const importedJobs = (payload.jobs ?? []).filter((job) => !job.was_duplicate);
-      toast.success(payload.message ?? "Offres importées");
+      toast.success(
+        importedJobs.length > 0
+          ? `${payload.message ?? "Offres importées"} — analyse du match…`
+          : (payload.message ?? "Offres importées")
+      );
 
       if (importedJobs.length === 0) {
         await loadAll({ silent: true });
         return;
       }
 
-      setView("cards");
       setAnalysisByJobId(
         Object.fromEntries(
           importedJobs.map((job, index) => [
@@ -674,6 +821,17 @@ export function TrackedJobsPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <PageHelpButton pageId="jobs" />
+            {allowLocalDevTools ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void seedFakeJobs()}
+                disabled={seedingFakeJobs}
+                aria-label="Ajouter des offres d’emploi de test"
+              >
+                {seedingFakeJobs ? "Fake fill…" : "Fake fill data"}
+              </Button>
+            ) : null}
             <Button variant="outline" onClick={syncAllEnabled} disabled={syncingAll}>
               <RefreshCw className={`mr-2 h-4 w-4 ${syncingAll ? "animate-spin" : ""}`} />
               {syncingAll ? "Sync…" : "Sync toutes"}
@@ -801,8 +959,10 @@ export function TrackedJobsPage() {
         selectedCount={jobs.filter((job) => job.selected).length}
         loading={bulkStatusLoading}
         coverLetterLoading={bulkLoading}
+        deleteLoading={bulkDeleteLoading}
         onBulkUpdate={handleBulkStatusUpdate}
         onGenerateCoverLetters={handleBulkGenerateCoverLetters}
+        onBulkDelete={handleBulkDelete}
       />
 
       {bulkProgress && (
@@ -946,10 +1106,12 @@ export function TrackedJobsPage() {
             <JobTable
               jobs={filteredJobs}
               onSelect={(id, selected) => updateJob(id, { selected })}
+              onSelectAll={handleSelectAllVisible}
               onStatusChange={(id, status) => updateJob(id, { status })}
               onAnalyze={handleAnalyze}
               onViewCoverLetter={setCoverLetterJob}
               onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
+              analysisByJobId={analysisByJobId}
             />
           )}
         </TabsContent>

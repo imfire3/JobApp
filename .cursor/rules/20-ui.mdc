@@ -1,0 +1,18 @@
+---
+description: UI conventions for JobTracker pages and components
+globs: app/**/*.tsx,components/**/*.tsx
+alwaysApply: false
+---
+
+# UI rules
+
+- Reuse existing components in `components/` and shadcn/ui primitives before creating new ones.
+- Do not redesign the UI unless explicitly requested.
+- Do not introduce cards, layout systems, or visual languages that fight the current app chrome.
+- Prefer Tailwind utility classes consistent with the existing design system.
+- Preserve responsive behavior on dashboard, jobs board, applications, and settings.
+- Keep one clear action per primary control (select job, analyze, generate letter, update status).
+- Client components (`"use client"`) for interactive UI; keep data fetching and secrets on the server.
+- Do not duplicate job board, table, filter, or modal patterns that already exist.
+- Accessibility: buttons and interactive elements need labels; prefer existing patterns for dialogs and toasts (sonner).
+- When touching job selection or batch actions, preserve checkbox selection and batch cover-letter flows.

@@ -1,0 +1,40 @@
+---
+description: Validation and testing expectations for JobTracker changes
+alwaysApply: true
+---
+
+# Validation
+
+Before claiming completion, run the commands available in `package.json`.
+
+At minimum, when available:
+
+- lint (`npm run lint`)
+- unit tests (`npm test`)
+- build (`npm run build`)
+
+Prefer targeted tests first, then the broader suite.
+
+If a command cannot run, report:
+
+- the exact command
+- the exact failure
+- whether it appears related to the change
+- what remains unverified
+
+Never say that the implementation works, is production-ready, or is complete unless validation has actually passed.
+
+# Testing expectations
+
+For new business logic, add tests for:
+
+- normal case
+- missing required data
+- malformed external data
+- duplicate data
+- partial batch failure
+- authorization or ownership where relevant
+
+Do not weaken or delete existing tests just to make the implementation pass.
+
+Unit tests live under `lib/**/*.test.ts` and run via `npm test`.

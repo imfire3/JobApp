@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { JOB_MATCH_PROMPT_VERSION } from "@/lib/ai/prompts/job-match";
+import { computeAtsOfferScore } from "@/lib/jobs/ats-offer-score";
 import { toJobViewModel } from "@/lib/jobs/mapper";
 import { analyzeJobMatch } from "@/lib/openai/client";
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
       supabase.from("cv_contexts").select("cv_text").eq("id", user.id).maybeSingle(),
       supabase
         .from("profiles")
-        .select("target_roles,target_locations")
+        .select("target_roles,target_locations,skills,tools,years_experience")
         .eq("id", user.id)
         .maybeSingle(),
     ]);
@@ -68,6 +69,21 @@ export async function POST(request: Request) {
           typeof location === "string" && location.trim().length > 0
       )
     : [];
+  const cvSkills = Array.isArray(candidateProfile?.skills)
+    ? candidateProfile.skills.filter(
+        (skill): skill is string => typeof skill === "string" && skill.trim().length > 0
+      )
+    : [];
+  const cvTools = Array.isArray(candidateProfile?.tools)
+    ? candidateProfile.tools.filter(
+        (tool): tool is string => typeof tool === "string" && tool.trim().length > 0
+      )
+    : [];
+  const cvYearsExperience =
+    typeof candidateProfile?.years_experience === "number" &&
+    Number.isFinite(candidateProfile.years_experience)
+      ? candidateProfile.years_experience
+      : null;
 
   try {
     const view = toJobViewModel(job);
@@ -116,6 +132,29 @@ export async function POST(request: Request) {
       ? existingJobFit.confirmations
       : [];
 
+    const ats = computeAtsOfferScore({
+      keywordsMatched: analysis.keywords_matched,
+      keywordsMissing: analysis.keywords_missing,
+      jobSkills:
+        view.skills && view.skills.length > 0
+          ? view.skills
+          : analysis.keywords_from_job,
+      jobTools: view.tools,
+      jobTitle: job.title,
+      jobExperienceYears: view.experience_min_years ?? view.experience_level,
+      cvText: profile.cv_text,
+      cvSkills,
+      cvTools,
+      cvTargetRoles: targetRoles,
+      cvYearsExperience,
+    });
+
+    const analysisWithAts = {
+      ...analysis,
+      ats_score: ats.ats_score,
+      ats_breakdown: ats.ats_breakdown,
+    };
+
     const { data: updated, error: updateError } = await supabase
       .from("jobs")
       .update({
@@ -136,6 +175,8 @@ export async function POST(request: Request) {
             cv_improvement_items: analysis.cv_improvement_items ?? [],
             criteria_assessment: analysis.criteria_assessment ?? [],
             score_breakdown: analysis.score_breakdown ?? [],
+            ats_score: ats.ats_score,
+            ats_breakdown: ats.ats_breakdown,
             job_posting_summary: analysis.job_posting_summary,
             score_confidence: analysis.score_confidence ?? null,
             score_explanation: analysis.score_explanation ?? null,
@@ -154,7 +195,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ analysis, job: toJobViewModel(updated) });
+    return NextResponse.json({
+      analysis: analysisWithAts,
+      job: toJobViewModel(updated),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Analysis failed";
     return NextResponse.json({ error: message }, { status: 500 });

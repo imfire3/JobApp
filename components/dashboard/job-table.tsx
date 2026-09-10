@@ -22,6 +22,10 @@ import {
   getMatchScoreColor,
   getStatusColor,
 } from "@/lib/jobs/utils";
+import {
+  JobScoringProgressBar,
+  type JobScoringProgress,
+} from "@/components/jobs/job-scoring-progress";
 import type { Job, JobStatus } from "@/types";
 import { JOB_STATUSES } from "@/types";
 import { ChevronDown, ExternalLink } from "lucide-react";
@@ -29,21 +33,28 @@ import { ChevronDown, ExternalLink } from "lucide-react";
 interface JobTableProps {
   jobs: Job[];
   onSelect: (jobId: string, selected: boolean) => void;
+  onSelectAll?: (selected: boolean) => void;
   onStatusChange: (jobId: string, status: JobStatus) => void;
   onAnalyze: (jobId: string) => void;
   onViewCoverLetter: (job: Job) => void;
   onOpen?: (job: Job) => void;
+  analysisByJobId?: Record<string, JobScoringProgress>;
 }
 
 export function JobTable({
   jobs,
   onSelect,
+  onSelectAll,
   onStatusChange,
   onAnalyze,
   onViewCoverLetter,
   onOpen,
+  analysisByJobId,
 }: JobTableProps) {
   const cellBorder = "border-r border-border/50 last:border-r-0";
+  const checkboxCell = `w-10 px-2 ${cellBorder}`;
+  const allSelected = jobs.length > 0 && jobs.every((job) => job.selected);
+  const someSelected = jobs.some((job) => job.selected);
 
   const handleOpen = (job: Job) => {
     onOpen?.(job);
@@ -54,7 +65,18 @@ export function JobTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className={`w-10 ${cellBorder}`} />
+            <TableHead className={checkboxCell}>
+              <Checkbox
+                aria-label="Tout sélectionner"
+                checked={allSelected}
+                indeterminate={someSelected && !allSelected}
+                disabled={jobs.length === 0 || !onSelectAll}
+                onCheckedChange={(checked) => {
+                  onSelectAll?.(checked === true);
+                }}
+                onClick={(event) => event.stopPropagation()}
+              />
+            </TableHead>
             <TableHead className={cellBorder}>Role</TableHead>
             <TableHead className={cellBorder}>Company</TableHead>
             <TableHead className={cellBorder}>Source</TableHead>
@@ -75,10 +97,11 @@ export function JobTable({
               onClick={onOpen ? () => handleOpen(job) : undefined}
             >
               <TableCell
-                className={cellBorder}
+                className={checkboxCell}
                 onClick={(event) => event.stopPropagation()}
               >
                 <Checkbox
+                  aria-label={`Sélectionner ${job.title}`}
                   checked={job.selected}
                   onCheckedChange={(checked) =>
                     onSelect(job.id, checked === true)
@@ -122,14 +145,33 @@ export function JobTable({
                 </div>
               </TableCell>
               <TableCell className={cellBorder}>{job.salary ?? "—"}</TableCell>
-              <TableCell className={cellBorder}>
-                {job.match_score !== null ? (
-                  <span className={getMatchScoreColor(job.match_score)}>
-                    {job.match_score}%
-                  </span>
-                ) : (
-                  "—"
-                )}
+              <TableCell className={`min-w-[140px] ${cellBorder}`}>
+                {(() => {
+                  const scoring = analysisByJobId?.[job.id]
+                  const showBar =
+                    scoring &&
+                    (scoring.status === "queued" ||
+                      scoring.status === "analyzing" ||
+                      scoring.status === "error")
+                  if (showBar) {
+                    return (
+                      <JobScoringProgressBar
+                        progress={scoring.progress}
+                        status={scoring.status}
+                        title={job.title}
+                        error={scoring.error}
+                      />
+                    )
+                  }
+                  if (job.match_score !== null) {
+                    return (
+                      <span className={getMatchScoreColor(job.match_score)}>
+                        {job.match_score}%
+                      </span>
+                    )
+                  }
+                  return "—"
+                })()}
               </TableCell>
               <TableCell className={cellBorder}>
                 {job.posted_at ? formatRelativeDate(job.posted_at) : "—"}

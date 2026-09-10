@@ -8,17 +8,22 @@ import {
   FileText,
   Loader2,
   MessageSquare,
+  Trash2,
   XCircle,
 } from "lucide-react";
 
-type BulkUpdates = Partial<Pick<Job, "status" | "selected">>;
+type BulkUpdates = Partial<Pick<Job, "status" | "selected">> & {
+  selection_only?: boolean;
+};
 
 type JobBulkActionsProps = {
   selectedCount: number;
   loading?: boolean;
   coverLetterLoading?: boolean;
+  deleteLoading?: boolean;
   onBulkUpdate: (updates: BulkUpdates) => void | Promise<void>;
   onGenerateCoverLetters?: () => void | Promise<void>;
+  onBulkDelete?: () => void | Promise<void>;
 };
 
 const ACTIONS: Array<{
@@ -63,12 +68,14 @@ export function JobBulkActions({
   selectedCount,
   loading = false,
   coverLetterLoading = false,
+  deleteLoading = false,
   onBulkUpdate,
   onGenerateCoverLetters,
+  onBulkDelete,
 }: JobBulkActionsProps) {
   if (selectedCount === 0) return null;
 
-  const busy = loading || coverLetterLoading;
+  const busy = loading || coverLetterLoading || deleteLoading;
 
   return (
     <div
@@ -120,12 +127,31 @@ export function JobBulkActions({
         </Button>
       ) : null}
 
+      {onBulkDelete ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="destructive"
+          disabled={busy}
+          onClick={() => void onBulkDelete()}
+        >
+          {deleteLoading ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          Supprimer
+        </Button>
+      ) : null}
+
       <Button
         type="button"
         size="sm"
         variant="ghost"
         disabled={busy}
-        onClick={() => void onBulkUpdate({ selected: false })}
+        onClick={() =>
+          void onBulkUpdate({ selected: false, selection_only: true })
+        }
       >
         Tout décocher
       </Button>

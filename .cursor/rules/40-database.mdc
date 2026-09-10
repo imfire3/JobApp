@@ -1,0 +1,29 @@
+---
+description: Supabase, RLS, migrations, and job import data rules
+globs: supabase/**,lib/supabase/**,app/api/**/*.ts
+alwaysApply: false
+---
+
+# Database rules
+
+- Supabase PostgreSQL is the source of truth for persistent application data.
+- Keep Row Level Security enabled.
+- Verify user ownership in server routes (`getAuthenticatedUser` / equivalent).
+- Never expose the Supabase service-role key to the browser.
+- Prefer migrations over manual schema assumptions.
+- Preserve raw external payloads in `raw_data` when importing third-party jobs.
+- Deduplicate jobs using the existing repository constraint, preferably `user_id + url`.
+- Database migrations must be safe for existing data where possible.
+
+# External data rules
+
+For Welcome to the Jungle, Apify, CSV/Excel, and extension imports:
+
+- Never invent missing values.
+- Normalize external fields into the existing internal jobs schema.
+- Preserve the original item in `raw_data`.
+- Handle missing and variant field names gracefully.
+- Treat external HTML as untrusted input.
+- Sanitize or convert HTML before rendering.
+- Log invalid, duplicate, ignored, and imported counts.
+- A single malformed item must not fail the whole batch.

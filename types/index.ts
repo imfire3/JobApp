@@ -184,6 +184,16 @@ export interface JobAnalysis {
     effective_weight_percent: number;
     rationale: string;
   }>;
+  /** Deterministic ATS offer↔CV score (0–100) */
+  ats_score?: number | null;
+  /** ATS subscores: skills, keywords, experience, title, tools */
+  ats_breakdown?: {
+    skills: number | null;
+    keywords: number | null;
+    experience: number | null;
+    title: number | null;
+    tools: number | null;
+  } | null;
   /** Short synthesis of the job posting requirements */
   job_posting_summary: string;
   status?: "ok" | "partial" | "insufficient_input";
@@ -253,6 +263,14 @@ export interface Job extends ImportedJob {
     effective_weight_percent: number;
     rationale: string;
   }> | null;
+  ats_score?: number | null;
+  ats_breakdown?: {
+    skills: number | null;
+    keywords: number | null;
+    experience: number | null;
+    title: number | null;
+    tools: number | null;
+  } | null;
   score_explanation?: string | null;
   job_posting_summary?: string | null;
   created_at: string;

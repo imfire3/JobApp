@@ -12,6 +12,8 @@ const patchSchema = z
     ids: z.array(z.string().uuid()).min(1).max(100).optional(),
     status: z.enum(JOB_STATUSES).optional(),
     selected: z.boolean().optional(),
+    /** When true, only flip the checkbox — do not rewrite job status. */
+    selection_only: z.boolean().optional(),
     cover_letter: z.string().optional(),
   })
   .refine((body) => Boolean(body.id) || Boolean(body.ids?.length), {
@@ -66,11 +68,13 @@ export async function PATCH(request: Request) {
   if (body.status !== undefined) updates.status = body.status;
   if (body.selected !== undefined) {
     updates.selected = body.selected;
-    if (body.selected && body.status === undefined) {
-      updates.status = "selected";
-    }
-    if (!body.selected && body.status === undefined) {
-      updates.status = "new";
+    if (!body.selection_only) {
+      if (body.selected && body.status === undefined) {
+        updates.status = "selected";
+      }
+      if (!body.selected && body.status === undefined) {
+        updates.status = "new";
+      }
     }
   }
   if (body.cover_letter !== undefined) updates.cover_letter = body.cover_letter;
@@ -139,17 +143,70 @@ export async function PATCH(request: Request) {
 }
 
 /**
- * DELETE /api/jobs — remove all jobs for the authenticated user
+ * DELETE /api/jobs — remove selected jobs (`{ ids }`) or all jobs (`{ all: true }`)
  */
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const { supabase, user, error: authError } = await getAuthenticatedUser();
   if (!user) {
     return NextResponse.json({ error: authError }, { status: 401 });
   }
 
+  let body: unknown = null;
   try {
-    const deleted = await deleteAllUserJobs(supabase, user.id);
-    return NextResponse.json({ deleted });
+    body = await request.json();
+  } catch {
+    body = null;
+  }
+
+  const parsed = z
+    .object({
+      ids: z.array(z.string().uuid()).min(1).max(100).optional(),
+      all: z.literal(true).optional(),
+    })
+    .refine((value) => value.all === true || (value.ids?.length ?? 0) > 0, {
+      message: "Provide { ids: uuid[] } or { all: true }",
+    })
+    .safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Provide { ids: uuid[] } or { all: true }" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    if (parsed.data.all) {
+      const deleted = await deleteAllUserJobs(supabase, user.id);
+      return NextResponse.json({ deleted });
+    }
+
+    const ids = parsed.data.ids ?? [];
+
+    // cover_letters.job_id is NOT NULL but legacy FK may still be ON DELETE SET NULL.
+    // Delete dependent letters first so job deletion cannot null job_id.
+    const { error: coverDeleteError } = await supabase
+      .from("cover_letters")
+      .delete()
+      .in("job_id", ids)
+      .eq("user_id", user.id);
+
+    if (coverDeleteError && coverDeleteError.code !== "42P01") {
+      return NextResponse.json({ error: coverDeleteError.message }, { status: 500 });
+    }
+
+    const { data, error } = await supabase
+      .from("jobs")
+      .delete()
+      .in("id", ids)
+      .eq("user_id", user.id)
+      .select("id");
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ deleted: data?.length ?? 0, ids: data?.map((row) => row.id) ?? [] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete jobs";
     return NextResponse.json({ error: message }, { status: 500 });

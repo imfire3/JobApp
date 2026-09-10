@@ -1,8 +1,8 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import {
+  buildJobMatchSystemPrompt,
   buildJobMatchUserPrompt,
-  JOB_MATCH_SYSTEM_PROMPT,
 } from "@/lib/ai/prompts/job-match";
 import { parseJobMatchAnalysis } from "@/lib/ai/schemas/job-match";
 import {
@@ -44,13 +44,13 @@ export async function analyzeJobMatch(
   options?: { systemPrompt?: string | null; apiKey?: string | null }
 ): Promise<JobAnalysis> {
   const client = getOpenAIClient(options?.apiKey);
-  const systemPrompt = options?.systemPrompt?.trim() || JOB_MATCH_SYSTEM_PROMPT;
+  const systemPrompt = buildJobMatchSystemPrompt(options?.systemPrompt);
 
   let response: OpenAI.Chat.Completions.ChatCompletion;
   try {
     response = await client.chat.completions.create({
       model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-      temperature: 0.3,
+      temperature: 0.1,
       response_format: { type: "json_object" },
       messages: [
         {
@@ -70,7 +70,7 @@ export async function analyzeJobMatch(
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("Empty response from OpenAI");
 
-  return parseJobMatchAnalysis(JSON.parse(content));
+  return parseJobMatchAnalysis(JSON.parse(content), { cvText: params.cvText });
 }
 
 export async function parseCvProfileWithAI(

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  JOB_MATCH_POLICY_PREFIX,
   JOB_MATCH_PROMPT_VERSION,
   JOB_MATCH_SYSTEM_PROMPT,
   buildJobMatchUserPrompt,
@@ -8,7 +9,7 @@ import {
 
 describe("job match prompt grounding", () => {
   it("bumps prompt version for criteria × evidence scoring", () => {
-    assert.equal(JOB_MATCH_PROMPT_VERSION, "v4");
+    assert.equal(JOB_MATCH_PROMPT_VERSION, "v5");
   });
 
   it("requires weighted criteria and evidence levels 0–3", () => {
@@ -19,7 +20,7 @@ describe("job match prompt grounding", () => {
   });
 
   it("forbids inventing domain experience missing from the CV", () => {
-    assert.match(JOB_MATCH_SYSTEM_PROMPT, /N’invente aucune/);
+    assert.match(JOB_MATCH_POLICY_PREFIX, /N’invente aucune/);
     assert.match(JOB_MATCH_SYSTEM_PROMPT, /question_to_candidate/);
     assert.match(JOB_MATCH_SYSTEM_PROMPT, /job_posting_summary/);
   });

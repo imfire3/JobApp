@@ -104,9 +104,10 @@ export function computeScoreFromCriteria(
 
 /**
  * Apply a user confirmation without inventing CV facts.
- * - no → level 0, denied
- * - yes without detail → at most level 1 (asked→confirmed weak)
- * - yes with meaningful detail → raise toward 2 (or 3 if detail is rich)
+ * Confirmations are candidate claims, not CV proof:
+ * - no → level 0
+ * - yes without detail → at most level 1
+ * - yes with detail → at most level 2 (never 3 without CV text)
  */
 export function applyConfirmation(
   criteria: JobCriterionAssessment[],
@@ -141,25 +142,15 @@ export function applyConfirmation(
       }
     }
 
-    const rich =
-      detail.length >= 80 ||
-      /\d|%|résultat|result|parcours|responsabilité|lancé|pilot/i.test(detail)
-
-    const nextLevel = rich
-      ? clampLevel(Math.max(item.evidence_level, 3))
-      : clampLevel(Math.max(item.evidence_level, 2))
-
     return {
       ...item,
-      evidence_level: nextLevel,
+      evidence_level: clampLevel(Math.max(item.evidence_level, 2)),
       confirmation_status: "confirmed",
-      cv_status: nextLevel >= 3 ? "demonstrated" : "transferable",
+      cv_status: "transferable",
       evidence_from_cv: `Confirmé par le candidat: ${detail}`,
       question_to_candidate: null,
       recruiter_block_risk:
-        nextLevel >= 2 && item.recruiter_block_risk === "high"
-          ? "medium"
-          : item.recruiter_block_risk,
+        item.recruiter_block_risk === "high" ? "medium" : item.recruiter_block_risk,
     }
   })
 }
@@ -182,7 +173,7 @@ export function mapCvStatusToLevel(
     case "demonstrated":
       return hasResults ? 3 : 2
     case "transferable":
-      return 2
+      return 1
     case "mentioned_only":
       return 1
     case "contradicted":

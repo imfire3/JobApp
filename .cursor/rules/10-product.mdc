@@ -1,0 +1,46 @@
+---
+description: JobTracker product principles and canonical user flow
+alwaysApply: true
+---
+
+# Product principles
+
+This application is a job application assistant / CRM for candidates (PO/PM-oriented).
+
+Core concepts:
+
+- Job offers
+- Applications
+- CV
+- ATS analysis
+- Keywords
+- Matching score
+- Recommendations
+- Cover letters
+
+# Canonical user flow
+
+```text
+Import CV
+→ Parse CV
+→ Import job offer
+→ Extract job information
+→ Analyze ATS compatibility
+→ Identify missing keywords
+→ Suggest CV improvements
+→ Score job/CV match
+→ Generate cover letter
+→ Track application
+```
+
+Never introduce a feature that contradicts this flow.
+
+# Product constraints
+
+- The CV is the shared context for ATS analysis, matching, and cover letters.
+- Job imports must feed the board and selection flow, not a parallel silo.
+- ATS and keyword insights should help improve the CV or prioritize jobs, not invent skills.
+- Cover letters must stay grounded in the CV and the specific job description.
+- Application tracking is the end state of a selected/applied job — do not bypass or orphan it.
+- Prefer deepening this loop over adding unrelated product surfaces.
+- Product details: `docs/product.md`.
