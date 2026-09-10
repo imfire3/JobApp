@@ -6,11 +6,19 @@ import {
   slugFromLabel,
   type JobCriterionAssessment as CriterionRow,
 } from "@/lib/jobs/criteria-score";
+import { enforceCriteriaEvidenceAgainstCv } from "@/lib/jobs/verify-criteria-evidence";
 
 const confidenceSchema = z.enum(["low", "medium", "high"]);
 const importanceSchema = z.enum(["required", "preferred", "unspecified"]);
 const prioritySchema = z.enum(["low", "medium", "high"]);
-const nullableScore = z.number().int().min(0).max(100).nullable();
+const nullableScore = z.preprocess((value) => {
+  if (value == null) return null
+  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value)
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) {
+    return Math.round(Number(value))
+  }
+  return value
+}, z.number().int().min(0).max(100).nullable())
 const evidenceLevelSchema = z.union([
   z.literal(0),
   z.literal(1),
@@ -225,8 +233,11 @@ function normalizeCriteria(
     });
 }
 
-/** Accepts prompt v3/v4 rich objects or legacy flat string arrays. */
-export function parseJobMatchAnalysis(raw: unknown): JobAnalysis {
+/** Accepts prompt v3/v4/v5 rich objects or legacy flat string arrays. */
+export function parseJobMatchAnalysis(
+  raw: unknown,
+  options?: { cvText?: string }
+): JobAnalysis {
   if (!raw || typeof raw !== "object") {
     throw new JobMatchValidationError("Invalid job match response");
   }
@@ -252,7 +263,7 @@ export function parseJobMatchAnalysis(raw: unknown): JobAnalysis {
         detail ? `Invalid job match response: ${detail}` : "Invalid job match response"
       );
     }
-    return flattenJobMatchAnalysis(parsed.data);
+    return flattenJobMatchAnalysis(parsed.data, options);
   }
 
   const legacy = z
@@ -286,7 +297,10 @@ export function parseJobMatchAnalysis(raw: unknown): JobAnalysis {
   };
 }
 
-export function flattenJobMatchAnalysis(raw: JobMatchAnalysisRaw): JobAnalysis {
+export function flattenJobMatchAnalysis(
+  raw: JobMatchAnalysisRaw,
+  options?: { cvText?: string }
+): JobAnalysis {
   const matched = raw.keywords_matched
     .map((item) => item.job_term.trim() || item.cv_term.trim())
     .filter(Boolean)
@@ -307,9 +321,11 @@ export function flattenJobMatchAnalysis(raw: JobMatchAnalysisRaw): JobAnalysis {
     .slice(0, 3)
     .map(gapLine);
 
-  const criteriaComputed = computeScoreFromCriteria(
-    normalizeCriteria(raw.criteria_assessment)
-  );
+  const normalized = normalizeCriteria(raw.criteria_assessment);
+  const enforced = options?.cvText
+    ? enforceCriteriaEvidenceAgainstCv(normalized, options.cvText)
+    : normalized;
+  const criteriaComputed = computeScoreFromCriteria(enforced);
   const criteria_assessment = criteriaComputed.criteria as JobCriterionAssessment[];
 
   const fallback = deriveMatchScore({
@@ -329,7 +345,7 @@ export function flattenJobMatchAnalysis(raw: JobMatchAnalysisRaw): JobAnalysis {
   const scoreExplanation =
     criteria_assessment.length > 0
       ? raw.score_explanation?.trim() ||
-        "Score calculé à partir des critères pondérés de l’offre et du niveau de preuve dans le CV (0–3)."
+        "Score calculé à partir des critères pondérés de l’offre et du niveau de preuve vérifiable dans le CV (0–3)."
       : raw.score_explanation?.trim() ||
         (fallback.source === "keywords"
           ? "Score estimé à partir de la couverture des mots-clés ATS extraits (match_score IA absent)."

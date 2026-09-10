@@ -491,10 +491,10 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
               <figure className="order-2 overflow-hidden rounded-xl border border-[#111]/12 bg-[#111] shadow-[0_30px_60px_-36px_rgba(0,0,0,0.45)] lg:order-1">
                 <div className="relative aspect-[16/11] w-full">
                   <Image
-                    src="/landing/screen-job-detail.png"
+                    src="/landing/screen-cover-letter.png"
                     alt="Préparation d’une lettre de motivation à partir du CV et de l’offre"
                     fill
-                    className="object-cover object-[center_70%]"
+                    className="object-cover object-top"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                   />
                 </div>
