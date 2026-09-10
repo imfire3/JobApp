@@ -1,0 +1,66 @@
+---
+description: Project context, working method, and scope control for JobTracker
+alwaysApply: true
+---
+
+# Project context
+
+This repository is JobTracker (JobApp): a personal job-search CRM focused on:
+
+- importing jobs from Apify, Welcome to the Jungle, CSV/Excel, and the Chrome extension
+- storing normalized jobs in Supabase
+- displaying jobs on a board
+- selecting jobs with checkboxes
+- analyzing a CV (ATS, keywords)
+- scoring job–CV match with AI
+- generating personalized cover letters
+- tracking applications
+
+Before modifying code, inspect the repository and identify the actual architecture, existing patterns, database schema, API conventions, and test commands.
+
+Do not assume the stack or file structure from previous conversations. The repository is the source of truth.
+
+Stack: Next.js App Router, React, TypeScript, Tailwind, shadcn/ui, Supabase, OpenAI.
+
+# Working method
+
+For any task involving more than one file:
+
+1. Inspect the relevant files first.
+2. Summarize the current implementation.
+3. Identify risks, inconsistencies, and unknowns.
+4. Produce a short implementation plan with exact file paths.
+5. Do not modify code until the plan is coherent.
+6. Implement the smallest complete change.
+7. Run validation commands.
+8. Fix failures caused by the change.
+9. Review the final diff.
+10. Report only verified results.
+
+If the request is ambiguous, incomplete, unsafe, or conflicts with the current architecture, explain the issue before implementing.
+
+Do not blindly agree with the requested implementation if a safer or simpler approach already exists in the repository.
+
+# Scope control
+
+- Modify only files required for the task.
+- Do not redesign the UI unless explicitly requested.
+- Do not refactor unrelated code.
+- Do not rename public APIs, database fields, routes, or components unless required.
+- Preserve existing CSV, Excel, JSON import, authentication, job selection, and cover-letter flows unless the task explicitly replaces them.
+- Reuse existing components, utilities, Supabase clients, validation helpers, and design-system patterns.
+- Do not duplicate logic that already exists.
+
+# Final response format
+
+After implementation, provide:
+
+1. Summary of what changed
+2. Files modified
+3. Database migration added or changed
+4. Validation commands executed
+5. Results of each command
+6. Known limitations or remaining risks
+7. Manual test steps
+
+Do not advertise success without evidence.

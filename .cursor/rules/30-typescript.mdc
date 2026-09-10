@@ -1,0 +1,31 @@
+---
+description: TypeScript and code-quality conventions
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# TypeScript rules
+
+Follow the repository's existing:
+
+- TypeScript configuration
+- ESLint configuration
+- formatting
+- naming conventions
+- API response patterns
+- error-handling patterns
+- component patterns
+
+Prefer explicit types at system boundaries:
+
+- external API payloads
+- Supabase records
+- route inputs
+- route outputs
+- AI structured responses
+
+Avoid `any` unless the external input is first validated or narrowed (prefer Zod or existing validators).
+
+Do not rename public APIs, shared types, database field names, or route contracts unless the task requires it.
+
+Reuse types from `types/` and existing lib modules instead of duplicating interfaces.

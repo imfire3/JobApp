@@ -1,0 +1,22 @@
+---
+description: AI, OpenAI, ATS, matching, and cover-letter rules
+globs: lib/openai/**,app/api/**/analyze*/**,app/api/**/generate*/**,app/api/profile/**,app/api/analyze-job/**,app/api/generate-cover-letter/**
+alwaysApply: false
+---
+
+# AI rules
+
+- All AI provider calls must run server-side.
+- Never expose API keys in client code.
+- The CV and job description are source data.
+- Do not invent candidate experience, skills, results, education, or company facts.
+- Store prompt versions when generated content is persisted.
+- AI failure must not corrupt job or application records.
+- Batch operations must return individual success and failure results.
+
+## Domain expectations
+
+- ATS analysis: scores, detected keywords, missing keywords, recommendations — grounded in CV + job text.
+- Matching score: compare CV context to the job; do not fabricate fit reasons.
+- Cover letters: personalize from the saved CV and job description only; no invented achievements.
+- Prefer existing OpenAI helpers in `lib/openai/` over new ad-hoc clients.
