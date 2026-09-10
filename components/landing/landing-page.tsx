@@ -156,7 +156,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
   }
 
   return (
-    <div className="relative h-dvh overflow-y-auto overflow-x-hidden overscroll-contain bg-[#eceae6] text-[1.125rem] leading-relaxed text-[#111111]">
+    <div className="relative h-dvh overflow-y-auto overflow-x-hidden overscroll-contain bg-[#eceae6] text-[#111111]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.45]"
@@ -247,7 +247,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
               <h1 className="font-[family-name:var(--font-landing-display)] text-[clamp(2.4rem,6.5vw,4.4rem)] leading-[0.98] font-semibold tracking-[-0.03em]">
                 Tes offres, ton CV, tes candidatures. Au même endroit.
               </h1>
-              <p className="mt-6 max-w-2xl text-xl leading-relaxed text-[#111]/70 md:text-2xl">
+              <p className="mt-6 max-w-2xl text-base leading-relaxed text-[#111]/70 md:text-lg">
                 JobTracker est un CRM de candidature : importe tes offres, compare-les à
                 ton CV, génère une lettre adaptée à chaque poste, puis suis ton pipeline
                 jusqu’aux entretiens.
@@ -320,7 +320,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                   <span className="font-[family-name:var(--font-landing-display)] text-base text-[#111]/45">
                     {step.n}
                   </span>
-                  <h3 className="mt-3 font-[family-name:var(--font-landing-display)] text-2xl font-semibold">
+                  <h3 className="mt-3 font-[family-name:var(--font-landing-display)] text-xl font-semibold">
                     {step.title}
                   </h3>
                   <p className="mt-3 text-base leading-relaxed text-[#111]/65">{step.text}</p>
@@ -642,7 +642,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                       aria-expanded={isOpen}
                       onClick={() => setOpenFaq(isOpen ? null : index)}
                     >
-                      <span className="font-[family-name:var(--font-landing-display)] text-xl font-semibold md:text-2xl">
+                      <span className="font-[family-name:var(--font-landing-display)] text-lg font-semibold md:text-xl">
                         {item.q}
                       </span>
                       <ChevronDown
