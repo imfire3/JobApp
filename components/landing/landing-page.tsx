@@ -4,13 +4,15 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { ArrowRight, ChevronDown } from "lucide-react"
-import { DemoRequestDialog } from "@/components/landing/demo-request-dialog"
 import { cn } from "@/lib/utils"
 
 type LandingPageProps = {
-  /** Local self-signup — hidden on Vercel (demo request instead). */
+  /** Local self-signup — hidden on Vercel (demo calendar booking instead). */
   allowSelfSignup?: boolean
 }
+
+/** Production demo booking (Google Calendar appointment). */
+const DEMO_BOOKING_URL = "https://calendar.app.google/pSgpj5QC8abWk8oG6"
 
 const STEPS = [
   {
@@ -74,18 +76,65 @@ const secondaryCtaClass =
 export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
   const [ready, setReady] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
-  const [demoOpen, setDemoOpen] = useState(false)
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setReady(true))
     return () => cancelAnimationFrame(id)
   }, [])
 
-  const handleOpenDemo = () => setDemoOpen(true)
+  const demoCtaClass =
+    "inline-flex items-center gap-1.5 rounded-full bg-[#111] px-4 py-2.5 text-base font-medium text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+
+  const primaryCta = allowSelfSignup ? (
+    <Link
+      href="/login?signup=1"
+      className={primaryCtaClass}
+      tabIndex={0}
+      aria-label="Commencer"
+    >
+      Commencer
+      <ArrowRight className="h-4 w-4" aria-hidden />
+    </Link>
+  ) : (
+    <a
+      href={DEMO_BOOKING_URL}
+      target="_blank"
+      rel="noreferrer"
+      className={primaryCtaClass}
+      tabIndex={0}
+      aria-label="Inscription démo — réserver un créneau"
+    >
+      Inscription démo
+      <ArrowRight className="h-4 w-4" aria-hidden />
+    </a>
+  )
+
+  const headerPrimaryCta = allowSelfSignup ? (
+    <Link
+      href="/login?signup=1"
+      className={demoCtaClass}
+      tabIndex={0}
+      aria-label="Commencer"
+    >
+      Commencer
+      <ArrowRight className="h-4 w-4" aria-hidden />
+    </Link>
+  ) : (
+    <a
+      href={DEMO_BOOKING_URL}
+      target="_blank"
+      rel="noreferrer"
+      className={demoCtaClass}
+      tabIndex={0}
+      aria-label="Inscription démo — réserver un créneau"
+    >
+      Inscription démo
+      <ArrowRight className="h-4 w-4" aria-hidden />
+    </a>
+  )
 
   return (
     <div className="relative h-dvh overflow-y-auto overflow-x-hidden overscroll-contain bg-[#eceae6] text-[#111111]">
-      <DemoRequestDialog open={demoOpen} onOpenChange={setDemoOpen} />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.45]"
@@ -117,35 +166,16 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
         </nav>
         <nav className="flex items-center gap-2 md:gap-3" aria-label="Compte">
           {allowSelfSignup ? (
-            <>
-              <Link
-                href="/login"
-                className={navLinkClass}
-                tabIndex={0}
-                aria-label="Connexion"
-              >
-                Connexion
-              </Link>
-              <Link
-                href="/login?signup=1"
-                className={navLinkClass}
-                tabIndex={0}
-                aria-label="Inscription"
-              >
-                Inscription
-              </Link>
-            </>
+            <Link
+              href="/login"
+              className={navLinkClass}
+              tabIndex={0}
+              aria-label="Connexion"
+            >
+              Connexion
+            </Link>
           ) : null}
-          <button
-            type="button"
-            onClick={handleOpenDemo}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#111] px-4 py-2.5 text-base font-medium text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
-            tabIndex={0}
-            aria-label="Inscription démo"
-          >
-            Inscription démo
-            <ArrowRight className="h-4 w-4" aria-hidden />
-          </button>
+          {headerPrimaryCta}
         </nav>
       </header>
 
@@ -170,16 +200,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 fil de tes candidatures jusqu’aux entretiens.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleOpenDemo}
-                  className={primaryCtaClass}
-                  tabIndex={0}
-                  aria-label="Inscription démo"
-                >
-                  Inscription démo
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                </button>
+                {primaryCta}
                 <a href="#comment-ca-marche" className={secondaryCtaClass} tabIndex={0}>
                   Voir comment ça marche
                 </a>
@@ -522,16 +543,29 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 attentes du poste.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleOpenDemo}
-              className="relative z-10 inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-[#eceae6] px-6 py-3 text-base font-semibold text-[#111] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              tabIndex={0}
-              aria-label="Inscription démo"
-            >
-              Inscription démo
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </button>
+            {allowSelfSignup ? (
+              <Link
+                href="/login?signup=1"
+                className="relative z-10 inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-[#eceae6] px-6 py-3 text-base font-semibold text-[#111] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                tabIndex={0}
+                aria-label="Commencer"
+              >
+                Commencer
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            ) : (
+              <a
+                href={DEMO_BOOKING_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="relative z-10 inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-[#eceae6] px-6 py-3 text-base font-semibold text-[#111] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                tabIndex={0}
+                aria-label="Inscription démo — réserver un créneau"
+              >
+                Inscription démo
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </a>
+            )}
           </div>
         </section>
       </main>
@@ -550,15 +584,6 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
             className="flex flex-wrap gap-x-5 gap-y-2 text-base text-[#111]/55"
             aria-label="Pied de page"
           >
-            <button
-              type="button"
-              onClick={handleOpenDemo}
-              className="hover:text-[#111]"
-              tabIndex={0}
-              aria-label="Inscription démo"
-            >
-              Inscription démo
-            </button>
             {allowSelfSignup ? (
               <>
                 <Link
@@ -573,12 +598,23 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                   href="/login?signup=1"
                   className="hover:text-[#111]"
                   tabIndex={0}
-                  aria-label="Inscription"
+                  aria-label="Commencer"
                 >
-                  Inscription
+                  Commencer
                 </Link>
               </>
-            ) : null}
+            ) : (
+              <a
+                href={DEMO_BOOKING_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-[#111]"
+                tabIndex={0}
+                aria-label="Inscription démo — réserver un créneau"
+              >
+                Inscription démo
+              </a>
+            )}
             <a href="#confidentialite" className="hover:text-[#111]" tabIndex={0}>
               Confidentialité
             </a>
