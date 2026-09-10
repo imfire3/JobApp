@@ -1,0 +1,16 @@
+---
+description: UI and frontend conventions for JobTracker
+globs: app/**/*.tsx,components/**/*.tsx
+alwaysApply: false
+---
+
+# UI rules
+
+- Reuse existing components under `components/` and shadcn/ui primitives before creating new ones.
+- Do not redesign pages, layouts, or visual language unless explicitly requested.
+- Preserve responsive behavior already present in the app.
+- Follow existing Tailwind and design-system patterns; do not introduce a new UI library without justification.
+- Prefer extending `JobBoard`, sidebar, forms, and dialogs already in the repo over parallel implementations.
+- Keep client components (`"use client"`) for interactive UI; keep data fetching and mutations aligned with existing API routes.
+- Treat external HTML (job descriptions) as untrusted: sanitize or convert before rendering.
+- Do not place unrelated marketing or landing redesign work into authenticated app routes.
