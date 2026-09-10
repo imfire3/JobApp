@@ -1,4 +1,4 @@
-export const JOB_MATCH_PROMPT_VERSION = "v5"
+export const JOB_MATCH_PROMPT_VERSION = "v6"
 
 /**
  * Always prepended — even when the user overrides the system prompt in settings —
@@ -47,11 +47,11 @@ score_breakdown (5 dimensions legacy) reste pour compatibilité ; criteria_asses
 
 RÈGLES DE RIGUEUR
 - Pas de bénéfice du doute : sans preuve CV → bas score sur le critère.
-- Ne confonds pas « le candidat pourrait savoir » et « le CV le prouve ».
+- Ne confonds pas « tu pourrais savoir » et « ton CV le prouve ».
 - Ne recommande pas d’ajouter une compétence absente comme si elle était acquise.
 - job_posting_summary : uniquement depuis <job_posting>.
 - keywords_* / cv_improvements : ancrés dans l’offre ; suggested_rewrite seulement avec faits déjà dans le CV.
-- score_explanation : explique brièvement la qualification (forces + blocages).
+- score_explanation et textes libres (actions, questions) : adresse le candidat en **tu**. Formule « Sur ton CV… / La fiche demande… ». N’écris pas « le candidat ».
 - score_confidence : "high" seulement si critères clairs et preuves CV solides ; sinon "medium"/"low".
 
 SORTIE
@@ -188,7 +188,7 @@ export function buildJobMatchUserPrompt(input: {
       ? `Candidate target locations: ${input.targetLocations.join(", ")}`
       : ""
 
-  return `Évalue si le candidat est qualifié pour ce poste (scoring rigoureux CV ↔ offre).
+  return `Évalue si le profil (CV) est qualifié pour ce poste (scoring rigoureux CV ↔ offre).
 
 ÉTAPES :
 1. Analyser <job_posting> → critères pondérés (criteria_assessment).
@@ -197,6 +197,7 @@ export function buildJobMatchUserPrompt(input: {
 4. Never invent domain experience or skills absent from the CV.
 5. evidence_level ≥ 2 requires a verifiable quote in evidence_from_cv from <cv_text>.
 6. job_posting_summary and keywords_from_job must come only from <job_posting>.
+7. Free-text fields (score_explanation, actions, questions) : write in French « tu », never « le candidat ».
 
 ${rolesLine}
 ${locationsLine}

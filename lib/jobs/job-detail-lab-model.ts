@@ -1,3 +1,7 @@
+import {
+  computeScoreFromCriteria,
+  type EvidenceLevel,
+} from "@/lib/jobs/criteria-score"
 import type {
   CvAnalysisResponse,
   CvDetectedExperience,
@@ -79,6 +83,32 @@ export type LabPriorityAction = {
   experienceHint: string | null
   cta: "suggestion" | "experiences" | "keywords"
   improvementId: string | null
+}
+
+export type LabPriorityActionCard = {
+  id: string
+  title: string
+  importance: LabPriorityAction["importance"]
+  estimatedImpact: number | null
+  cvSection: string | null
+  fromCv: string | null
+  rewrite: string | null
+  keywords: string[]
+  kind: "safe_rewrite" | "gap" | "confirm"
+  question: string | null
+}
+
+export type ProjectedScoreResult = {
+  current: number | null
+  projected: number | null
+  safeSuggestionCount: number
+  missingKeywordCount: number
+  bumpedCriterionIds: string[]
+}
+
+export type MatchNarrative = {
+  fromCv: string
+  fromJob: string
 }
 
 export type LabExperienceSuggestion = {
@@ -250,14 +280,13 @@ export function matchVerdict(score: number | null): {
   return {
     label: "Écarts importants",
     summary:
-      "Le profil actuel ne couvre pas assez les exigences visibles de l’offre.",
+      "Ton CV ne couvre pas assez les exigences visibles de l’offre pour l’instant.",
     tone: "weak",
   }
 }
 
 /**
- * Heuristic only: estimates an upper bound if safe CV rewrites are applied.
- * Not a hiring probability. Replace when backend re-scores after edits.
+ * @deprecated Prefer projectOptimizedScore — heuristic only, not criteria-based.
  */
 export function estimatePotentialScore(
   matchScore: number | null,
@@ -270,6 +299,241 @@ export function estimatePotentialScore(
     safeSuggestionCount * 3 + Math.min(5, Math.max(0, missingKeywordCount))
   )
   return Math.min(100, matchScore + boost)
+}
+
+function tokenizeForLink(text: string): string[] {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .split(/[^a-z0-9]+/i)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 4)
+}
+
+/** Conservative text overlap: suggestion ↔ criterion. No link ⇒ no score bump. */
+export function suggestionLinksToCriterion(
+  item: JobCvImprovementItem,
+  criterion: JobCriterionAssessment
+): boolean {
+  const related = (item as JobCvImprovementItem & { related_criterion_ids?: string[] })
+    .related_criterion_ids
+  if (Array.isArray(related) && related.includes(criterion.id)) return true
+
+  const hayTokens = tokenizeForLink(
+    [item.action, item.evidence_from_job, item.suggested_rewrite ?? ""].join(" ")
+  )
+  const needleTokens = tokenizeForLink(
+    [criterion.label, criterion.evidence_from_job].join(" ")
+  )
+  if (hayTokens.length === 0 || needleTokens.length === 0) return false
+
+  return needleTokens.some((needle) =>
+    hayTokens.some(
+      (hay) => hay === needle || hay.includes(needle) || needle.includes(hay)
+    )
+  )
+}
+
+function cloneCriteria(
+  criteria: JobCriterionAssessment[]
+): JobCriterionAssessment[] {
+  return criteria.map((item) => ({ ...item }))
+}
+
+function bumpLinkedCriteria(
+  criteria: JobCriterionAssessment[],
+  suggestions: JobCvImprovementItem[]
+): { criteria: JobCriterionAssessment[]; bumpedIds: string[] } {
+  const next = cloneCriteria(criteria)
+  const bumped = new Set<string>()
+
+  for (const suggestion of suggestions) {
+    for (const criterion of next) {
+      if (bumped.has(criterion.id)) continue
+      if (!suggestionLinksToCriterion(suggestion, criterion)) continue
+      if (criterion.evidence_level >= 3) {
+        bumped.add(criterion.id)
+        continue
+      }
+      criterion.evidence_level = (criterion.evidence_level + 1) as EvidenceLevel
+      bumped.add(criterion.id)
+    }
+  }
+
+  return { criteria: next, bumpedIds: [...bumped] }
+}
+
+/**
+ * Deterministic projected score: bump evidence +1 (cap 3) only for criteria
+ * linked to safe reformulations — never invent experience.
+ */
+export function projectOptimizedScore(job: Job): ProjectedScoreResult {
+  const criteria = job.criteria_assessment ?? []
+  const safe = (job.cv_improvement_items ?? []).filter(isSafeSuggestion)
+  const missingKeywordCount = job.keywords_missing?.length ?? 0
+
+  if (criteria.length === 0) {
+    const current =
+      typeof job.match_score === "number" ? job.match_score : null
+    return {
+      current,
+      projected: current,
+      safeSuggestionCount: safe.length,
+      missingKeywordCount,
+      bumpedCriterionIds: [],
+    }
+  }
+
+  const baseline = computeScoreFromCriteria(criteria)
+  const current =
+    baseline.match_score ??
+    (typeof job.match_score === "number" ? job.match_score : null)
+
+  if (safe.length === 0) {
+    return {
+      current,
+      projected: current,
+      safeSuggestionCount: 0,
+      missingKeywordCount,
+      bumpedCriterionIds: [],
+    }
+  }
+
+  const { criteria: projectedCriteria, bumpedIds } = bumpLinkedCriteria(
+    criteria,
+    safe
+  )
+  const projected = computeScoreFromCriteria(projectedCriteria).match_score
+
+  return {
+    current,
+    projected: projected ?? current,
+    safeSuggestionCount: safe.length,
+    missingKeywordCount,
+    bumpedCriterionIds: bumpedIds,
+  }
+}
+
+/** Isolated score delta if only this safe suggestion were applied. */
+export function estimateSuggestionScoreImpact(
+  job: Job,
+  improvementId: string
+): number | null {
+  const criteria = job.criteria_assessment ?? []
+  if (criteria.length === 0) return null
+  const item = (job.cv_improvement_items ?? []).find((entry) => entry.id === improvementId)
+  if (!item || !isSafeSuggestion(item)) return null
+
+  const baseline = computeScoreFromCriteria(criteria).match_score
+  if (baseline == null) return null
+  const { criteria: next } = bumpLinkedCriteria(criteria, [item])
+  const projected = computeScoreFromCriteria(next).match_score
+  if (projected == null) return null
+  return Math.max(0, projected - baseline)
+}
+
+export function buildMatchNarrative(job: Job): MatchNarrative {
+  const criteria = job.criteria_assessment ?? []
+  const cvBits = criteria
+    .filter((item) => item.evidence_from_cv?.trim())
+    .sort((a, b) => b.evidence_level - a.evidence_level)
+    .slice(0, 2)
+    .map((item) => item.evidence_from_cv!.trim())
+
+  const jobBits = criteria
+    .filter((item) => item.evidence_level <= 1 && item.evidence_from_job?.trim())
+    .sort((a, b) => a.evidence_level - b.evidence_level)
+    .slice(0, 2)
+    .map((item) => item.evidence_from_job.trim())
+
+  const fromCv =
+    cvBits.length > 0
+      ? cvBits.join(" ")
+      : (job.match_reasons ?? []).slice(0, 2).join(" ") ||
+        "Peu de preuves concrètes extraites de ton CV pour cette offre."
+
+  const fromJob =
+    jobBits.length > 0
+      ? jobBits.join(" ")
+      : job.job_posting_summary?.trim() ||
+        (job.match_gaps ?? []).slice(0, 2).join(" ") ||
+        "Des exigences de la fiche de poste restent à couvrir."
+
+  return { fromCv, fromJob }
+}
+
+function keywordsForRewrite(
+  job: Job,
+  item: JobCvImprovementItem
+): string[] {
+  const missing = job.keywords_missing ?? []
+  if (missing.length === 0) return []
+  const hay = [
+    item.suggested_rewrite ?? "",
+    item.evidence_from_job,
+    item.action,
+  ]
+    .join(" ")
+    .toLowerCase()
+
+  const matched = missing.filter((keyword) =>
+    hay.includes(keyword.toLowerCase())
+  )
+  if (matched.length > 0) return matched.slice(0, 5)
+  return missing.slice(0, 3)
+}
+
+function importanceFromPriority(
+  priority: JobCvImprovementItem["priority"]
+): LabPriorityAction["importance"] {
+  if (priority === "high") return "élevée"
+  if (priority === "medium") return "moyenne"
+  return "faible"
+}
+
+/**
+ * Overview priority cards: left = CV excerpt, right = rewrite + ATS keywords.
+ */
+export function buildPriorityActionCards(job: Job): LabPriorityActionCard[] {
+  const items = job.cv_improvement_items ?? []
+  if (items.length > 0) {
+    return items.slice(0, 5).map((item, index) => {
+      const id = item.id || `action-${index}`
+      const safe = isSafeSuggestion(item)
+      const needsConfirm = Boolean(item.information_to_confirm?.trim())
+      const kind: LabPriorityActionCard["kind"] = needsConfirm
+        ? "confirm"
+        : safe
+          ? "safe_rewrite"
+          : "gap"
+      return {
+        id,
+        title: item.action,
+        importance: importanceFromPriority(item.priority),
+        estimatedImpact: safe ? estimateSuggestionScoreImpact(job, item.id) : null,
+        cvSection: item.cv_section?.trim() || null,
+        fromCv: item.evidence_from_cv?.trim() || null,
+        rewrite: item.suggested_rewrite?.trim() || null,
+        keywords: safe ? keywordsForRewrite(job, item) : [],
+        kind,
+        question: item.information_to_confirm?.trim() || null,
+      }
+    })
+  }
+
+  return (job.match_gaps ?? []).slice(0, 5).map((gap, index) => ({
+    id: `gap-${index}`,
+    title: gap,
+    importance: (index < 2 ? "élevée" : "moyenne") as LabPriorityAction["importance"],
+    estimatedImpact: null,
+    cvSection: null,
+    fromCv: null,
+    rewrite: null,
+    keywords: (job.keywords_missing ?? []).slice(0, 3),
+    kind: "gap" as const,
+    question: null,
+  }))
 }
 
 export function buildSubScores(job: Job): LabSubScore[] {
@@ -481,6 +745,29 @@ function itemMatchesExperience(
 
 export function isSafeSuggestion(item: JobCvImprovementItem): boolean {
   return Boolean(item.suggested_rewrite?.trim()) && !item.information_to_confirm?.trim()
+}
+
+export type LabRewritePair = {
+  id: string
+  fromCv: string
+  forOffer: string
+}
+
+/** Safe CV → offer rewrite pairs for the overview side-by-side comparison. */
+export function buildOverviewRewritePairs(
+  job: Job,
+  limit = 4
+): LabRewritePair[] {
+  return (job.cv_improvement_items ?? [])
+    .filter(isSafeSuggestion)
+    .map((item) => {
+      const fromCv = item.evidence_from_cv?.trim() ?? ""
+      const forOffer = item.suggested_rewrite?.trim() ?? ""
+      if (!fromCv || !forOffer) return null
+      return { id: item.id, fromCv, forOffer } satisfies LabRewritePair
+    })
+    .filter((pair): pair is LabRewritePair => pair !== null)
+    .slice(0, limit)
 }
 
 export function buildOptimizeBuckets(

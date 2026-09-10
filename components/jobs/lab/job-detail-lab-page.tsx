@@ -49,17 +49,18 @@ import {
 import {
   buildCriteriaRows,
   buildKeywordRows,
+  buildMatchNarrative,
   buildOptimizeBuckets,
-  buildPriorityActions,
+  buildPriorityActionCards,
   buildSubScores,
   criteriaDerivedHighlights,
-  estimatePotentialScore,
   formatExperiencePeriod,
   hasJobFitResult,
   isSafeSuggestion,
   matchVerdict,
   offerMissionHints,
   offerSkillHints,
+  projectOptimizedScore,
   resolveLabAnalysisState,
   type LabCriterionRow,
 } from "@/lib/jobs/job-detail-lab-model"
@@ -368,21 +369,16 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
     [job, cvAnalysis]
   )
 
-  const safeCount = optimize?.safe.filter((i) => !ignoredIds.has(i.id)).length ?? 0
-  const potentialScore = job
-    ? estimatePotentialScore(
-        job.match_score,
-        safeCount,
-        job.keywords_missing?.length ?? 0
-      )
-    : null
+  const projected = job ? projectOptimizedScore(job) : null
+  const potentialScore = projected?.projected ?? null
+  const narrative = job ? buildMatchNarrative(job) : null
 
   const subScores = job ? buildSubScores(job) : []
   const criteriaRows = job ? buildCriteriaRows(job) : []
+  const actionCards = job ? buildPriorityActionCards(job) : []
   const highlights = job
     ? criteriaDerivedHighlights(job)
     : { strengths: [], gaps: [] }
-  const actions = job ? buildPriorityActions(job) : []
   const keywordRows = job ? buildKeywordRows(job) : []
   const verdict = matchVerdict(job?.match_score ?? null)
   const missions = job ? offerMissionHints(job) : []
@@ -591,16 +587,16 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
 
               {analysisState === "ready" ? (
                 <>
-                  <Card className="border-border/80 bg-gradient-to-b from-card to-muted/20">
+                  <Card className="w-full border-border/80 bg-gradient-to-b from-card to-muted/20">
                     <CardContent className="space-y-6 pt-6">
-                      <div className="flex flex-wrap items-end justify-between gap-4">
-                        <div>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
                           <p className="text-base font-medium uppercase tracking-wide text-muted-foreground">
                             Match avec ton profil
                           </p>
                           <p
                             className={cn(
-                              "mt-1 text-5xl font-bold tracking-tight",
+                              "text-5xl font-bold tracking-tight",
                               typeof job.match_score === "number"
                                 ? getMatchScoreColor(job.match_score)
                                 : "text-muted-foreground"
@@ -609,161 +605,193 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                             {typeof job.match_score === "number"
                               ? `${job.match_score}`
                               : "—"}
-                            <span className="text-2xl text-muted-foreground"> / 100</span>
+                            <span className="text-2xl text-muted-foreground">
+                              {" "}
+                              / 100
+                            </span>
                           </p>
-                          <p className="mt-2 text-lg font-medium">{verdict.label}</p>
-                          <p className="mt-1 max-w-2xl text-base text-muted-foreground">
-                            {job.score_explanation?.trim() || verdict.summary}
-                          </p>
-                          <p className="mt-3 text-base text-muted-foreground">
-                            Indicateur d’adéquation documentée (critères × preuves), pas une
-                            probabilité d’embauche.
-                          </p>
+                          <p className="pt-1 text-lg font-medium">{verdict.label}</p>
+                          {narrative ? (
+                            <div className="w-full space-y-2 text-base text-muted-foreground">
+                              <p>
+                                <span className="font-medium text-foreground">
+                                  Sur ton CV :
+                                </span>{" "}
+                                {narrative.fromCv}
+                              </p>
+                              <p>
+                                <span className="font-medium text-foreground">
+                                  La fiche demande :
+                                </span>{" "}
+                                {narrative.fromJob}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-base text-muted-foreground">
+                              {verdict.summary}
+                            </p>
+                          )}
                         </div>
-                        <div className="min-w-[180px] rounded-xl border border-border/80 bg-background/60 p-4">
+                        <div className="w-full rounded-xl border border-border/80 bg-background/60 p-4">
                           <p className="text-base uppercase tracking-wide text-muted-foreground">
                             Potentiel après optimisation
                           </p>
                           <p className="mt-2 text-2xl font-semibold">
-                            {typeof job.match_score === "number" ? job.match_score : "—"}
+                            {projected?.current ?? "—"}
                             <span className="mx-2 text-muted-foreground">→</span>
                             <span className="text-emerald-400">
                               {potentialScore ?? "—"}
                             </span>
                           </p>
                           <p className="mt-2 text-base text-muted-foreground">
-                            Estimation UI si tu appliques les reformulations sûres. Le
-                            backend ne recalcule pas encore ce score.
+                            {projected &&
+                            projected.safeSuggestionCount > 0 &&
+                            projected.projected !== projected.current
+                              ? `Si tu améliores ces parties par reformulation et mots-clés ATS, sans inventer d’expérience, tu atteins ${projected.current} → ${projected.projected}.`
+                              : projected && projected.safeSuggestionCount === 0
+                                ? "Rien à gagner sans inventer d’expérience ou confirmer un écart."
+                                : "Score recalculé à partir des critères si tu appliques les reformulations sûres (sans mentir)."}
                           </p>
+                          {projected && projected.safeSuggestionCount > 0 ? (
+                            <p className="mt-1 text-base text-muted-foreground">
+                              Leviers : {projected.safeSuggestionCount}{" "}
+                              reformulation
+                              {projected.safeSuggestionCount > 1 ? "s" : ""} safe
+                              {projected.missingKeywordCount > 0
+                                ? ` · ${projected.missingKeywordCount} mot${projected.missingKeywordCount > 1 ? "s" : ""}-clé${projected.missingKeywordCount > 1 ? "s" : ""} ATS`
+                                : ""}
+                              {projected.bumpedCriterionIds.length > 0
+                                ? ` · ${projected.bumpedCriterionIds.length} critère${projected.bumpedCriterionIds.length > 1 ? "s" : ""} amélioré${projected.bumpedCriterionIds.length > 1 ? "s" : ""}`
+                                : ""}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
 
                       {criteriaRows.length > 0 ? (
                         <div className="space-y-3">
-                          <div className="flex flex-wrap items-end justify-between gap-2">
-                            <div>
-                              <p className="text-base font-medium">Grille critères × preuves</p>
-                              <p className="text-base text-muted-foreground">
-                                Critères extraits de l’offre, pondérés, notés 0–3 selon le CV.
-                              </p>
-                            </div>
+                          <div>
+                            <p className="text-base font-medium">Critères (diagnostic)</p>
+                            <p className="text-base text-muted-foreground">
+                              Extraits de l’offre, pondérés, notés 0–3 selon ton CV.
+                            </p>
                           </div>
-                          <div className="space-y-2">
+                          <div className="flex flex-wrap gap-2">
                             {criteriaRows.map((row) => (
                               <div
                                 key={row.id}
-                                className="rounded-xl border border-border/70 bg-background/50 p-3"
+                                className={cn(
+                                  "min-w-[140px] max-w-full rounded-xl border px-3 py-2",
+                                  row.levelTone === "absent" ||
+                                    row.recruiterBlockRisk === "high"
+                                    ? "border-orange-500/40 bg-orange-500/5"
+                                    : "border-border/70 bg-background/50"
+                                )}
                               >
-                                <div className="flex flex-wrap items-start justify-between gap-2">
-                                  <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium leading-snug">
+                                  {row.label}
+                                </p>
+                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                  <EvidenceLevelBadge row={row} />
+                                  <Badge variant="secondary">
+                                    {row.weightPercent}%
+                                  </Badge>
+                                  <span className="text-sm tabular-nums text-muted-foreground">
+                                    +{row.scoreContribution}
+                                  </span>
+                                  {row.recruiterBlockRisk === "high" ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-orange-500/40 text-orange-200"
+                                    >
+                                      Must-have
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {criteriaRows.some((row) => row.needsConfirmation) ? (
+                            <div className="space-y-2">
+                              {criteriaRows
+                                .filter((row) => row.needsConfirmation)
+                                .map((row) => (
+                                  <div
+                                    key={`confirm-${row.id}`}
+                                    className="rounded-xl border border-border/70 bg-background/50 p-3"
+                                  >
                                     <p className="font-medium">{row.label}</p>
-                                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                                      <EvidenceLevelBadge row={row} />
-                                      <Badge variant="secondary">
-                                        Poids {row.weightPercent}%
-                                      </Badge>
-                                      {row.recruiterBlockRisk === "high" ? (
-                                        <Badge
-                                          variant="outline"
-                                          className="border-orange-500/40 text-orange-200"
-                                        >
-                                          Must-have
-                                        </Badge>
-                                      ) : null}
-                                      {row.confirmationStatus === "confirmed" ? (
-                                        <Badge
-                                          variant="outline"
-                                          className="border-emerald-500/40 text-emerald-200"
-                                        >
-                                          Confirmé
-                                        </Badge>
-                                      ) : null}
-                                      {row.confirmationStatus === "denied" ? (
-                                        <Badge variant="outline">Non confirmé</Badge>
-                                      ) : null}
-                                    </div>
-                                    {row.evidenceFromCv ? (
-                                      <p className="mt-2 text-base text-muted-foreground">
-                                        CV : {row.evidenceFromCv}
-                                      </p>
-                                    ) : null}
                                     {row.question ? (
                                       <p className="mt-2 text-base text-amber-100/90">
                                         À confirmer : {row.question}
                                       </p>
                                     ) : null}
-                                  </div>
-                                  <div className="text-right text-base tabular-nums text-muted-foreground">
-                                    +{row.scoreContribution} pts
-                                  </div>
-                                </div>
-
-                                {row.needsConfirmation ? (
-                                  <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
-                                    {confirmingId === row.id ? (
-                                      <>
-                                        <Textarea
-                                          value={confirmDetail}
-                                          onChange={(event) =>
-                                            setConfirmDetail(event.target.value)
-                                          }
-                                          placeholder="Ex. 2 ans sur un portefeuille Assurance Vie chez X, résultats…"
-                                          rows={3}
-                                          aria-label={`Détail pour ${row.label}`}
-                                        />
-                                        <div className="flex flex-wrap gap-2">
-                                          <Button
-                                            size="sm"
-                                            disabled={confirmSaving}
-                                            onClick={() =>
-                                              void handleConfirmCriterion(row.id, "yes")
+                                    <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
+                                      {confirmingId === row.id ? (
+                                        <>
+                                          <Textarea
+                                            value={confirmDetail}
+                                            onChange={(event) =>
+                                              setConfirmDetail(event.target.value)
                                             }
-                                          >
-                                            {confirmSaving ? (
-                                              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                                            ) : null}
-                                            Oui, j’ai cette expérience
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            disabled={confirmSaving}
-                                            onClick={() =>
-                                              void handleConfirmCriterion(row.id, "no")
-                                            }
-                                          >
-                                            Non
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={confirmSaving}
-                                            onClick={() => {
-                                              setConfirmingId(null)
-                                              setConfirmDetail("")
-                                            }}
-                                          >
-                                            Annuler
-                                          </Button>
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setConfirmingId(row.id)
-                                          setConfirmDetail("")
-                                        }}
-                                      >
-                                        Répondre
-                                      </Button>
-                                    )}
+                                            placeholder="Ex. 2 ans sur un portefeuille Assurance Vie chez X, résultats…"
+                                            rows={3}
+                                            aria-label={`Détail pour ${row.label}`}
+                                          />
+                                          <div className="flex flex-wrap gap-2">
+                                            <Button
+                                              size="sm"
+                                              disabled={confirmSaving}
+                                              onClick={() =>
+                                                void handleConfirmCriterion(row.id, "yes")
+                                              }
+                                            >
+                                              {confirmSaving ? (
+                                                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                              ) : null}
+                                              Oui, j’ai cette expérience
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              disabled={confirmSaving}
+                                              onClick={() =>
+                                                void handleConfirmCriterion(row.id, "no")
+                                              }
+                                            >
+                                              Non
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              disabled={confirmSaving}
+                                              onClick={() => {
+                                                setConfirmingId(null)
+                                                setConfirmDetail("")
+                                              }}
+                                            >
+                                              Annuler
+                                            </Button>
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            setConfirmingId(row.id)
+                                            setConfirmDetail("")
+                                          }}
+                                        >
+                                          Répondre
+                                        </Button>
+                                      )}
+                                    </div>
                                   </div>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
+                                ))}
+                            </div>
+                          ) : null}
                         </div>
                       ) : subScores.length > 0 ? (
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -808,53 +836,122 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="w-full">
                     <CardHeader>
                       <CardTitle>Tes actions prioritaires</CardTitle>
+                      <p className="text-base text-muted-foreground">
+                        À gauche ce qui est sur ton CV — à droite la reformulation et les
+                        mots-clés ATS pour mieux coller à la fiche.
+                      </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {actions.length === 0 ? (
+                      {actionCards.length === 0 ? (
                         <p className="text-base text-muted-foreground">
                           Aucune action prioritaire — ton CV couvre déjà bien cette offre.
                         </p>
                       ) : (
-                        actions.map((action, index) => (
+                        actionCards.map((action, index) => (
                           <div
                             key={action.id}
-                            className="rounded-xl border border-border/70 p-4"
+                            className="overflow-hidden rounded-[18px] border border-border bg-card shadow-sm"
                           >
-                            <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border/70 px-4 py-3">
                               <div>
                                 <p className="font-medium">
                                   {index + 1}. {action.title}
                                 </p>
-                                <div className="mt-2 flex flex-wrap items-center gap-2">
-                                  <ImportanceBadge level={action.importance} />
-                                  {typeof action.estimatedImpact === "number" ? (
-                                    <Badge variant="secondary">
-                                      Impact estimé : +{action.estimatedImpact}
-                                    </Badge>
+                                {action.cvSection ? (
+                                  <p className="mt-1 text-sm text-muted-foreground">
+                                    Section CV : {action.cvSection}
+                                  </p>
+                                ) : null}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <ImportanceBadge level={action.importance} />
+                                {typeof action.estimatedImpact === "number" ? (
+                                  <Badge variant="secondary">
+                                    Impact estimé +{action.estimatedImpact}
+                                  </Badge>
+                                ) : null}
+                                {action.kind === "confirm" ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-amber-500/40 text-amber-100"
+                                  >
+                                    À confirmer
+                                  </Badge>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            {action.kind === "safe_rewrite" ? (
+                              <div className="grid gap-0 md:grid-cols-2">
+                                <div className="border-border/70 bg-muted/40 p-4 md:border-r">
+                                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    Sur ton CV
+                                  </p>
+                                  <p className="whitespace-pre-wrap text-base font-medium text-foreground">
+                                    {action.fromCv || "Extrait CV non disponible."}
+                                  </p>
+                                </div>
+                                <div className="bg-background/40 p-4">
+                                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    Reformulation + mots-clés ATS
+                                  </p>
+                                  <p className="whitespace-pre-wrap text-base font-medium text-emerald-400">
+                                    {action.rewrite}
+                                  </p>
+                                  {action.keywords.length > 0 ? (
+                                    <div className="mt-3 flex flex-wrap gap-1.5">
+                                      {action.keywords.map((keyword) => (
+                                        <Badge key={keyword} variant="outline">
+                                          {keyword}
+                                        </Badge>
+                                      ))}
+                                    </div>
                                   ) : null}
+                                  <div className="mt-3">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        handleApplySuggestion(action.id, action.rewrite)
+                                        setTab("optimize")
+                                      }}
+                                    >
+                                      Voir dans Optimiser
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setTab("optimize")}
-                              >
-                                {action.cta === "suggestion"
-                                  ? "Voir la suggestion"
-                                  : "Voir les expériences"}
-                              </Button>
-                            </div>
-                            <p className="mt-3 text-base text-muted-foreground">
-                              {action.reason}
-                            </p>
-                            {action.experienceHint ? (
-                              <p className="mt-2 text-base text-muted-foreground">
-                                Expérience concernée : {action.experienceHint}
-                              </p>
-                            ) : null}
+                            ) : (
+                              <div className="space-y-3 p-4">
+                                <p className="text-base text-muted-foreground">
+                                  {action.kind === "confirm"
+                                    ? action.question ||
+                                      "À confirmer avant d’ajouter quoi que ce soit sur ton CV."
+                                    : action.fromCv ||
+                                      "Écart identifié entre ton CV et les attentes de l’offre — pas de reformulation sûre sans inventer."}
+                                </p>
+                                {action.keywords.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {action.keywords.map((keyword) => (
+                                      <Badge key={keyword} variant="outline">
+                                        {keyword}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setTab("optimize")}
+                                >
+                                  {action.kind === "confirm"
+                                    ? "Voir à confirmer"
+                                    : "Voir Optimiser mon CV"}
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         ))
                       )}
@@ -1136,7 +1233,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       {potentialScore ?? "—"}
                     </p>
                     <p className="mt-1 text-base text-muted-foreground">
-                      Heuristique UI — à remplacer par un re-score backend.
+                      Recalcul critères si reformulations sûres (sans inventer).
                     </p>
                   </div>
                 </CardContent>

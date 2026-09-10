@@ -9,7 +9,7 @@ import {
 
 describe("job match prompt grounding", () => {
   it("bumps prompt version for criteria × evidence scoring", () => {
-    assert.equal(JOB_MATCH_PROMPT_VERSION, "v5");
+    assert.equal(JOB_MATCH_PROMPT_VERSION, "v6");
   });
 
   it("requires weighted criteria and evidence levels 0–3", () => {
@@ -17,6 +17,12 @@ describe("job match prompt grounding", () => {
     assert.match(JOB_MATCH_SYSTEM_PROMPT, /evidence_level/);
     assert.match(JOB_MATCH_SYSTEM_PROMPT, /weight_percent/);
     assert.match(JOB_MATCH_SYSTEM_PROMPT, /0–3|0-3|∈ \{0,1,2,3\}/);
+  });
+
+  it("addresses free-text feedback in second person", () => {
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /adresse le candidat en \*\*tu\*\*/);
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /N’écris pas « le candidat »/);
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /Sur ton CV/);
   });
 
   it("forbids inventing domain experience missing from the CV", () => {
