@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { ArrowRight, ChevronDown } from "lucide-react"
+import { ArrowRight, ChevronDown, Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type LandingPageProps = {
@@ -14,6 +14,12 @@ type LandingPageProps = {
 /** Production demo booking (Google Calendar appointment). */
 const DEMO_BOOKING_URL = "https://calendar.app.google/pSgpj5QC8abWk8oG6"
 
+const HERO_PROOFS = [
+  "Import CSV / Excel / collage",
+  "Match CV ↔ offre",
+  "Lettres ancrées dans ton parcours",
+] as const
+
 const STEPS = [
   {
     n: "01",
@@ -22,18 +28,18 @@ const STEPS = [
   },
   {
     n: "02",
-    title: "Ajoute une offre qui t’intéresse",
-    text: "Colle la description du poste ou importe tes offres depuis un fichier CSV ou Excel.",
+    title: "Importe tes offres",
+    text: "Colle une description, importe un CSV ou Excel, un JSON Apify, ou capture des offres via l’extension Welcome to the Jungle et Indeed.",
   },
   {
     n: "03",
-    title: "Prépare ta candidature",
-    text: "Compare ton profil aux attentes du poste, améliore les passages utiles de ton CV et prépare une lettre personnalisée.",
+    title: "Compare et prépare",
+    text: "Vois le score de correspondance, les gaps, les pistes d’optimisation de ton CV, puis génère une lettre personnalisée.",
   },
   {
     n: "04",
     title: "Suis la suite",
-    text: "Retrouve tes candidatures, mets à jour leur statut et garde tes dates d’entretien et tes notes au même endroit.",
+    text: "Mets à jour les statuts, note tes entretiens et retrouve ton activité depuis le tableau de bord.",
   },
 ] as const
 
@@ -43,8 +49,12 @@ const FAQ = [
     a: "JobTracker est pensé pour les Product Owners et Product Managers qui souhaitent centraliser leurs offres, adapter leurs candidatures et suivre leurs démarches.",
   },
   {
+    q: "Comment j’ajoute des offres ?",
+    a: "Tu peux coller le texte d’une offre, importer un fichier CSV ou Excel, importer un JSON Apify, ou utiliser l’extension Chrome sur Welcome to the Jungle et Indeed pour exporter un CSV à importer ensuite.",
+  },
+  {
     q: "Est-ce que l’extension est obligatoire ?",
-    a: "Non. Tu peux coller le texte d’une offre ou importer un fichier CSV ou Excel directement dans l’application.",
+    a: "Non. L’extension est optionnelle pour capturer des offres sur Welcome to the Jungle et Indeed. Tu peux tout faire depuis l’application : collage, CSV, Excel ou JSON.",
   },
   {
     q: "Quelle différence entre l’analyse du CV et le score de correspondance ?",
@@ -64,18 +74,26 @@ const FAQ = [
   },
 ] as const
 
+const NAV_LINKS = [
+  { href: "#comment-ca-marche", label: "Comment ça marche" },
+  { href: "#fonctionnalites", label: "Fonctionnalités" },
+  { href: "#extension", label: "Extension" },
+  { href: "#faq", label: "Questions fréquentes" },
+] as const
+
 const navLinkClass =
-  "rounded-full px-3 py-2 text-base font-medium text-[#111]/70 transition hover:text-[#111] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+  "rounded-full px-3 py-2 text-lg font-medium text-[#111]/70 transition hover:text-[#111] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
 
 const primaryCtaClass =
-  "inline-flex min-h-12 items-center gap-2 rounded-full bg-[#111] px-6 py-3 text-base font-semibold text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+  "inline-flex min-h-12 items-center gap-2 rounded-full bg-[#111] px-6 py-3 text-lg font-semibold text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
 
 const secondaryCtaClass =
-  "inline-flex min-h-12 items-center rounded-full border border-[#111]/25 px-6 py-3 text-base font-medium transition hover:border-[#111]/45 hover:bg-white/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+  "inline-flex min-h-12 items-center rounded-full border border-[#111]/25 px-6 py-3 text-lg font-medium transition hover:border-[#111]/45 hover:bg-white/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
 
 export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
   const [ready, setReady] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setReady(true))
@@ -83,7 +101,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
   }, [])
 
   const demoCtaClass =
-    "inline-flex items-center gap-1.5 rounded-full bg-[#111] px-4 py-2.5 text-base font-medium text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+    "inline-flex items-center gap-1.5 rounded-full bg-[#111] px-4 py-2.5 text-lg font-medium text-[#eceae6] transition hover:bg-[#2a2a2a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
 
   const primaryCta = allowSelfSignup ? (
     <Link
@@ -102,9 +120,9 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
       rel="noreferrer"
       className={primaryCtaClass}
       tabIndex={0}
-      aria-label="Inscription démo — réserver un créneau"
+      aria-label="Réserver une démo — ouvrir le calendrier Google"
     >
-      Inscription démo
+      Réserver une démo
       <ArrowRight className="h-4 w-4" aria-hidden />
     </a>
   )
@@ -126,15 +144,19 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
       rel="noreferrer"
       className={demoCtaClass}
       tabIndex={0}
-      aria-label="Inscription démo — réserver un créneau"
+      aria-label="Réserver une démo — ouvrir le calendrier Google"
     >
-      Inscription démo
+      Réserver une démo
       <ArrowRight className="h-4 w-4" aria-hidden />
     </a>
   )
 
+  const handleCloseMobileNav = () => {
+    setMobileNavOpen(false)
+  }
+
   return (
-    <div className="relative h-dvh overflow-y-auto overflow-x-hidden overscroll-contain bg-[#eceae6] text-[#111111]">
+    <div className="relative h-dvh overflow-y-auto overflow-x-hidden overscroll-contain bg-[#eceae6] text-[1.125rem] leading-relaxed text-[#111111]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.45]"
@@ -149,34 +171,65 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
         className="pointer-events-none absolute -top-32 right-[-8%] h-[65vh] w-[55vw] rounded-full bg-[radial-gradient(circle,rgba(17,17,17,0.08)_0%,transparent_65%)]"
       />
 
-      <header className="relative z-20 mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5 md:px-8">
-        <p className="font-[family-name:var(--font-landing-display)] text-xl font-semibold tracking-tight md:text-2xl">
-          JobTracker
-        </p>
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Sections">
-          <a href="#comment-ca-marche" className={navLinkClass} tabIndex={0}>
-            Comment ça marche
-          </a>
-          <a href="#fonctionnalites" className={navLinkClass} tabIndex={0}>
-            Fonctionnalités
-          </a>
-          <a href="#faq" className={navLinkClass} tabIndex={0}>
-            Questions fréquentes
-          </a>
-        </nav>
-        <nav className="flex items-center gap-2 md:gap-3" aria-label="Compte">
-          {allowSelfSignup ? (
-            <Link
-              href="/login"
-              className={navLinkClass}
-              tabIndex={0}
-              aria-label="Connexion"
+      <header className="relative z-20 mx-auto max-w-6xl px-5 py-5 md:px-8">
+        <div className="flex items-center justify-between gap-3">
+          <p className="shrink-0 font-[family-name:var(--font-landing-display)] text-xl font-semibold tracking-tight md:text-2xl">
+            JobTracker
+          </p>
+          <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Sections">
+            {NAV_LINKS.map((link) => (
+              <a key={link.href} href={link.href} className={navLinkClass} tabIndex={0}>
+                {link.label}
+              </a>
+            ))}
+          </nav>
+          <nav className="flex shrink-0 items-center gap-2 md:gap-3" aria-label="Compte">
+            <button
+              type="button"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[#111]/20 text-[#111] transition hover:bg-[#111]/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111] xl:hidden"
+              aria-expanded={mobileNavOpen}
+              aria-controls="landing-mobile-nav"
+              aria-label={mobileNavOpen ? "Fermer le menu" : "Ouvrir le menu"}
+              onClick={() => setMobileNavOpen((open) => !open)}
             >
-              Connexion
-            </Link>
-          ) : null}
-          {headerPrimaryCta}
-        </nav>
+              {mobileNavOpen ? (
+                <X className="h-5 w-5" aria-hidden />
+              ) : (
+                <Menu className="h-5 w-5" aria-hidden />
+              )}
+            </button>
+            {allowSelfSignup ? (
+              <Link
+                href="/login"
+                className={cn(navLinkClass, "hidden sm:inline-flex")}
+                tabIndex={0}
+                aria-label="Connexion"
+              >
+                Connexion
+              </Link>
+            ) : null}
+            {headerPrimaryCta}
+          </nav>
+        </div>
+        {mobileNavOpen ? (
+          <nav
+            id="landing-mobile-nav"
+            className="mt-3 flex flex-col gap-1 border-t border-[#111]/10 pt-3 xl:hidden"
+            aria-label="Sections mobile"
+          >
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className={cn(navLinkClass, "w-full")}
+                tabIndex={0}
+                onClick={handleCloseMobileNav}
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        ) : null}
       </header>
 
       <main>
@@ -188,16 +241,16 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 ready ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
               )}
             >
-              <p className="mb-4 font-[family-name:var(--font-landing-display)] text-base font-medium uppercase tracking-[0.18em] text-[#111]/55">
+              <p className="mb-4 font-[family-name:var(--font-landing-display)] text-lg font-medium uppercase tracking-[0.18em] text-[#111]/55">
                 Pour les Product Owners et Product Managers
               </p>
               <h1 className="font-[family-name:var(--font-landing-display)] text-[clamp(2.4rem,6.5vw,4.4rem)] leading-[0.98] font-semibold tracking-[-0.03em]">
                 Tes offres, ton CV, tes candidatures. Au même endroit.
               </h1>
-              <p className="mt-6 max-w-2xl text-base leading-relaxed text-[#111]/70 md:text-lg">
-                Compare les offres à ton profil, repère les améliorations utiles pour
-                ton CV et prépare une lettre adaptée à chaque poste. Garde ensuite le
-                fil de tes candidatures jusqu’aux entretiens.
+              <p className="mt-6 max-w-2xl text-xl leading-relaxed text-[#111]/70 md:text-2xl">
+                JobTracker est un CRM de candidature : importe tes offres, compare-les à
+                ton CV, génère une lettre adaptée à chaque poste, puis suis ton pipeline
+                jusqu’aux entretiens.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 {primaryCta}
@@ -205,9 +258,17 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                   Voir comment ça marche
                 </a>
               </div>
-              <p className="mt-4 text-base text-[#111]/55">
-                Importe ton CV en PDF ou colle simplement son texte.
-              </p>
+              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-lg text-[#111]/55">
+                {HERO_PROOFS.map((proof) => (
+                  <li key={proof} className="flex items-center gap-2">
+                    <span
+                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#111]/35"
+                      aria-hidden
+                    />
+                    {proof}
+                  </li>
+                ))}
+              </ul>
             </div>
 
             <div
@@ -221,7 +282,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                   <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
                   <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
                   <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
-                  <span className="ml-3 text-base text-white/40">jobtracker — Offres</span>
+                  <span className="ml-3 text-lg text-white/40">jobtracker — Offres</span>
                 </div>
                 <div className="relative aspect-[16/10] w-full bg-[#0a0a0a]">
                   <Image
@@ -235,35 +296,6 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 </div>
               </div>
             </div>
-          </div>
-        </section>
-
-        <section className="relative z-10 border-t border-[#111]/10 bg-[#111] px-5 py-20 text-[#eceae6] md:px-8 md:py-28">
-          <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
-            <div>
-              <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
-                Comprends pourquoi une offre te correspond.
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-[#eceae6]/65">
-                Retrouve les points communs entre ton CV et le poste, les exigences non
-                documentées et les améliorations à envisager avant de postuler.
-              </p>
-            </div>
-            <figure className="overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0a]">
-              <div className="relative aspect-[16/11] w-full">
-                <Image
-                  src="/landing/screen-job-detail.png"
-                  alt="Vue détaillée d’une offre : correspondance avec le CV, conseils et lettre de motivation."
-                  fill
-                  className="object-cover object-top"
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                />
-              </div>
-              <figcaption className="border-t border-white/10 px-4 py-3 text-base text-[#eceae6]/55">
-                Vue détaillée d’une offre : correspondance avec le CV, conseils et lettre
-                de motivation.
-              </figcaption>
-            </figure>
           </div>
         </section>
 
@@ -285,13 +317,13 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                   )}
                   style={{ animationDelay: `${0.12 + index * 0.08}s` }}
                 >
-                  <span className="font-[family-name:var(--font-landing-display)] text-base text-[#111]/45">
+                  <span className="font-[family-name:var(--font-landing-display)] text-lg text-[#111]/45">
                     {step.n}
                   </span>
-                  <h3 className="mt-3 font-[family-name:var(--font-landing-display)] text-xl font-semibold">
+                  <h3 className="mt-3 font-[family-name:var(--font-landing-display)] text-2xl font-semibold">
                     {step.title}
                   </h3>
-                  <p className="mt-3 text-base leading-relaxed text-[#111]/65">{step.text}</p>
+                  <p className="mt-3 text-lg leading-relaxed text-[#111]/65">{step.text}</p>
                 </li>
               ))}
             </ol>
@@ -303,42 +335,80 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
           className="relative z-10 scroll-mt-8 border-t border-[#111]/10 bg-[#f5f3ef] px-5 py-20 md:px-8 md:py-28"
         >
           <div className="mx-auto max-w-6xl space-y-20 md:space-y-28">
-            <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div id="imports" className="scroll-mt-8 grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
               <div>
                 <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
-                  Identifie tes points forts pour chaque poste.
+                  Importe tes offres sans perdre le fil.
                 </h2>
-                <p className="mt-4 text-base leading-relaxed text-[#111]/70">
-                  Un intitulé peut te correspondre sans que toutes les missions soient
-                  adaptées à ton parcours. JobTracker compare le contenu de l’offre à ton
-                  CV pour t’aider à décider où concentrer tes efforts.
+                <p className="mt-4 text-lg leading-relaxed text-[#111]/70">
+                  Centralise les postes qui t’intéressent : collage manuel, fichier CSV
+                  ou Excel, JSON Apify, ou export de l’extension Chrome. Prévisualise,
+                  déduplique, puis retrouve tout dans ton board.
                 </p>
-                <ul className="mt-6 space-y-3 text-base text-[#111]/75">
+                <ul className="mt-6 space-y-3 text-lg text-[#111]/75">
                   <li className="border-l-2 border-[#111]/20 pl-3">
-                    Les compétences et expériences en commun.
+                    Collage d’une offre avec URL et description.
                   </li>
                   <li className="border-l-2 border-[#111]/20 pl-3">
-                    Les exigences que ton CV ne permet pas de confirmer.
+                    Import CSV / Excel prêt à analyser.
                   </li>
                   <li className="border-l-2 border-[#111]/20 pl-3">
-                    Des suggestions ciblées pour mieux présenter ton parcours.
+                    Import JSON Apify pour les lots déjà collectés.
                   </li>
                 </ul>
-                <p className="mt-5 text-base italic text-[#111]/55">
-                  Le score de correspondance est une aide à la lecture, pas une
-                  probabilité d’embauche.
-                </p>
               </div>
               <figure className="overflow-hidden rounded-xl border border-[#111]/12 bg-[#111] shadow-[0_30px_60px_-36px_rgba(0,0,0,0.45)]">
                 <div className="relative aspect-[16/11] w-full">
                   <Image
-                    src="/landing/screen-job-detail.png"
-                    alt="Comparaison CV et fiche de poste"
+                    src="/landing/screen-imports.png"
+                    alt="Écran d’import des offres : CSV, Excel, collage et JSON"
                     fill
                     className="object-cover object-top"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                   />
                 </div>
+              </figure>
+            </div>
+
+            <div className="grid items-center gap-10 rounded-2xl bg-[#111] px-6 py-10 text-[#eceae6] lg:grid-cols-2 lg:gap-14 lg:px-10 lg:py-12">
+              <div>
+                <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
+                  Comprends pourquoi une offre te correspond.
+                </h2>
+                <p className="mt-4 text-lg leading-relaxed text-[#eceae6]/65">
+                  Un intitulé peut te correspondre sans que toutes les missions soient
+                  adaptées à ton parcours. JobTracker compare le contenu de l’offre à ton
+                  CV pour t’aider à décider où concentrer tes efforts.
+                </p>
+                <ul className="mt-6 space-y-3 text-lg text-[#eceae6]/75">
+                  <li className="border-l-2 border-[#eceae6]/25 pl-3">
+                    Les compétences et expériences en commun.
+                  </li>
+                  <li className="border-l-2 border-[#eceae6]/25 pl-3">
+                    Les exigences que ton CV ne permet pas de confirmer.
+                  </li>
+                  <li className="border-l-2 border-[#eceae6]/25 pl-3">
+                    Des suggestions ciblées pour mieux présenter ton parcours.
+                  </li>
+                </ul>
+                <p className="mt-5 text-lg italic text-[#eceae6]/55">
+                  Le score de correspondance est une aide à la lecture, pas une
+                  probabilité d’embauche.
+                </p>
+              </div>
+              <figure className="overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0a]">
+                <div className="relative aspect-[16/11] w-full">
+                  <Image
+                    src="/landing/screen-job-detail.png"
+                    alt="Vue détaillée d’une offre : score de correspondance, gaps et conseils"
+                    fill
+                    className="object-cover object-top"
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                  />
+                </div>
+                <figcaption className="border-t border-white/10 px-4 py-3 text-lg text-[#eceae6]/55">
+                  Score, points communs et gaps avant de postuler.
+                </figcaption>
               </figure>
             </div>
 
@@ -358,13 +428,13 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
                   Sache quoi améliorer dans ton CV.
                 </h2>
-                <p className="mt-4 text-base leading-relaxed text-[#111]/70">
+                <p className="mt-4 text-lg leading-relaxed text-[#111]/70">
                   Obtiens un retour sur la clarté de ton parcours, la structure du contenu
                   et la façon dont tu présentes tes réalisations. Repère les compétences
                   et les mots-clés à mieux mettre en valeur lorsqu’ils correspondent à ton
                   expérience.
                 </p>
-                <ul className="mt-6 space-y-3 text-base text-[#111]/75">
+                <ul className="mt-6 space-y-3 text-lg text-[#111]/75">
                   <li className="border-l-2 border-[#111]/20 pl-3">
                     Une évaluation de la lisibilité du contenu analysé.
                   </li>
@@ -375,7 +445,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                     Des conseils pour rendre tes missions et tes résultats plus concrets.
                   </li>
                 </ul>
-                <p className="mt-5 text-base italic text-[#111]/55">
+                <p className="mt-5 text-lg italic text-[#111]/55">
                   L’analyse fournit des repères d’amélioration. Elle ne garantit pas le
                   passage d’un logiciel de recrutement.
                 </p>
@@ -385,22 +455,22 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
             <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
               <div>
                 <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
-                  Pars de ton expérience pour écrire ta lettre.
+                  Garde ton profil à jour pour de meilleures analyses.
                 </h2>
-                <p className="mt-4 text-base leading-relaxed text-[#111]/70">
-                  Prépare un brouillon qui relie les besoins du poste aux éléments de ton
-                  CV. Tu disposes d’une base adaptée à l’offre, à relire et à ajuster avec
-                  tes mots.
+                <p className="mt-4 text-lg leading-relaxed text-[#111]/70">
+                  Ton CV et ton contexte (expériences, compétences, préférences) servent
+                  de source unique aux scores, aux suggestions et aux lettres. Plus le
+                  profil est clair, plus les retours sont utiles.
                 </p>
-                <ul className="mt-6 space-y-3 text-base text-[#111]/75">
+                <ul className="mt-6 space-y-3 text-lg text-[#111]/75">
                   <li className="border-l-2 border-[#111]/20 pl-3">
-                    Une accroche liée à la mission.
+                    Import PDF ou collage de texte.
                   </li>
                   <li className="border-l-2 border-[#111]/20 pl-3">
-                    Des arguments fondés sur ton parcours.
+                    Expériences et compétences structurées.
                   </li>
                   <li className="border-l-2 border-[#111]/20 pl-3">
-                    Un texte que tu peux personnaliser avant de l’utiliser.
+                    Base unique pour match et lettres.
                   </li>
                 </ul>
               </div>
@@ -408,7 +478,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 <div className="relative aspect-[16/11] w-full">
                   <Image
                     src="/landing/screen-profile.png"
-                    alt="Préparation d’une lettre de motivation"
+                    alt="Profil et contexte CV dans JobTracker"
                     fill
                     className="object-cover object-top"
                     sizes="(max-width: 1024px) 100vw, 50vw"
@@ -421,26 +491,88 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
               <figure className="order-2 overflow-hidden rounded-xl border border-[#111]/12 bg-[#111] shadow-[0_30px_60px_-36px_rgba(0,0,0,0.45)] lg:order-1">
                 <div className="relative aspect-[16/11] w-full">
                   <Image
-                    src="/landing/screen-applications.png"
-                    alt="Suivi des candidatures"
+                    src="/landing/screen-job-detail.png"
+                    alt="Préparation d’une lettre de motivation à partir du CV et de l’offre"
                     fill
-                    className="object-cover object-top"
+                    className="object-cover object-[center_70%]"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                   />
                 </div>
+                <figcaption className="border-t border-white/10 bg-[#0a0a0a] px-4 py-3 text-lg text-[#eceae6]/55">
+                  Brouillon de lettre lié à l’offre, à relire avant envoi.
+                </figcaption>
               </figure>
               <div className="order-1 lg:order-2">
                 <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
+                  Pars de ton expérience pour écrire ta lettre.
+                </h2>
+                <p className="mt-4 text-lg leading-relaxed text-[#111]/70">
+                  Prépare un brouillon qui relie les besoins du poste aux éléments de ton
+                  CV. Tu disposes d’une base adaptée à l’offre, à relire et à ajuster avec
+                  tes mots. Tu peux aussi générer plusieurs lettres en lot depuis le board.
+                </p>
+                <ul className="mt-6 space-y-3 text-lg text-[#111]/75">
+                  <li className="border-l-2 border-[#111]/20 pl-3">
+                    Une accroche liée à la mission.
+                  </li>
+                  <li className="border-l-2 border-[#111]/20 pl-3">
+                    Des arguments fondés sur ton parcours.
+                  </li>
+                  <li className="border-l-2 border-[#111]/20 pl-3">
+                    Un texte que tu peux personnaliser avant de l’utiliser.
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+              <div>
+                <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
                   Retrouve où tu en es, sans tout garder en tête.
                 </h2>
-                <p className="mt-4 text-base leading-relaxed text-[#111]/70">
+                <p className="mt-4 text-lg leading-relaxed text-[#111]/70">
                   Une candidature à préparer, un entretien prévu, des notes à conserver :
-                  rassemble les informations utiles pour chaque poste.
+                  rassemble les informations utiles pour chaque poste. Mets à jour les
+                  statuts et retrouve ton activité depuis le tableau de bord.
                 </p>
-                <p className="mt-4 text-base leading-relaxed text-[#111]/70">
-                  Mets à jour les statuts et retrouve ton activité depuis le tableau de
-                  bord.
-                </p>
+                <ul className="mt-6 space-y-3 text-lg text-[#111]/75">
+                  <li className="border-l-2 border-[#111]/20 pl-3">
+                    Pipeline de candidatures avec statuts.
+                  </li>
+                  <li className="border-l-2 border-[#111]/20 pl-3">
+                    Notes et dates d’entretien.
+                  </li>
+                  <li className="border-l-2 border-[#111]/20 pl-3">
+                    Vue d’ensemble sur le dashboard.
+                  </li>
+                </ul>
+              </div>
+              <div className="space-y-4">
+                <figure className="overflow-hidden rounded-xl border border-[#111]/12 bg-[#111] shadow-[0_30px_60px_-36px_rgba(0,0,0,0.45)]">
+                  <div className="relative aspect-[16/11] w-full">
+                    <Image
+                      src="/landing/screen-applications.png"
+                      alt="Suivi des candidatures"
+                      fill
+                      className="object-cover object-top"
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                    />
+                  </div>
+                </figure>
+                <figure className="overflow-hidden rounded-xl border border-[#111]/12 bg-[#111] shadow-[0_30px_60px_-36px_rgba(0,0,0,0.45)]">
+                  <div className="relative aspect-[16/11] w-full">
+                    <Image
+                      src="/landing/screen-dashboard.png"
+                      alt="Tableau de bord JobTracker — activité et indicateurs"
+                      fill
+                      className="object-cover object-top"
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                    />
+                  </div>
+                  <figcaption className="border-t border-white/10 bg-[#0a0a0a] px-4 py-3 text-lg text-[#eceae6]/55">
+                    Dashboard : activité récente et vue d’ensemble.
+                  </figcaption>
+                </figure>
               </div>
             </div>
           </div>
@@ -452,19 +584,20 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
         >
           <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-14">
             <div>
-              <p className="mb-3 text-base font-medium uppercase tracking-[0.16em] text-[#111]/5">
+              <p className="mb-3 text-lg font-medium uppercase tracking-[0.16em] text-[#111]/5">
                 Extension Chrome — optionnelle
               </p>
               <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
-                Tu recherches sur Welcome to the Jungle ?
+                Tu recherches sur Welcome to the Jungle ou Indeed ?
               </h2>
-              <p className="mt-4 text-base leading-relaxed text-[#111]/70">
-                L’extension JobTracker permet d’enregistrer les offres qui t’intéressent
-                dans un fichier CSV. Importe ensuite ce fichier dans l’application pour
-                les retrouver et les analyser.
+              <p className="mt-4 text-lg leading-relaxed text-[#111]/70">
+                L’extension JobTracker enregistre les offres qui t’intéressent dans un
+                fichier CSV depuis Welcome to the Jungle et Indeed. Importe ensuite ce
+                fichier dans l’application pour les retrouver et les analyser.
               </p>
-              <p className="mt-4 text-base leading-relaxed text-[#111]/70">
-                Tu peux aussi commencer directement en collant une offre dans JobTracker.
+              <p className="mt-4 text-lg leading-relaxed text-[#111]/70">
+                Tu peux aussi commencer directement en collant une offre ou en important
+                un CSV / Excel dans JobTracker.
               </p>
               <div className="mt-8">
                 <Link href="/extension" className={primaryCtaClass} tabIndex={0}>
@@ -472,7 +605,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
               </div>
-              <p className="mt-4 text-base italic text-[#111]/55">
+              <p className="mt-4 text-lg italic text-[#111]/55">
                 L’installation actuelle se fait en mode développeur sur Chrome ou Arc.
               </p>
             </div>
@@ -509,7 +642,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                       aria-expanded={isOpen}
                       onClick={() => setOpenFaq(isOpen ? null : index)}
                     >
-                      <span className="font-[family-name:var(--font-landing-display)] text-lg font-semibold md:text-xl">
+                      <span className="font-[family-name:var(--font-landing-display)] text-xl font-semibold md:text-2xl">
                         {item.q}
                       </span>
                       <ChevronDown
@@ -521,7 +654,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                       />
                     </button>
                     {isOpen ? (
-                      <p className="pb-5 text-base leading-relaxed text-[#eceae6]/65 md:text-base">
+                      <p className="pb-5 text-lg leading-relaxed text-[#eceae6]/65 md:text-lg">
                         {item.a}
                       </p>
                     ) : null}
@@ -538,15 +671,15 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
               <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
                 Prépare ta prochaine candidature avec une vue claire.
               </h2>
-              <p className="mt-3 text-[#eceae6]/65">
-                Commence par ton CV, puis ajoute une offre pour comparer ton profil aux
-                attentes du poste.
+              <p className="mt-3 text-lg leading-relaxed text-[#eceae6]/65">
+                Importe ton CV, ajoute une offre, compare ton profil, puis génère une
+                lettre à ajuster avant d’envoyer.
               </p>
             </div>
             {allowSelfSignup ? (
               <Link
                 href="/login?signup=1"
-                className="relative z-10 inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-[#eceae6] px-6 py-3 text-base font-semibold text-[#111] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="relative z-10 inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-[#eceae6] px-6 py-3 text-lg font-semibold text-[#111] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 tabIndex={0}
                 aria-label="Commencer"
               >
@@ -558,11 +691,11 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 href={DEMO_BOOKING_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="relative z-10 inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-[#eceae6] px-6 py-3 text-base font-semibold text-[#111] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="relative z-10 inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-[#eceae6] px-6 py-3 text-lg font-semibold text-[#111] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 tabIndex={0}
-                aria-label="Inscription démo — réserver un créneau"
+                aria-label="Réserver une démo — ouvrir le calendrier Google"
               >
-                Inscription démo
+                Réserver une démo
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </a>
             )}
@@ -576,12 +709,12 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
             <p className="font-[family-name:var(--font-landing-display)] text-lg font-semibold text-[#111]">
               JobTracker
             </p>
-            <p className="text-base leading-relaxed text-[#111]/55">
+            <p className="text-lg leading-relaxed text-[#111]/55">
               Prépare et suis tes candidatures Product Owner et Product Manager.
             </p>
           </div>
           <nav
-            className="flex flex-wrap gap-x-5 gap-y-2 text-base text-[#111]/55"
+            className="flex flex-wrap gap-x-5 gap-y-2 text-lg text-[#111]/55"
             aria-label="Pied de page"
           >
             {allowSelfSignup ? (
@@ -610,9 +743,9 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 rel="noreferrer"
                 className="hover:text-[#111]"
                 tabIndex={0}
-                aria-label="Inscription démo — réserver un créneau"
+                aria-label="Réserver une démo — ouvrir le calendrier Google"
               >
-                Inscription démo
+                Réserver une démo
               </a>
             )}
             <a href="#confidentialite" className="hover:text-[#111]" tabIndex={0}>
@@ -626,7 +759,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
             </a>
           </nav>
         </div>
-        <div className="mx-auto mt-8 max-w-6xl space-y-4 border-t border-[#111]/10 pt-6 text-base leading-relaxed text-[#111]/45">
+        <div className="mx-auto mt-8 max-w-6xl space-y-4 border-t border-[#111]/10 pt-6 text-lg leading-relaxed text-[#111]/45">
           <p id="confidentialite" className="scroll-mt-8">
             <strong className="font-medium text-[#111]/60">Confidentialité —</strong>{" "}
             Tes CV, offres et candidatures restent dans ton compte. Les analyses IA

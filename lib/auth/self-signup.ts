@@ -1,6 +1,6 @@
 /**
  * Self-signup is for local development only.
- * On Vercel, accounts are created after an Inscription démo request.
+ * On Vercel, accounts are created after a Réserver une démo booking.
  *
  * Override with ALLOW_SELF_SIGNUP=true|false when needed.
  */
