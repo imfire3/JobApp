@@ -8,7 +8,7 @@ import { DemoRequestDialog } from "@/components/landing/demo-request-dialog"
 import { cn } from "@/lib/utils"
 
 type LandingPageProps = {
-  /** Local Mode dév only — hidden on Vercel (demo request instead). */
+  /** Local self-signup — hidden on Vercel (demo request instead). */
   allowSelfSignup?: boolean
 }
 
@@ -117,24 +117,25 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
         </nav>
         <nav className="flex items-center gap-2 md:gap-3" aria-label="Compte">
           {allowSelfSignup ? (
-            <Link
-              href="/login"
-              className={navLinkClass}
-              tabIndex={0}
-              aria-label="Mode dév — connexion ou inscription"
-            >
-              Mode dév
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className={navLinkClass}
-              tabIndex={0}
-              aria-label="Connexion"
-            >
-              Connexion
-            </Link>
-          )}
+            <>
+              <Link
+                href="/login"
+                className={navLinkClass}
+                tabIndex={0}
+                aria-label="Connexion"
+              >
+                Connexion
+              </Link>
+              <Link
+                href="/login?signup=1"
+                className={navLinkClass}
+                tabIndex={0}
+                aria-label="Inscription"
+              >
+                Inscription
+              </Link>
+            </>
+          ) : null}
           <button
             type="button"
             onClick={handleOpenDemo}
@@ -559,24 +560,25 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
               Inscription démo
             </button>
             {allowSelfSignup ? (
-              <Link
-                href="/login"
-                className="hover:text-[#111]"
-                tabIndex={0}
-                aria-label="Mode dév — connexion ou inscription"
-              >
-                Mode dév
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="hover:text-[#111]"
-                tabIndex={0}
-                aria-label="Connexion"
-              >
-                Connexion
-              </Link>
-            )}
+              <>
+                <Link
+                  href="/login"
+                  className="hover:text-[#111]"
+                  tabIndex={0}
+                  aria-label="Connexion"
+                >
+                  Connexion
+                </Link>
+                <Link
+                  href="/login?signup=1"
+                  className="hover:text-[#111]"
+                  tabIndex={0}
+                  aria-label="Inscription"
+                >
+                  Inscription
+                </Link>
+              </>
+            ) : null}
             <a href="#confidentialite" className="hover:text-[#111]" tabIndex={0}>
               Confidentialité
             </a>

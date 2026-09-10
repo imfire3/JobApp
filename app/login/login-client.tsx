@@ -142,7 +142,7 @@ export default function LoginPageClient({
         const statusRes = await fetch("/api/onboarding");
         if (cancelled) return;
 
-        // Not logged in: CV import needs a session → force signup first (local Mode dév only).
+        // Not logged in: CV import needs a session → signup first when allowed.
         if (statusRes.status === 401) {
           if (wantsCv && allowSelfSignup) {
             setMode("signup");
@@ -336,41 +336,6 @@ export default function LoginPageClient({
     }
   }
 
-  const handleFakeFillDev = async () => {
-    const stamp = Date.now().toString(36)
-    const fakeEmail = `dev+${stamp}@jobapp.local`
-    const fakePassword = "password1"
-    setIdentifier(fakeEmail)
-    setPassword(fakePassword)
-    setPasswordConfirm(fakePassword)
-    setLoading(true)
-    try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier: fakeEmail,
-          password: fakePassword,
-        }),
-      })
-      const payload = (await response.json().catch(() => ({}))) as {
-        error?: string
-      }
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Inscription échouée")
-      }
-      toast.success("Compte dév créé")
-      setPassword("")
-      setPasswordConfirm("")
-      setMode("cv")
-      toast.message("Importe ton CV pour continuer")
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Inscription échouée")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -443,7 +408,7 @@ export default function LoginPageClient({
     mode === "cv"
       ? "Ensuite on analyse ton profil, puis tu arrives sur le dashboard."
       : mode === "signup"
-        ? "Mode dév — crée ton compte, puis importe ton CV."
+        ? "Crée ton compte, puis importe ton CV."
         : "Suis tes offres PO/PM, score les matches et génère des lettres.";
 
   if (mode === "cv") {
@@ -633,18 +598,7 @@ export default function LoginPageClient({
                 Au moins {MIN_PASSWORD_LENGTH} caractères. Les deux champs doivent
                 être identiques.
               </p>
-              <div className="relative z-10 space-y-3 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  className="relative z-10 w-full"
-                  disabled={loading}
-                  onClick={() => void handleFakeFillDev()}
-                  aria-label="Remplir le formulaire en mode dév"
-                >
-                  Fake filler dév
-                </Button>
+              <div className="relative z-10 pt-2">
                 <Button
                   type="submit"
                   size="lg"

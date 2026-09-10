@@ -23,7 +23,7 @@ const signupSchema = z.object({
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
 })
 
-/** Local Mode dév self-signup only — closed on Vercel (demo request flow). */
+/** Local self-signup only — closed on Vercel (demo request flow). */
 export async function POST(request: Request) {
   if (!isSelfSignupAllowed()) {
     return NextResponse.json(

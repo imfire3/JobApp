@@ -1,5 +1,5 @@
 /**
- * Self-signup ("Mode dév") is for local development only.
+ * Self-signup is for local development only.
  * On Vercel, accounts are created after an Inscription démo request.
  *
  * Override with ALLOW_SELF_SIGNUP=true|false when needed.
