@@ -1,12 +1,41 @@
-# Automated Job Collection (24h)
+# Job collection
 
-JobTracker collects jobs through **external scraper providers** (Apify) or **mock mode** for local development. Scraping never runs in the browser.
+JobTracker ingests offers through three honest paths:
+
+| Path | Sources | How |
+|------|---------|-----|
+| **France Travail API** | `/sources` → France Travail → **Run now** | Official Offres d'emploi v2 (`FRANCE_TRAVAIL_*`) |
+| **Extension / URL / CSV** | LinkedIn, WTTJ, Indeed, APEC, etc. | Chrome extension or `/imports` — no server scrape |
+| **Tracked-search Apify (legacy)** | `/jobs` tracked searches | Mock or Apify actors — not the Sources cards |
+
+Scraping never runs in the browser. LinkedIn / WTTJ / Indeed are **not** synced by the Sources "Run now" button.
 
 ```
-External scraper (Apify actor) → API route → Supabase → Jobs board
+France Travail API → POST /api/sources/france-travail/sync → jobs
+Extension / paste / CSV → /api/import-jobs → jobs
+Tracked search (legacy) → Apify/mock → jobs
 ```
 
-## Environment
+## France Travail (Sources UI)
+
+1. Create an app on [francetravail.io](https://francetravail.io) and subscribe to **Offres d'emploi v2**.
+2. Set in `.env`:
+
+```bash
+FRANCE_TRAVAIL_CLIENT_ID=
+FRANCE_TRAVAIL_CLIENT_SECRET=
+# optional: FRANCE_TRAVAIL_SCOPE=api_offresdemploiv2 o2dsoffre
+```
+
+3. On `/sources`, France Travail shows **API connectée** when credentials are present.
+4. **Run now** calls `POST /api/sources/france-travail/sync` (also available via `POST /api/sync/source/[sourceId]` for that slug only).
+5. Without credentials the UI shows **Configurer l’API** and the sync returns **503**.
+
+Criteria come from the user’s enabled France Travail `source_searches` (default: Product Owner / PM Paris). Jobs are deduped by `(user_id, url)` and logged in `sync_logs`.
+
+Other catalog cards link to `/extension` or `/imports?paste=1` — they do not expose server Run now.
+
+## Legacy Apify / tracked searches
 
 ```bash
 JOB_SYNC_MODE=mock            # mock | apify
@@ -21,7 +50,9 @@ SUPABASE_SERVICE_ROLE_KEY=    # required for multi-user cron
 
 | Endpoint | Auth | Purpose |
 |----------|------|---------|
-| `POST /api/tracked-searches/[id]/run` | User session | Run one tracked search now |
+| `POST /api/sources/france-travail/sync` | User session | France Travail API sync for current user |
+| `POST /api/sync/source/[sourceId]` | User session | FT if slug=`france-travail`; 400 for extension sources |
+| `POST /api/tracked-searches/[id]/run` | User session | Run one tracked search now (legacy) |
 | `POST /api/tracked-searches/run-all` | User session | Sync all enabled searches for current user |
 | `POST /api/sync-jobs` | `Authorization: Bearer <JOB_SYNC_SECRET>` | Cron — all users, all enabled searches |
 

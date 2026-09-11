@@ -81,6 +81,7 @@ export const PROFILE_LANGUAGE_SUGGESTIONS = [
 export const PROFILE_LOCATION_EXTRAS = [
   "Remote",
   "Full remote",
+  "Hybride",
   "Hybrid",
   "Île-de-France",
   "Paris",

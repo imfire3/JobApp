@@ -70,7 +70,7 @@ export function JobCard({
 
   return (
     <Card
-      className={`flex flex-col shadow-sm transition-shadow hover:shadow-md ${
+      className={`flex h-fit flex-col self-start shadow-sm transition-shadow hover:shadow-md ${
         onOpen ? "cursor-pointer" : ""
       }`}
       role={onOpen ? "link" : undefined}
@@ -151,7 +151,7 @@ export function JobCard({
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 pb-3">
+      <CardContent className="pb-3">
         {showScoringBar && scoring ? (
           <div className="mb-3">
             <JobScoringProgressBar

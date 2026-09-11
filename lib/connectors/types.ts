@@ -1,6 +1,10 @@
 import type { ImportedJob, TrackedSearch } from "@/types";
 
-export type ConnectorSourceKey = "welcome-to-the-jungle" | "linkedin" | "indeed";
+export type ConnectorSourceKey =
+  | "welcome-to-the-jungle"
+  | "linkedin"
+  | "indeed"
+  | "france-travail";
 
 export type JobSyncMode = "mock" | "apify";
 
@@ -8,6 +12,7 @@ export const CONNECTOR_SOURCES: Array<{
   key: ConnectorSourceKey;
   label: string;
 }> = [
+  { key: "france-travail", label: "France Travail" },
   { key: "welcome-to-the-jungle", label: "Welcome to the Jungle" },
   { key: "linkedin", label: "LinkedIn" },
   { key: "indeed", label: "Indeed" },

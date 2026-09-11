@@ -1250,7 +1250,11 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
                 <div>
                   <CardTitle>Une lettre adaptée à cette offre</CardTitle>
-                  {job.cover_letter_angle ? (
+                  {job.cover_letter_angle_briefing ? (
+                    <p className="mt-1 text-base text-muted-foreground whitespace-pre-wrap">
+                      {job.cover_letter_angle_briefing}
+                    </p>
+                  ) : job.cover_letter_angle ? (
                     <p className="mt-1 text-base text-muted-foreground">{job.cover_letter_angle}</p>
                   ) : (
                     <p className="mt-1 text-base text-muted-foreground">
@@ -1273,7 +1277,13 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                       : "Préparer ma lettre"}
                 </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
+                {job.cover_letter_subject ? (
+                  <p className="text-sm text-muted-foreground">
+                    Objet :{" "}
+                    <span className="text-foreground">{job.cover_letter_subject}</span>
+                  </p>
+                ) : null}
                 {job.cover_letter ? (
                   <Textarea
                     value={job.cover_letter}
@@ -1292,9 +1302,22 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                     Aucune lettre pour l’instant. Clique « Générer » pour en créer une.
                   </p>
                 )}
+                {job.cover_letter_coach_notes &&
+                job.cover_letter_coach_notes.length > 0 ? (
+                  <ul className="space-y-1.5 text-sm text-muted-foreground">
+                    {job.cover_letter_coach_notes.map((note, i) => (
+                      <li key={`detail-coach-${i}`} className="flex gap-2">
+                        <span
+                          className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/40"
+                          aria-hidden
+                        />
+                        <span>{note}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 {job.cover_letter ? (
                   <Button
-                    className="mt-3"
                     size="sm"
                     variant="outline"
                     onClick={() => setCoverOpen(true)}

@@ -123,6 +123,9 @@ export function buildJobInsertPayload(input: {
     match_gaps: null,
     cover_letter_angle: null,
     cover_letter: null,
+    cover_letter_subject: null,
+    cover_letter_angle_briefing: null,
+    cover_letter_coach_notes: null,
     selected: false,
   };
 }
@@ -199,6 +202,19 @@ export function toJobViewModel(row: JobRow): Job {
             ? "Score estimé à partir des forces et écarts documentés (match_score IA absent)."
             : null);
 
+  const coverPack =
+    row.raw_data &&
+    typeof row.raw_data === "object" &&
+    !Array.isArray(row.raw_data) &&
+    row.raw_data.cover_letter_pack &&
+    typeof row.raw_data.cover_letter_pack === "object" &&
+    !Array.isArray(row.raw_data.cover_letter_pack)
+      ? (row.raw_data.cover_letter_pack as Record<string, unknown>)
+      : null;
+  const coverLetterCoachNotes = Array.isArray(coverPack?.coach_notes)
+    ? coverPack.coach_notes.filter((n): n is string => typeof n === "string")
+    : null;
+
   return {
     id: row.id,
     user_id: row.user_id,
@@ -257,6 +273,13 @@ export function toJobViewModel(row: JobRow): Job {
     match_gaps: matchGaps,
     cover_letter_angle: row.cover_letter_angle,
     cover_letter: row.cover_letter,
+    cover_letter_subject:
+      typeof coverPack?.subject === "string" ? coverPack.subject : null,
+    cover_letter_angle_briefing:
+      typeof coverPack?.angle_briefing === "string"
+        ? coverPack.angle_briefing
+        : null,
+    cover_letter_coach_notes: coverLetterCoachNotes,
     selected: row.selected ?? row.status === "selected",
     tracked_search_id: row.tracked_search_id,
     tracked_search_name:

@@ -74,6 +74,84 @@ const EVIDENCE_LEVEL_META: Record<
   3: { label: "Fort", tone: "strong" },
 }
 
+/** Enough content to replace the short Sur ton CV / La fiche demande pair. */
+export const RICH_SCORE_EXPLANATION_MIN_CHARS = 160
+
+const BULLET_LINE_RE = /^\s*(?:[-•*]|\d+[.)])\s+/
+
+export function isRichScoreExplanation(
+  text: string | null | undefined
+): boolean {
+  const trimmed = text?.trim() ?? ""
+  if (!trimmed) return false
+  const lines = trimmed.split(/\n/).map((l) => l.trim()).filter(Boolean)
+  const bulletLines = lines.filter((l) => BULLET_LINE_RE.test(l))
+  if (bulletLines.length >= 3 && trimmed.length >= 80) return true
+  const paragraphs = trimmed.split(/\n\s*\n/).filter((p) => p.trim().length > 0)
+  if (paragraphs.length >= 2 && trimmed.length >= 120) return true
+  return trimmed.length >= RICH_SCORE_EXPLANATION_MIN_CHARS
+}
+
+/** Split score_explanation into display lines (bullets preferred). */
+export function parseScoreExplanationLines(
+  text: string
+): { kind: "bullet" | "text"; content: string }[] {
+  const lines = text
+    .trim()
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+  return lines.map((line) => {
+    const match = line.match(/^(?:[-•*]|\d+[.)])\s+(.*)$/)
+    if (match?.[1]) return { kind: "bullet" as const, content: match[1].trim() }
+    return { kind: "text" as const, content: line }
+  })
+}
+
+/** Context paragraph + bullet list for the two-card Pourquoi ce score UI. */
+export function splitScoreExplanation(text: string | null | undefined): {
+  context: string
+  bullets: string[]
+} {
+  const trimmed = text?.trim() ?? ""
+  if (!trimmed) return { context: "", bullets: [] }
+
+  const lines = parseScoreExplanationLines(trimmed)
+  const contextParts: string[] = []
+  const bullets: string[] = []
+  for (const line of lines) {
+    if (line.kind === "bullet") bullets.push(line.content)
+    else contextParts.push(line.content)
+  }
+
+  return {
+    context: contextParts.join(" ").replace(/\s+/g, " ").trim(),
+    bullets,
+  }
+}
+
+export type CriterionMatchDisplay = {
+  emoji: string
+  scoreOutOf10: number
+  label: string
+}
+
+/** Map evidence_level 0–3 → coach-style emoji + /10 for the why-score table. */
+export function criterionMatchDisplay(
+  evidenceLevel: 0 | 1 | 2 | 3
+): CriterionMatchDisplay {
+  switch (evidenceLevel) {
+    case 3:
+      return { emoji: "🟢", scoreOutOf10: 9, label: "Fort" }
+    case 2:
+      return { emoji: "🟢", scoreOutOf10: 7, label: "Bon" }
+    case 1:
+      return { emoji: "🟠", scoreOutOf10: 4, label: "Partiel" }
+    default:
+      return { emoji: "🔴", scoreOutOf10: 2, label: "Faible" }
+  }
+}
+
 export type LabPriorityAction = {
   id: string
   title: string
@@ -463,7 +541,7 @@ export function buildMatchNarrative(job: Job): MatchNarrative {
   return { fromCv, fromJob }
 }
 
-function keywordsForRewrite(
+export function keywordsForCvImprovement(
   job: Job,
   item: JobCvImprovementItem
 ): string[] {
@@ -482,6 +560,13 @@ function keywordsForRewrite(
   )
   if (matched.length > 0) return matched.slice(0, 5)
   return missing.slice(0, 3)
+}
+
+function keywordsForRewrite(
+  job: Job,
+  item: JobCvImprovementItem
+): string[] {
+  return keywordsForCvImprovement(job, item)
 }
 
 function importanceFromPriority(

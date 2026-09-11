@@ -31,6 +31,9 @@ export async function POST(request: Request) {
     const result = await generateAndSaveCoverLetter(supabase, user.id, body.jobId);
     return NextResponse.json({
       cover_letter: result.content,
+      angle_briefing: result.angle_briefing,
+      subject: result.subject,
+      coach_notes: result.coach_notes,
       coverLetterId: result.coverLetterId,
       job: result.job,
     });

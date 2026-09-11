@@ -21,6 +21,8 @@ const badgeVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         /** Content chips (skills, roles, tools…) — emerald outline pill */
         tag: "h-auto rounded-full border border-emerald-500/50 bg-transparent px-3.5 py-1.5 text-emerald-700 shadow-none dark:border-emerald-500/60 dark:text-emerald-400 [a]:hover:bg-emerald-500/10",
+        /** Selected filter chip (Figma FilterChip 58:84) */
+        chip: "h-auto gap-1.5 rounded-[8px] border border-input bg-accent px-3 py-2 text-xs font-medium leading-none text-accent-foreground shadow-none hover:bg-accent/90",
       },
     },
     defaultVariants: {

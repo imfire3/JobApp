@@ -107,8 +107,9 @@ const languageLevelSchema = z
     )
     if (match) return match
     const lower = normalized.toLowerCase()
-    if (/native|maternel|maternelle|c2/.test(lower)) return "Maternel" as const
-    if (/fluent|courant|bilingual|bilingue|c1/.test(lower)) return "Courant" as const
+    if (/native|maternel|maternelle|natif|c2/.test(lower)) return "Natif" as const
+    if (/bilingual|bilingue/.test(lower)) return "Bilingue" as const
+    if (/fluent|courant|profession|c1/.test(lower)) return "Professionnel" as const
     if (/interm|b1|b2/.test(lower)) return "Intermédiaire" as const
     if (/beginner|début|debut|a1|a2|basic|bases/.test(lower)) return "Débutant" as const
     return "" as const

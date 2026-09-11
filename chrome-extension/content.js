@@ -310,6 +310,31 @@
   window.__jobtrackerParseWttjJob = parseJobPage;
   window.__jobtrackerParseJob = parseJobPage;
 
+  // #region agent log
+  function jtDebug(hypothesisId, location, message, data) {
+    try {
+      chrome.runtime.sendMessage(
+        {
+          type: "JT_DEBUG_LOG",
+          hypothesisId,
+          location,
+          message,
+          data,
+        },
+        () => void chrome.runtime.lastError
+      );
+    } catch {
+      // ignore
+    }
+  }
+
+  jtDebug("C", "content.js:load", "content script loaded", {
+    href: window.location.href.slice(0, 180),
+    source: detectSource(),
+    path: window.location.pathname.slice(0, 120),
+  });
+  // #endregion
+
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === "PING") {
       sendResponse({ ok: true });
@@ -322,6 +347,15 @@
     ) {
       try {
         const job = parseJobPage();
+        // #region agent log
+        jtDebug("D", "content.js:PARSE_JOB", "parse via message", {
+          ok: Boolean(job.url && job.description),
+          source: job.source,
+          titleLen: (job.title || "").length,
+          descLen: (job.description || "").length,
+          company: (job.company || "").slice(0, 80),
+        });
+        // #endregion
         if (!job.url || !job.description) {
           sendResponse({
             ok: false,

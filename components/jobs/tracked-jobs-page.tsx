@@ -2,10 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Field } from "@/components/ui/field";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JobFiltersBar, JobDateFilter } from "@/components/dashboard/job-filters";
 import { JobCard } from "@/components/dashboard/job-card";
@@ -15,25 +12,13 @@ import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
 import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 import { filterJobs } from "@/lib/jobs/utils";
-import type { Job, JobFilters, JobStatus, TrackedSearch } from "@/types";
-import { List, Play, Plus, RefreshCw, Trash2, LayoutGrid, Upload } from "lucide-react";
+import type { Job, JobFilters, JobStatus } from "@/types";
+import { ClipboardPaste, List, RefreshCw, LayoutGrid, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { JobScoringProgress } from "@/components/jobs/job-scoring-progress";
-import { nativeSelectClassName, nativeSelectChevronStyle } from "@/components/ui/native-select";
-import {
-  emptyTrackedSearchForm,
-  TrackedSearchForm,
-  type TrackedSearchFormValues,
-} from "@/components/jobs/tracked-search-form";
 import { useRouter } from "next/navigation";
 
 const defaultFilters: JobFilters = {};
-
-type TrackedSearchPayload = TrackedSearchFormValues;
-
-const CSV_ACCEPT =
-  ".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 type ImportedJobRef = {
   id: string;
@@ -53,35 +38,26 @@ type ImportJobsPayload = {
   };
 };
 
-const emptySearch: TrackedSearchPayload = emptyTrackedSearchForm();
-
 export function TrackedJobsPage({
   allowLocalDevTools = false,
 }: {
   allowLocalDevTools?: boolean
 }) {
   const router = useRouter();
-  const [trackedSearches, setTrackedSearches] = useState<TrackedSearch[]>([]);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
   const [view, setView] = useState<"cards" | "table">("table");
-  const [searchForm, setSearchForm] = useState<TrackedSearchPayload>(emptySearch);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [csvImporting, setCsvImporting] = useState(false);
   const [seedingFakeJobs, setSeedingFakeJobs] = useState(false);
+  const [importingCsv, setImportingCsv] = useState(false);
   const [analysisByJobId, setAnalysisByJobId] = useState<
     Record<string, JobScoringProgress>
   >({});
-  const csvInputRef = useRef<HTMLInputElement>(null);
-  const [editingSearch, setEditingSearch] = useState<TrackedSearch | null>(null);
   const [loading, setLoading] = useState(true);
-  const [runningSearchId, setRunningSearchId] = useState<string | null>(null);
-  const [syncingAll, setSyncingAll] = useState(false);
   const [coverLetterJob, setCoverLetterJob] = useState<Job | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [selectedSearchId, setSelectedSearchId] = useState<string>("all");
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{
@@ -107,29 +83,16 @@ export function TrackedJobsPage({
       setLoading(true);
     }
     try {
-      const [searchesRes, jobsRes] = await Promise.all([
-        fetch("/api/tracked-searches"),
-        fetch("/api/jobs"),
-      ]);
-      const searchesData = await readJsonSafe(searchesRes);
+      const jobsRes = await fetch("/api/jobs");
       const jobsData = await readJsonSafe(jobsRes);
-      if (!searchesRes.ok) {
-        throw new Error(
-          typeof searchesData.error === "string"
-            ? searchesData.error
-            : "Failed to load searches"
-        );
-      }
       if (!jobsRes.ok) {
         throw new Error(
           typeof jobsData.error === "string" ? jobsData.error : "Failed to load jobs"
         );
       }
-      setTrackedSearches((searchesData.tracked_searches as TrackedSearch[]) ?? []);
       setJobs((jobsData.jobs as Job[]) ?? []);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load jobs");
-      setTrackedSearches([]);
       setJobs([]);
     } finally {
       setLoading(false);
@@ -137,123 +100,16 @@ export function TrackedJobsPage({
   }
 
   useEffect(() => {
-    loadAll();
+    const timer = window.setTimeout(() => {
+      void loadAll();
+    }, 0);
+    return () => window.clearTimeout(timer);
+    // Initial load only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredJobs = useMemo(() => {
-    const bySearch =
-      selectedSearchId === "all"
-        ? jobs
-        : jobs.filter((job) => job.tracked_search_id === selectedSearchId);
-    return filterJobs(bySearch, filters);
-  }, [jobs, filters, selectedSearchId]);
-  const selectedSearch = useMemo(
-    () => trackedSearches.find((search) => search.id === selectedSearchId) ?? null,
-    [trackedSearches, selectedSearchId]
-  );
+  const filteredJobs = useMemo(() => filterJobs(jobs, filters), [jobs, filters]);
   const sources = useMemo(() => [...new Set(jobs.map((job) => job.source))].sort(), [jobs]);
-  const lastSyncAt = useMemo(() => {
-    const timestamps = trackedSearches
-      .map((search) => search.last_run)
-      .filter((value): value is string => Boolean(value))
-      .map((value) => new Date(value).getTime());
-    if (timestamps.length === 0) return null;
-    return new Date(Math.max(...timestamps)).toISOString();
-  }, [trackedSearches]);
-  const nextSyncAt = useMemo(() => {
-    const timestamps = trackedSearches
-      .filter((search) => search.enabled && search.next_run)
-      .map((search) => new Date(search.next_run as string).getTime());
-    if (timestamps.length === 0) return null;
-    return new Date(Math.min(...timestamps)).toISOString();
-  }, [trackedSearches]);
-
-  async function saveSearch() {
-    try {
-      const isEdit = Boolean(editingSearch);
-      const endpoint = isEdit
-        ? `/api/tracked-searches/${editingSearch!.id}`
-        : "/api/tracked-searches";
-      const method = isEdit ? "PATCH" : "POST";
-      const res = await fetch(endpoint, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(searchForm),
-      });
-      const data = await readJsonSafe(res);
-      if (!res.ok) {
-        throw new Error(
-          typeof data.error === "string"
-            ? data.error
-            : `Failed to save search (${res.status} ${res.statusText})`
-        );
-      }
-      toast.success(isEdit ? "Alerte mise à jour" : "Alerte créée");
-      setDialogOpen(false);
-      setEditingSearch(null);
-      setSearchForm(emptySearch);
-      await loadAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save search");
-    }
-  }
-
-  async function deleteSearch(searchId: string) {
-    const res = await fetch(`/api/tracked-searches/${searchId}`, { method: "DELETE" });
-    const data = await readJsonSafe(res);
-    if (!res.ok) {
-      toast.error(typeof data.error === "string" ? data.error : "Failed to delete search");
-      return;
-    }
-    toast.success("Alerte supprimée");
-    if (selectedSearchId === searchId) {
-      setSelectedSearchId("all");
-    }
-    await loadAll();
-  }
-
-  async function runNow(searchId: string) {
-    setRunningSearchId(searchId);
-    try {
-      const res = await fetch(`/api/tracked-searches/${searchId}/run`, { method: "POST" });
-      const data = await readJsonSafe(res);
-      if (!res.ok) {
-        throw new Error(
-          typeof data.error === "string" ? data.error : "Failed to run search"
-        );
-      }
-      const imported = typeof data.imported === "number" ? data.imported : 0;
-      const duplicates = typeof data.duplicates === "number" ? data.duplicates : 0;
-      const ignoredOld =
-        typeof data.ignored_old === "number" ? data.ignored_old : 0;
-      toast.success(
-        `Run complete: ${imported} imported · ${duplicates} duplicates · ${ignoredOld} older than 24h`
-      );
-      await loadAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to run search");
-    } finally {
-      setRunningSearchId(null);
-    }
-  }
-
-  async function syncAllEnabled() {
-    setSyncingAll(true);
-    try {
-      const res = await fetch("/api/tracked-searches/run-all", { method: "POST" });
-      const data = await readJsonSafe(res);
-      if (!res.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "Sync failed");
-      }
-      const imported = typeof data.imported === "number" ? data.imported : 0;
-      toast.success(`Sync all complete: ${imported} new jobs imported`);
-      await loadAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Sync failed");
-    } finally {
-      setSyncingAll(false);
-    }
-  }
 
   async function seedFakeJobs() {
     if (!allowLocalDevTools) return
@@ -262,7 +118,7 @@ export function TrackedJobsPage({
       const res = await fetch("/api/dev/seed-jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ count: 12 }),
+        body: JSON.stringify({}),
       })
       const data = (await readJsonSafe(res)) as ImportJobsPayload & {
         imported?: number
@@ -274,38 +130,10 @@ export function TrackedJobsPage({
             : "Impossible d’ajouter les offres fake"
         )
       }
-      const importedJobs = (data.jobs ?? []).filter((job) => !job.was_duplicate)
-      const imported = importedJobs.length
-      toast.success(
-        imported === 1
-          ? "1 offre fake ajoutée — analyse du match…"
-          : `${imported} offres fake ajoutées — analyse du match…`
-      )
-
-      if (importedJobs.length === 0) {
-        await loadAll({ silent: true })
-        return
-      }
-
-      setAnalysisByJobId(
-        Object.fromEntries(
-          importedJobs.map((job, index) => [
-            job.id,
-            {
-              status: index === 0 ? "analyzing" : "queued",
-              progress: index === 0 ? 12 : 5,
-            } satisfies JobScoringProgress,
-          ])
-        )
-      )
-      await loadAll({ silent: true })
-      setJobs((prev) => {
-        const importedIds = new Set(importedJobs.map((job) => job.id))
-        const first = prev.filter((job) => importedIds.has(job.id))
-        const rest = prev.filter((job) => !importedIds.has(job.id))
-        return [...first, ...rest]
+      await ingestImportedJobs(data, {
+        successSingular: "1 offre fake ajoutée — analyse du match…",
+        successPlural: (n) => `${n} offres fake ajoutées — analyse du match…`,
       })
-      await analyzeImportedJobs(importedJobs.map((job) => job.id))
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -317,40 +145,82 @@ export function TrackedJobsPage({
     }
   }
 
-  function editSearch(search: TrackedSearch) {
-    setEditingSearch(search);
-    setSearchForm({
-      name: search.name,
-      enabled: search.enabled,
-      job_titles: search.job_titles ?? [],
-      keywords: search.keywords ?? [],
-      excluded_keywords: search.excluded_keywords ?? [],
-      locations: search.locations ?? [],
-      remote_preference: search.remote_preference ?? "any",
-      hybrid: search.hybrid ?? false,
-      on_site: search.on_site ?? false,
-      experience: search.experience ?? [],
-      contract_types: search.contract_types ?? [],
-      minimum_salary: search.minimum_salary ?? null,
-      maximum_salary: search.maximum_salary ?? null,
-      salary_period: search.salary_period ?? "year",
-      currency: search.currency ?? "EUR",
-      industries: search.industries ?? [],
-      excluded_industries: search.excluded_industries ?? [],
-      company_size: search.company_size ?? null,
-      company_culture: search.company_culture ?? null,
-      company_names: search.company_names ?? [],
-      languages: search.languages ?? [],
-      expertises: search.expertises ?? [],
-      only_with_salary: search.only_with_salary ?? false,
-      exclusive_only: search.exclusive_only ?? false,
-      top_recruiter_only: search.top_recruiter_only ?? false,
-      start_date_preference: search.start_date_preference ?? null,
-      publish_window: search.publish_window ?? null,
-      ai_preferences: search.ai_preferences ?? {},
-      minimum_match_score: search.minimum_match_score ?? null,
-    });
-    setDialogOpen(true);
+  async function ingestImportedJobs(
+    data: ImportJobsPayload,
+    labels: { successSingular: string; successPlural: (n: number) => string }
+  ) {
+    const importedJobs = (data.jobs ?? []).filter((job) => !job.was_duplicate)
+    const imported = importedJobs.length
+    if (imported === 0) {
+      toast.message(
+        typeof data.message === "string"
+          ? data.message
+          : "Aucune nouvelle offre à importer"
+      )
+      await loadAll({ silent: true })
+      return
+    }
+
+    toast.success(
+      imported === 1 ? labels.successSingular : labels.successPlural(imported)
+    )
+
+    setAnalysisByJobId(
+      Object.fromEntries(
+        importedJobs.map((job, index) => [
+          job.id,
+          {
+            status: index === 0 ? "analyzing" : "queued",
+            progress: index === 0 ? 12 : 5,
+          } satisfies JobScoringProgress,
+        ])
+      )
+    )
+    await loadAll({ silent: true })
+    setJobs((prev) => {
+      const importedIds = new Set(importedJobs.map((job) => job.id))
+      const first = prev.filter((job) => importedIds.has(job.id))
+      const rest = prev.filter((job) => !importedIds.has(job.id))
+      return [...first, ...rest]
+    })
+    await analyzeImportedJobs(importedJobs.map((job) => job.id))
+  }
+
+  function openCsvPicker() {
+    if (importingCsv) return
+    csvInputRef.current?.click()
+  }
+
+  async function handleCsvFileChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0] ?? null
+    event.target.value = ""
+    if (!file) return
+
+    setImportingCsv(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      const res = await fetch("/api/import-jobs", {
+        method: "POST",
+        body: formData,
+      })
+      const data = (await readJsonSafe(res)) as ImportJobsPayload
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Import échoué"
+        )
+      }
+      await ingestImportedJobs(data, {
+        successSingular: "1 offre importée — analyse du match…",
+        successPlural: (n) => `${n} offres importées — analyse du match…`,
+      })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Import échoué")
+    } finally {
+      setImportingCsv(false)
+    }
   }
 
   async function updateJob(
@@ -631,75 +501,6 @@ export function TrackedJobsPage({
     await analyzeJobById(jobId);
   }
 
-  const handleOpenCsvPicker = () => {
-    if (csvImporting) return;
-    csvInputRef.current?.click();
-  };
-
-  async function handleCsvFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    event.target.value = "";
-    if (!file) return;
-
-    const fileName = file.name.toLowerCase();
-    if (!fileName.endsWith(".csv") && !fileName.endsWith(".xlsx")) {
-      toast.error("Choisis un fichier CSV ou Excel.");
-      return;
-    }
-
-    setCsvImporting(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch("/api/import-jobs", {
-        method: "POST",
-        body: formData,
-      });
-      const payload = (await readJsonSafe(response)) as ImportJobsPayload;
-      if (!response.ok) {
-        throw new Error(
-          typeof payload.error === "string" ? payload.error : "Import impossible"
-        );
-      }
-
-      const importedJobs = (payload.jobs ?? []).filter((job) => !job.was_duplicate);
-      toast.success(
-        importedJobs.length > 0
-          ? `${payload.message ?? "Offres importées"} — analyse du match…`
-          : (payload.message ?? "Offres importées")
-      );
-
-      if (importedJobs.length === 0) {
-        await loadAll({ silent: true });
-        return;
-      }
-
-      setAnalysisByJobId(
-        Object.fromEntries(
-          importedJobs.map((job, index) => [
-            job.id,
-            {
-              status: index === 0 ? "analyzing" : "queued",
-              progress: index === 0 ? 12 : 5,
-            } satisfies JobScoringProgress,
-          ])
-        )
-      );
-      await loadAll({ silent: true });
-      setJobs((prev) => {
-        const importedIds = new Set(importedJobs.map((job) => job.id));
-        const imported = prev.filter((job) => importedIds.has(job.id));
-        const rest = prev.filter((job) => !importedIds.has(job.id));
-        return [...imported, ...rest];
-      });
-      await analyzeImportedJobs(importedJobs.map((job) => job.id));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Import impossible");
-    } finally {
-      setCsvImporting(false);
-    }
-  }
-
   async function handleGenerateCoverLetter(jobId: string) {
     setGeneratingId(jobId);
     try {
@@ -805,18 +606,55 @@ export function TrackedJobsPage({
     }
   }
 
+  const emptyJobsCta = (
+    <div className="space-y-6 rounded-lg border border-dashed p-8 text-center">
+      <p className="text-base text-muted-foreground">
+        Aucune offre pour l’instant. Choisis comment en ajouter :
+      </p>
+      <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <Button
+          type="button"
+          size="lg"
+          className="h-12 min-w-[14rem] px-8 text-base"
+          onClick={openCsvPicker}
+          disabled={importingCsv}
+          aria-label="Importer mes offres"
+        >
+          <Upload className="mr-2 h-5 w-5" aria-hidden />
+          {importingCsv ? "Import…" : "Importer mes offres"}
+        </Button>
+        <Button
+          type="button"
+          size="lg"
+          variant="secondary"
+          className="h-12 min-w-[14rem] px-8 text-base"
+          onClick={() => router.push("/imports?paste=1")}
+          aria-label="Copier-coller l’offre"
+        >
+          <ClipboardPaste className="mr-2 h-5 w-5" aria-hidden />
+          Copier-coller l’offre
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
+      <input
+        ref={csvInputRef}
+        type="file"
+        accept=".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,.json,application/json"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(event) => void handleCsvFileChange(event)}
+      />
       <StickyPageHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Offres</h1>
             <p className="text-base text-muted-foreground">
-              Choisis une alerte pour voir ses offres. Collecte auto tous les jours à 08:00.
-            </p>
-            <p className="mt-1 text-base text-muted-foreground">
-              Dernière sync : {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Jamais"} ·
-              Prochaine : {nextSyncAt ? new Date(nextSyncAt).toLocaleString() : "Non planifiée"}
+              Importe ou colle des offres, puis analyse le match avec ton CV.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -832,122 +670,33 @@ export function TrackedJobsPage({
                 {seedingFakeJobs ? "Fake fill…" : "Fake fill data"}
               </Button>
             ) : null}
-            <Button variant="outline" onClick={syncAllEnabled} disabled={syncingAll}>
-              <RefreshCw className={`mr-2 h-4 w-4 ${syncingAll ? "animate-spin" : ""}`} />
-              {syncingAll ? "Sync…" : "Sync toutes"}
+            <Button
+              type="button"
+              size="lg"
+              onClick={openCsvPicker}
+              disabled={importingCsv}
+              aria-label="Importer mes offres"
+            >
+              <Upload className="mr-2 h-4 w-4" aria-hidden />
+              {importingCsv ? "Import…" : "Importer mes offres"}
             </Button>
             <Button
               type="button"
-              variant="outline"
-              onClick={handleOpenCsvPicker}
-              disabled={csvImporting}
-              aria-label="Importer un fichier CSV ou Excel"
+              size="lg"
+              variant="secondary"
+              onClick={() => router.push("/imports?paste=1")}
+              aria-label="Copier-coller l’offre"
             >
-              <Upload className={`mr-2 h-4 w-4 ${csvImporting ? "animate-pulse" : ""}`} />
-              {csvImporting ? "Import…" : "Importer CSV"}
-            </Button>
-            <Button
-
-              onClick={() => {
-                setEditingSearch(null);
-                setSearchForm(emptySearch);
-                setDialogOpen(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Nouvelle alerte
+              <ClipboardPaste className="mr-2 h-4 w-4" aria-hidden />
+              Copier-coller l’offre
             </Button>
           </div>
         </div>
       </StickyPageHeader>
 
-      <Card>
-        <CardContent className="space-y-4 pt-2">
-          <Field>
-            <Label htmlFor="tracked-search-select" className="mb-0">
-              Alerte
-            </Label>
-            {loading ? (
-              <div className="h-11 animate-pulse rounded-lg bg-muted" />
-            ) : trackedSearches.length === 0 ? (
-              <p className="rounded-lg border border-dashed p-4 text-base text-muted-foreground">
-                Aucune alerte pour l’instant. Crée-en une pour suivre des offres, ou importe un
-                CSV.
-              </p>
-            ) : (
-              <select
-                id="tracked-search-select"
-                className={nativeSelectClassName}
-                style={nativeSelectChevronStyle}
-                value={selectedSearchId}
-                onChange={(e) => setSelectedSearchId(e.target.value)}
-              >
-                <option value="all">Toutes les offres ({jobs.length})</option>
-                {trackedSearches.map((search) => {
-                  const count = jobs.filter((job) => job.tracked_search_id === search.id).length;
-                  return (
-                    <option key={search.id} value={search.id}>
-                      {search.name} · {count} offre{count === 1 ? "" : "s"}
-                      {!search.enabled ? " (désactivée)" : ""}
-                    </option>
-                  );
-                })}
-              </select>
-            )}
-          </Field>
-
-          {selectedSearch ? (
-            <div className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 text-base text-muted-foreground">
-                <p className="truncate font-medium text-foreground">{selectedSearch.name}</p>
-                <p className="truncate">
-                  {(selectedSearch.job_titles.join(", ") || "Tous postes") +
-                    " · " +
-                    (selectedSearch.locations.join(", ") || "Tous lieux")}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => runNow(selectedSearch.id)}
-                  disabled={runningSearchId === selectedSearch.id}
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  {runningSearchId === selectedSearch.id ? "…" : "Lancer"}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => editSearch(selectedSearch)}>
-                  Modifier
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    fetch(`/api/tracked-searches/${selectedSearch.id}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ enabled: !selectedSearch.enabled }),
-                    }).then(() => loadAll())
-                  }
-                >
-                  {selectedSearch.enabled ? "Désactiver" : "Activer"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => deleteSearch(selectedSearch.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-semibold tracking-tight">
-          {selectedSearch ? `Offres · ${selectedSearch.name}` : "Toutes les offres"}
+          {loading ? "Offres…" : `Toutes les offres (${jobs.length})`}
         </h2>
         <Button variant="outline" onClick={() => void loadAll()}>
           <RefreshCw className="mr-2 h-4 w-4" />
@@ -984,7 +733,6 @@ export function TrackedJobsPage({
       <Tabs
         value={view}
         onValueChange={(value) => setView(value as "cards" | "table")}
-
       >
         <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
           <TabsList>
@@ -1015,37 +763,7 @@ export function TrackedJobsPage({
                 désactive « 24 h seulement ».
               </p>
             ) : (
-              <div className="rounded-lg border border-dashed p-8 text-center space-y-4">
-                <p className="text-base text-muted-foreground">
-                  Aucune offre pour l’instant. Choisis comment en ajouter :
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setDialogOpen(true);
-                    }}
-                  >
-                    Créer une alerte
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleOpenCsvPicker}
-                    disabled={csvImporting}
-                  >
-                    {csvImporting ? "Import…" : "Importer un CSV"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push("/extension")}
-                  >
-                    Installer l’extension
-                  </Button>
-                </div>
-              </div>
+              emptyJobsCta
             )
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -1076,31 +794,7 @@ export function TrackedJobsPage({
                 désactive « 24 h seulement ».
               </p>
             ) : (
-              <div className="rounded-lg border border-dashed p-8 text-center space-y-4">
-                <p className="text-base text-muted-foreground">
-                  Aucune offre pour l’instant. Choisis comment en ajouter :
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(true)}>
-                    Créer une alerte
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleOpenCsvPicker}
-                    disabled={csvImporting}
-                  >
-                    {csvImporting ? "Import…" : "Importer un CSV"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push("/extension")}
-                  >
-                    Installer l’extension
-                  </Button>
-                </div>
-              </div>
+              emptyJobsCta
             )
           ) : (
             <JobTable
@@ -1127,32 +821,6 @@ export function TrackedJobsPage({
         onRegenerate={handleGenerateCoverLetter}
         isRegenerating={generatingId === coverLetterJob?.id}
       />
-
-      <input
-        ref={csvInputRef}
-        type="file"
-        accept={CSV_ACCEPT}
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden="true"
-        onChange={(event) => void handleCsvFileChange(event)}
-      />
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {editingSearch ? "Modifier l’alerte" : "Nouvelle alerte"}
-            </DialogTitle>
-          </DialogHeader>
-          <TrackedSearchForm
-            value={searchForm}
-            onChange={setSearchForm}
-            onSubmit={saveSearch}
-            submitLabel={editingSearch ? "Enregistrer" : "Créer l’alerte"}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -1,17 +1,89 @@
-import type { SearchCriteria } from "@/types";
+import type { SearchCriteria, SourceStatus } from "@/types"
 
-export const SOURCE_CATALOG = [
-  { name: "Welcome to the Jungle", slug: "welcome-to-the-jungle", status: "connected" },
-  { name: "LinkedIn Jobs", slug: "linkedin-jobs", status: "not_configured" },
-  { name: "Indeed", slug: "indeed", status: "not_configured" },
-  { name: "APEC", slug: "apec", status: "not_configured" },
-  { name: "Hellowork", slug: "hellowork", status: "not_configured" },
-  { name: "France Travail", slug: "france-travail", status: "not_configured" },
-  { name: "LesJeudis", slug: "lesjeudis", status: "not_configured" },
-  { name: "Talent.io", slug: "talent-io", status: "not_configured" },
-] as const;
+export type SourceIngestionMode = "api" | "extension" | "url_or_extension"
+
+export type SourceCatalogEntry = {
+  name: string
+  slug: string
+  /** Default DB status for newly bootstrapped rows */
+  status: SourceStatus
+  ingestionMode: SourceIngestionMode
+}
+
+export const SOURCE_CATALOG: readonly SourceCatalogEntry[] = [
+  {
+    name: "France Travail",
+    slug: "france-travail",
+    status: "not_configured",
+    ingestionMode: "api",
+  },
+  {
+    name: "Welcome to the Jungle",
+    slug: "welcome-to-the-jungle",
+    status: "not_configured",
+    ingestionMode: "url_or_extension",
+  },
+  {
+    name: "LinkedIn Jobs",
+    slug: "linkedin-jobs",
+    status: "not_configured",
+    ingestionMode: "extension",
+  },
+  {
+    name: "Indeed",
+    slug: "indeed",
+    status: "not_configured",
+    ingestionMode: "extension",
+  },
+  {
+    name: "APEC",
+    slug: "apec",
+    status: "not_configured",
+    ingestionMode: "url_or_extension",
+  },
+  {
+    name: "Hellowork",
+    slug: "hellowork",
+    status: "not_configured",
+    ingestionMode: "url_or_extension",
+  },
+  {
+    name: "LesJeudis",
+    slug: "lesjeudis",
+    status: "not_configured",
+    ingestionMode: "url_or_extension",
+  },
+  {
+    name: "Talent.io",
+    slug: "talent-io",
+    status: "not_configured",
+    ingestionMode: "url_or_extension",
+  },
+] as const
+
+export function getSourceCatalogEntry(
+  slug: string
+): SourceCatalogEntry | undefined {
+  return SOURCE_CATALOG.find((entry) => entry.slug === slug)
+}
+
+export function isApiIngestionSource(slug: string): boolean {
+  return getSourceCatalogEntry(slug)?.ingestionMode === "api"
+}
 
 export const DEFAULT_SOURCE_SEARCHES = [
+  {
+    sourceSlug: "france-travail",
+    name: "Product Owner / PM Paris",
+    criteria: {
+      job_titles: ["Product Owner", "Product Manager"],
+      location: "Paris",
+      remote_preference: "hybrid",
+      contract_types: ["CDI"],
+      experience_levels: ["mid", "senior"],
+      keywords: ["Product Owner", "Product Manager"],
+    },
+  },
   {
     sourceSlug: "welcome-to-the-jungle",
     name: "Product Owner Paris",
@@ -34,25 +106,7 @@ export const DEFAULT_SOURCE_SEARCHES = [
       experience_levels: ["mid", "senior"],
     },
   },
-  {
-    sourceSlug: "welcome-to-the-jungle",
-    name: "AI Product Manager",
-    criteria: {
-      job_titles: ["AI Product Manager", "Product Manager IA"],
-      location: "Paris",
-      keywords: ["AI", "LLM", "GenAI"],
-    },
-  },
-  {
-    sourceSlug: "welcome-to-the-jungle",
-    name: "Product Builder",
-    criteria: {
-      job_titles: ["Product Builder"],
-      location: "Paris",
-      remote_preference: "remote_only",
-    },
-  },
-] as const;
+] as const
 
 export const DEFAULT_SEARCH_CRITERIA: SearchCriteria = {
   job_titles: [],
@@ -70,4 +124,4 @@ export const DEFAULT_SEARCH_CRITERIA: SearchCriteria = {
   keywords: [],
   excluded_keywords: [],
   source_specific: {},
-};
+}

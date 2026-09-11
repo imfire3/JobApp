@@ -35,6 +35,31 @@ const softNullableString = z.preprocess(
   z.string().nullable()
 );
 
+/** Models often invent match_type labels — coerce to the allowed set. */
+const matchTypeSchema = z.preprocess((value) => {
+  if (value == null || value === "") return "semantic"
+  const raw = String(value).trim().toLowerCase()
+  if (raw === "exact" || raw === "equivalent" || raw === "semantic") return raw
+  if (
+    raw === "partial" ||
+    raw === "fuzzy" ||
+    raw === "related" ||
+    raw === "similar" ||
+    raw === "close" ||
+    raw === "approx" ||
+    raw === "approximate" ||
+    raw === "synonym" ||
+    raw === "synonyme" ||
+    raw === "near"
+  ) {
+    return "equivalent"
+  }
+  if (raw === "exact_match" || raw === "identique" || raw === "identical") {
+    return "exact"
+  }
+  return "semantic"
+}, z.enum(["exact", "equivalent", "semantic"]))
+
 const criterionAssessmentSchema = z.object({
   id: softString,
   label: softString,
@@ -120,7 +145,7 @@ export const jobMatchAnalysisRawSchema = z.object({
       z.object({
         job_term: softString,
         cv_term: softString,
-        match_type: z.enum(["exact", "equivalent", "semantic"]),
+        match_type: matchTypeSchema,
         evidence_from_job: softString,
         evidence_from_cv: softString,
       })

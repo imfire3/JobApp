@@ -1,66 +1,81 @@
-import { generateCoverLetterContent } from "@/lib/ai/cover-letter";
-import type { CoverLetterPromptInput } from "@/lib/ai/prompts/cover-letter";
-import { toJobViewModel } from "@/lib/jobs/mapper";
-import type { Job } from "@/types";
+import { generateCoverLetterContent } from "@/lib/ai/cover-letter"
+import type {
+  CoverLetterMatchContext,
+  CoverLetterPromptInput,
+} from "@/lib/ai/prompts/cover-letter"
+import { toJobViewModel } from "@/lib/jobs/mapper"
+import type { Job } from "@/types"
 
 type SupabaseClient = {
-  from: (table: string) => any;
-};
+  from: (table: string) => any
+}
 
 export interface CoverLetterRecord {
-  id: string;
-  user_id: string;
-  job_id: string;
-  content: string;
-  language: string | null;
-  model: string | null;
-  prompt_version: string | null;
-  created_at: string;
-  updated_at: string;
+  id: string
+  user_id: string
+  job_id: string
+  content: string
+  language: string | null
+  model: string | null
+  prompt_version: string | null
+  angle_briefing?: string | null
+  subject?: string | null
+  coach_notes?: string[] | null
+  created_at: string
+  updated_at: string
 }
 
-export interface GenerateCoverLetterResult {
-  coverLetterId: string;
-  content: string;
-  job: Job;
+export interface CoverLetterPackFields {
+  angle_briefing: string
+  subject: string
+  coach_notes: string[]
 }
 
-export interface BatchCoverLetterItemResult {
-  jobId: string;
-  status: "success" | "error";
-  coverLetterId?: string;
-  content?: string;
-  error?: string;
+export interface GenerateCoverLetterResult extends CoverLetterPackFields {
+  coverLetterId: string
+  content: string
+  job: Job
+}
+
+export interface BatchCoverLetterItemResult extends Partial<CoverLetterPackFields> {
+  jobId: string
+  status: "success" | "error"
+  coverLetterId?: string
+  content?: string
+  error?: string
 }
 
 export interface BatchCoverLetterResult {
-  total: number;
-  success: number;
-  failed: number;
-  results: BatchCoverLetterItemResult[];
+  total: number
+  success: number
+  failed: number
+  results: BatchCoverLetterItemResult[]
 }
 
 type JobRow = Record<string, unknown> & {
-  id: string;
-  user_id: string;
-  title: string;
-  company: string;
-  contract_type: string | null;
-  city: string | null;
-  remote_mode: string | null;
-  salary_min: number | null;
-  salary_max: number | null;
-  experience_min_years: number | null;
-  experience_level: number | null;
-  summary: string | null;
-  profile: string | null;
-  skills: string[] | null;
-  published_at: string | null;
-  description: string | null;
-  ai_summary: string | null;
-  url: string;
-  status: string;
-};
+  id: string
+  user_id: string
+  title: string
+  company: string
+  contract_type: string | null
+  city: string | null
+  remote_mode: string | null
+  salary_min: number | null
+  salary_max: number | null
+  experience_min_years: number | null
+  experience_level: number | null
+  summary: string | null
+  profile: string | null
+  skills: string[] | null
+  published_at: string | null
+  description: string | null
+  ai_summary: string | null
+  url: string
+  status: string
+  cover_letter_angle?: string | null
+  match_gaps?: string[] | null
+  raw_data?: Record<string, unknown> | null
+}
 
 export async function loadCvText(
   supabase: SupabaseClient,
@@ -70,11 +85,11 @@ export async function loadCvText(
     .from("cv_contexts")
     .select("cv_text")
     .eq("id", userId)
-    .maybeSingle();
+    .maybeSingle()
 
-  if (error) throw new Error(error.message);
-  const cvText = data?.cv_text?.trim();
-  return cvText || null;
+  if (error) throw new Error(error.message)
+  const cvText = data?.cv_text?.trim()
+  return cvText || null
 }
 
 export async function loadOwnedJob(
@@ -87,10 +102,73 @@ export async function loadOwnedJob(
     .select("*")
     .eq("id", jobId)
     .eq("user_id", userId)
-    .maybeSingle();
+    .maybeSingle()
 
-  if (error) throw new Error(error.message);
-  return (data as JobRow | null) ?? null;
+  if (error) throw new Error(error.message)
+  return (data as JobRow | null) ?? null
+}
+
+function extractMatchContext(job: JobRow): CoverLetterMatchContext | null {
+  const raw =
+    job.raw_data &&
+    typeof job.raw_data === "object" &&
+    !Array.isArray(job.raw_data)
+      ? job.raw_data
+      : null
+  const jobFit =
+    raw?.job_fit &&
+    typeof raw.job_fit === "object" &&
+    !Array.isArray(raw.job_fit)
+      ? (raw.job_fit as Record<string, unknown>)
+      : null
+
+  const angleFromFit =
+    typeof jobFit?.cover_letter_angle === "string"
+      ? jobFit.cover_letter_angle
+      : null
+  const angleFromRow =
+    typeof job.cover_letter_angle === "string" ? job.cover_letter_angle : null
+
+  const scoreExplanation =
+    typeof jobFit?.score_explanation === "string"
+      ? jobFit.score_explanation
+      : null
+
+  const matchGapsFromFit = Array.isArray(jobFit?.match_gaps)
+    ? jobFit.match_gaps.filter((g): g is string => typeof g === "string")
+    : []
+  const matchGapsFromRow = Array.isArray(job.match_gaps)
+    ? job.match_gaps.filter((g): g is string => typeof g === "string")
+    : []
+  const matchGaps = [...matchGapsFromFit, ...matchGapsFromRow]
+
+  const criteria = Array.isArray(jobFit?.criteria_assessment)
+    ? (jobFit.criteria_assessment as Array<Record<string, unknown>>)
+    : []
+  const weakCriteria = criteria
+    .filter((c) => {
+      const level = c.evidence_level
+      return typeof level === "number" && level <= 1
+    })
+    .map((c) => (typeof c.label === "string" ? c.label : null))
+    .filter((label): label is string => Boolean(label))
+
+  if (
+    !angleFromFit &&
+    !angleFromRow &&
+    !scoreExplanation &&
+    matchGaps.length === 0 &&
+    weakCriteria.length === 0
+  ) {
+    return null
+  }
+
+  return {
+    coverLetterAngle: angleFromFit || angleFromRow,
+    scoreExplanation,
+    matchGaps: matchGaps.slice(0, 6),
+    weakCriteria: weakCriteria.slice(0, 6),
+  }
 }
 
 function toPromptInput(
@@ -100,7 +178,7 @@ function toPromptInput(
 ): CoverLetterPromptInput {
   const skills = Array.isArray(job.skills)
     ? job.skills.filter((skill): skill is string => typeof skill === "string")
-    : [];
+    : []
 
   return {
     cvText,
@@ -119,7 +197,28 @@ function toPromptInput(
     aiSummary: job.ai_summary,
     url: job.url,
     writingPreferences: writingPreferences ?? null,
-  };
+    matchContext: extractMatchContext(job),
+  }
+}
+
+function mergeCoverLetterPack(
+  existingRaw: unknown,
+  pack: CoverLetterPackFields
+): Record<string, unknown> {
+  const base =
+    existingRaw &&
+    typeof existingRaw === "object" &&
+    !Array.isArray(existingRaw)
+      ? { ...(existingRaw as Record<string, unknown>) }
+      : {}
+  return {
+    ...base,
+    cover_letter_pack: {
+      angle_briefing: pack.angle_briefing,
+      subject: pack.subject,
+      coach_notes: pack.coach_notes,
+    },
+  }
 }
 
 export async function generateAndSaveCoverLetter(
@@ -127,43 +226,49 @@ export async function generateAndSaveCoverLetter(
   userId: string,
   jobId: string
 ): Promise<GenerateCoverLetterResult> {
-  const cvText = await loadCvText(supabase, userId);
+  const cvText = await loadCvText(supabase, userId)
   if (!cvText) {
     throw new CoverLetterError(
       "Ajoute ton CV dans Profil & CV avant de générer des lettres.",
       400
-    );
+    )
   }
 
-  const job = await loadOwnedJob(supabase, userId, jobId);
+  const job = await loadOwnedJob(supabase, userId, jobId)
   if (!job) {
-    throw new CoverLetterError("Job not found", 404);
+    throw new CoverLetterError("Job not found", 404)
   }
 
-  let writingPreferences: string | null = null;
-  let apiKey: string | null = null;
+  let writingPreferences: string | null = null
+  let apiKey: string | null = null
   try {
     const { data: settings } = await supabase
       .from("user_settings")
       .select("cover_letter_defaults,openai_key")
       .eq("id", userId)
-      .maybeSingle();
-    const defaults = settings?.cover_letter_defaults;
+      .maybeSingle()
+    const defaults = settings?.cover_letter_defaults
     if (defaults && typeof defaults === "object") {
-      writingPreferences = JSON.stringify(defaults);
+      writingPreferences = JSON.stringify(defaults)
     } else if (typeof defaults === "string" && defaults.trim()) {
-      writingPreferences = defaults;
+      writingPreferences = defaults
     }
     apiKey =
-      typeof settings?.openai_key === "string" ? settings.openai_key : null;
+      typeof settings?.openai_key === "string" ? settings.openai_key : null
   } catch {
-    writingPreferences = null;
+    writingPreferences = null
   }
 
   const generated = await generateCoverLetterContent(
     toPromptInput(job, cvText, writingPreferences),
     { apiKey }
-  );
+  )
+
+  const pack: CoverLetterPackFields = {
+    angle_briefing: generated.angle_briefing,
+    subject: generated.subject,
+    coach_notes: generated.coach_notes,
+  }
 
   const { data: savedLetter, error: saveError } = await supabase
     .from("cover_letters")
@@ -171,44 +276,53 @@ export async function generateAndSaveCoverLetter(
       {
         user_id: userId,
         job_id: job.id,
-        content: generated.content,
+        content: generated.letter,
         language: generated.language,
         model: generated.model,
         prompt_version: generated.promptVersion,
         generated_by: "ai",
+        angle_briefing: pack.angle_briefing || null,
+        subject: pack.subject || null,
+        coach_notes: pack.coach_notes,
       },
       { onConflict: "user_id,job_id" }
     )
     .select("*")
-    .single();
+    .single()
 
   if (saveError) {
-    throw new Error(saveError.message);
+    throw new Error(saveError.message)
   }
 
   const nextStatus =
-    job.status === "new" || job.status === "selected" ? "cover_generated" : job.status;
+    job.status === "new" || job.status === "selected"
+      ? "cover_generated"
+      : job.status
+
+  const nextRaw = mergeCoverLetterPack(job.raw_data, pack)
 
   const { data: updatedJob, error: updateError } = await supabase
     .from("jobs")
     .update({
-      cover_letter: generated.content,
+      cover_letter: generated.letter,
       status: nextStatus,
+      raw_data: nextRaw,
     })
     .eq("id", job.id)
     .eq("user_id", userId)
     .select("*, tracked_searches(name)")
-    .single();
+    .single()
 
   if (updateError) {
-    throw new Error(updateError.message);
+    throw new Error(updateError.message)
   }
 
   return {
     coverLetterId: savedLetter.id as string,
-    content: generated.content,
+    content: generated.letter,
+    ...pack,
     job: toJobViewModel(updatedJob),
-  };
+  }
 }
 
 export async function generateCoverLetterBatch(
@@ -216,23 +330,26 @@ export async function generateCoverLetterBatch(
   userId: string,
   jobIds: string[]
 ): Promise<BatchCoverLetterResult> {
-  const uniqueJobIds = [...new Set(jobIds)];
-  const results: BatchCoverLetterItemResult[] = [];
-  let success = 0;
-  let failed = 0;
+  const uniqueJobIds = [...new Set(jobIds)]
+  const results: BatchCoverLetterItemResult[] = []
+  let success = 0
+  let failed = 0
 
   for (const jobId of uniqueJobIds) {
     try {
-      const result = await generateAndSaveCoverLetter(supabase, userId, jobId);
-      success += 1;
+      const result = await generateAndSaveCoverLetter(supabase, userId, jobId)
+      success += 1
       results.push({
         jobId,
         status: "success",
         coverLetterId: result.coverLetterId,
         content: result.content,
-      });
+        angle_briefing: result.angle_briefing,
+        subject: result.subject,
+        coach_notes: result.coach_notes,
+      })
     } catch (error) {
-      failed += 1;
+      failed += 1
       results.push({
         jobId,
         status: "error",
@@ -242,7 +359,7 @@ export async function generateCoverLetterBatch(
             : error instanceof Error
               ? error.message
               : "Generation failed",
-      });
+      })
     }
   }
 
@@ -251,7 +368,7 @@ export async function generateCoverLetterBatch(
     success,
     failed,
     results,
-  };
+  }
 }
 
 export class CoverLetterError extends Error {
@@ -259,7 +376,7 @@ export class CoverLetterError extends Error {
     message: string,
     public status: number
   ) {
-    super(message);
-    this.name = "CoverLetterError";
+    super(message)
+    this.name = "CoverLetterError"
   }
 }

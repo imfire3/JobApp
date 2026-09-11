@@ -70,7 +70,7 @@ describe("parseCvExtract", () => {
     assert.equal(result.experience_entries[0].title, "Product Owner")
     assert.equal(result.experience_entries[0].isCurrent, true)
     assert.equal(result.education_entries[0].name, "Master UI/UX Design")
-    assert.equal(result.language_entries[0].level, "Maternel")
+    assert.equal(result.language_entries[0].level, "Natif")
     assert.equal(result.language_entries[1].level, "Intermédiaire")
   })
 
@@ -144,7 +144,7 @@ describe("parseCvExtract", () => {
       ],
     })
 
-    assert.equal(result.language_entries[0].level, "Maternel")
+    assert.equal(result.language_entries[0].level, "Natif")
     assert.equal(result.language_entries[1].level, "Intermédiaire")
     assert.equal(result.language_entries[2].level, "Débutant")
   })

@@ -1,10 +1,12 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { Plus, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useAnchoredDropdownStyle } from "@/components/ui/use-anchored-dropdown-style"
 import { cn } from "@/lib/utils"
 import {
   filterCatalogOptions,
@@ -38,6 +40,7 @@ function labelFor(options: CatalogOption[], value: string): string {
 /**
  * Lightweight searchable multi-select (chips + filtered list).
  * Allows adding custom values when allowCustom is true.
+ * Dropdown is portaled so it escapes card overflow clipping.
  */
 export function SearchableMultiSelect({
   id,
@@ -52,6 +55,8 @@ export function SearchableMultiSelect({
 }: SearchableMultiSelectProps) {
   const [query, setQuery] = useState("")
   const [open, setOpen] = useState(false)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const listStyle = useAnchoredDropdownStyle(open, anchorRef, 192)
   const catalog = useMemo(() => toOptions(options), [options])
   const filtered = useMemo(
     () =>
@@ -99,9 +104,52 @@ export function SearchableMultiSelect({
   const showList =
     open && (filtered.length > 0 || (allowCustom && query.trim()))
 
+  const list = showList ? (
+    <ul
+      role="listbox"
+      style={listStyle}
+      className="overflow-y-auto rounded-md border border-border bg-popover p-1 text-base shadow-md"
+    >
+      {filtered.slice(0, 80).map((opt) => (
+        <li key={opt.value}>
+          <button
+            type="button"
+            role="option"
+            className="flex w-full rounded-sm px-2 py-1.5 text-left hover:bg-muted"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleAdd(opt.value)}
+          >
+            {opt.label}
+          </button>
+        </li>
+      ))}
+      {allowCustom &&
+      query.trim() &&
+      !catalog.some(
+        (opt) =>
+          opt.value.toLowerCase() === query.trim().toLowerCase() ||
+          opt.label.toLowerCase() === query.trim().toLowerCase()
+      ) &&
+      !values.some((v) => v.toLowerCase() === query.trim().toLowerCase()) ? (
+        <li>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-auto w-full justify-start px-2 py-1.5 font-normal"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleAdd(query)}
+          >
+            Ajouter « {query.trim()} »
+          </Button>
+        </li>
+      ) : null}
+    </ul>
+  ) : null
+
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="relative">
+      <div ref={anchorRef} className="relative">
         <div className={cn(addButtonLabel ? "flex gap-2" : undefined)}>
           <Input
             id={id}
@@ -114,7 +162,6 @@ export function SearchableMultiSelect({
             }}
             onFocus={() => setOpen(true)}
             onBlur={() => {
-              // Delay so option click registers
               window.setTimeout(() => setOpen(false), 150)
             }}
             onKeyDown={handleKeyDown}
@@ -133,59 +180,17 @@ export function SearchableMultiSelect({
             </Button>
           ) : null}
         </div>
-        {showList ? (
-          <ul
-            role="listbox"
-            className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-base shadow-md"
-          >
-            {filtered.slice(0, 80).map((opt) => (
-              <li key={opt.value}>
-                <button
-                  type="button"
-                  role="option"
-                  className="flex w-full rounded-sm px-2 py-1.5 text-left hover:bg-muted"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleAdd(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              </li>
-            ))}
-            {allowCustom &&
-            query.trim() &&
-            !catalog.some(
-              (opt) =>
-                opt.value.toLowerCase() === query.trim().toLowerCase() ||
-                opt.label.toLowerCase() === query.trim().toLowerCase()
-            ) &&
-            !values.some((v) => v.toLowerCase() === query.trim().toLowerCase()) ? (
-              <li>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto w-full justify-start px-2 py-1.5 font-normal"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleAdd(query)}
-                >
-                  Ajouter « {query.trim()} »
-                </Button>
-              </li>
-            ) : null}
-          </ul>
-        ) : null}
       </div>
+      {typeof document !== "undefined" && list
+        ? createPortal(list, document.body)
+        : null}
 
       {values.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {values.map((value) => {
             const label = labelFor(catalog, value)
             return (
-              <Badge
-                key={value}
-                variant="tag"
-                className="gap-1.5"
-              >
+              <Badge key={value} variant="chip" className="gap-1.5">
                 {label}
                 <button
                   type="button"
@@ -217,7 +222,7 @@ type SearchableSelectProps = {
   className?: string
 }
 
-/** Searchable single-select dropdown (filterable list). */
+/** Searchable single-select dropdown (filterable list). Portaled outside cards. */
 export function SearchableSelect({
   id,
   options,
@@ -230,6 +235,8 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [query, setQuery] = useState("")
   const [open, setOpen] = useState(false)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const listStyle = useAnchoredDropdownStyle(open, anchorRef, 256)
   const catalog = useMemo(() => toOptions(options), [options])
   const selectedLabel = value ? labelFor(catalog, value) : ""
 
@@ -266,8 +273,63 @@ export function SearchableSelect({
   const displayValue = open ? query : selectedLabel
   const showList = open && (filtered.length > 0 || (allowCustom && query.trim()))
 
+  const list = showList ? (
+    <ul
+      role="listbox"
+      style={listStyle}
+      className="overflow-y-auto rounded-md border border-border bg-popover p-1 text-base shadow-md"
+    >
+      <li>
+        <button
+          type="button"
+          role="option"
+          className="flex w-full rounded-sm px-2 py-2 text-left text-muted-foreground hover:bg-muted"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => handleSelect(null)}
+        >
+          {emptyOptionLabel}
+        </button>
+      </li>
+      {filtered.slice(0, 120).map((opt) => (
+        <li key={opt.value}>
+          <button
+            type="button"
+            role="option"
+            aria-selected={opt.value === value}
+            className={cn(
+              "flex w-full rounded-sm px-2 py-2 text-left hover:bg-muted",
+              opt.value === value && "bg-primary/10 font-medium"
+            )}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleSelect(opt.value)}
+          >
+            {opt.label}
+          </button>
+        </li>
+      ))}
+      {allowCustom &&
+      query.trim() &&
+      !catalog.some(
+        (opt) =>
+          opt.value.toLowerCase() === query.trim().toLowerCase() ||
+          opt.label.toLowerCase() === query.trim().toLowerCase()
+      ) ? (
+        <li>
+          <button
+            type="button"
+            className="flex w-full rounded-sm px-2 py-2 text-left hover:bg-muted"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleSelect(query.trim())}
+          >
+            Utiliser « {query.trim()} »
+          </button>
+        </li>
+      ) : null}
+    </ul>
+  ) : null
+
   return (
-    <div className={cn("relative", className)}>
+    <div ref={anchorRef} className={cn("relative", className)}>
       <Input
         id={id}
         value={displayValue}
@@ -289,59 +351,9 @@ export function SearchableSelect({
         aria-expanded={open}
         role="combobox"
       />
-      {showList ? (
-        <ul
-          role="listbox"
-          className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-base shadow-md"
-        >
-          <li>
-            <button
-              type="button"
-              role="option"
-              className="flex w-full rounded-sm px-2 py-2 text-left text-muted-foreground hover:bg-muted"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handleSelect(null)}
-            >
-              {emptyOptionLabel}
-            </button>
-          </li>
-          {filtered.slice(0, 120).map((opt) => (
-            <li key={opt.value}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={opt.value === value}
-                className={cn(
-                  "flex w-full rounded-sm px-2 py-2 text-left hover:bg-muted",
-                  opt.value === value && "bg-primary/10 font-medium"
-                )}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => handleSelect(opt.value)}
-              >
-                {opt.label}
-              </button>
-            </li>
-          ))}
-          {allowCustom &&
-          query.trim() &&
-          !catalog.some(
-            (opt) =>
-              opt.value.toLowerCase() === query.trim().toLowerCase() ||
-              opt.label.toLowerCase() === query.trim().toLowerCase()
-          ) ? (
-            <li>
-              <button
-                type="button"
-                className="flex w-full rounded-sm px-2 py-2 text-left hover:bg-muted"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => handleSelect(query.trim())}
-              >
-                Utiliser « {query.trim()} »
-              </button>
-            </li>
-          ) : null}
-        </ul>
-      ) : null}
+      {typeof document !== "undefined" && list
+        ? createPortal(list, document.body)
+        : null}
     </div>
   )
 }

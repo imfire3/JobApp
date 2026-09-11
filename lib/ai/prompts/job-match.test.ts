@@ -9,7 +9,22 @@ import {
 
 describe("job match prompt grounding", () => {
   it("bumps prompt version for criteria × evidence scoring", () => {
-    assert.equal(JOB_MATCH_PROMPT_VERSION, "v6");
+    assert.equal(JOB_MATCH_PROMPT_VERSION, "v10");
+  });
+
+  it("requires a coach score_explanation that justifies /100", () => {
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /score_explanation \(OBLIGATOIRE/);
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /\/100/);
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /blocage principal/);
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /BLOC 1 — CONTEXTE|paragraphe contexte/);
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /sans pitch oral/);
+  });
+
+  it("requires CV→ATS rewrite pairs in cv_improvements", () => {
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /cv_improvements \(OBLIGATOIRE/);
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /citation \*\*verbatim\*\*/);
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /suggested_rewrite = même fait/);
+    assert.match(JOB_MATCH_SYSTEM_PROMPT, /mots-clés/);
   });
 
   it("requires weighted criteria and evidence levels 0–3", () => {

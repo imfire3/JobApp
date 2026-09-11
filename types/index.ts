@@ -247,6 +247,10 @@ export interface Job extends ImportedJob {
   match_gaps: string[] | null;
   cover_letter_angle: string | null;
   cover_letter: string | null;
+  /** Coach pack from last LDM generation (raw_data.cover_letter_pack). */
+  cover_letter_subject?: string | null;
+  cover_letter_angle_briefing?: string | null;
+  cover_letter_coach_notes?: string[] | null;
   selected: boolean;
   imported_at: string;
   tracked_search_id?: string | null;

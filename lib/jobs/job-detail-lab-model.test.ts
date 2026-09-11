@@ -9,7 +9,11 @@ import {
   buildPriorityActions,
   buildSubScores,
   criteriaDerivedHighlights,
+  criterionMatchDisplay,
   estimatePotentialScore,
+  isRichScoreExplanation,
+  parseScoreExplanationLines,
+  splitScoreExplanation,
   isSafeSuggestion,
   matchVerdict,
   projectOptimizedScore,
@@ -489,5 +493,55 @@ describe("job-detail-lab-model", () => {
     assert.ok(cards[0]?.keywords.includes("user research"))
     assert.ok(cards[0]?.keywords.includes("job stories"))
     assert.equal(cards[0]?.estimatedImpact, 34)
+  })
+})
+
+describe("why-score briefing helpers", () => {
+  it("detects rich score explanations", () => {
+    assert.equal(isRichScoreExplanation(null), false)
+    assert.equal(isRichScoreExplanation("Court."), false)
+    assert.equal(
+      isRichScoreExplanation(
+        "• Score 70/100 — match partiel ; blocage séniorité.\n• Force : backlog Fortuneo ↔ agile.\n• Gap : fiche Life Protection / CV non prouvé.\n• Conseil : candidater après reformulation ATS."
+      ),
+      true
+    )
+  })
+
+  it("parses bullet score explanations", () => {
+    const lines = parseScoreExplanationLines(
+      "• Score 70/100 — match partiel\nForce sans tiret\n- Gap : domaine"
+    )
+    assert.equal(lines[0]?.kind, "bullet")
+    assert.match(lines[0]?.content ?? "", /Score 70/)
+    assert.equal(lines[1]?.kind, "text")
+    assert.equal(lines[2]?.kind, "bullet")
+  })
+
+  it("splits context paragraph from bullets", () => {
+    const split = splitScoreExplanation(
+      "J’ai comparé ton CV avec l’offre Lead PM chez Hubvisory. Ton score d’adéquation : 43/100. Match partiel ; blocage scaling multi-squads.\n\n• Force : backlog Fortuneo ↔ agile\n• Gap : fiche multi-squads / CV non prouvé\n• Conseil : candidater après reformulation"
+    )
+    assert.match(split.context, /43\/100/)
+    assert.equal(split.bullets.length, 3)
+    assert.match(split.bullets[0] ?? "", /Force/)
+  })
+
+  it("maps evidence levels to emoji match display", () => {
+    assert.deepEqual(criterionMatchDisplay(3), {
+      emoji: "🟢",
+      scoreOutOf10: 9,
+      label: "Fort",
+    })
+    assert.deepEqual(criterionMatchDisplay(1), {
+      emoji: "🟠",
+      scoreOutOf10: 4,
+      label: "Partiel",
+    })
+    assert.deepEqual(criterionMatchDisplay(0), {
+      emoji: "🔴",
+      scoreOutOf10: 2,
+      label: "Faible",
+    })
   })
 })

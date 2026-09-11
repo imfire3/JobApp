@@ -229,44 +229,66 @@ describe("parseJobMatchAnalysis", () => {
     );
   });
 
-  it("marks criterion with question as asked when confirmation_status is none", () => {
+  it("coerces unknown keywords_matched.match_type instead of failing", () => {
     const parsed = parseJobMatchAnalysis({
       status: "ok",
-      match_score: null,
-      score_confidence: "low",
-      score_explanation: "",
+      match_score: 40,
+      score_confidence: "medium",
+      score_explanation: "Partial",
       limitations: [],
       job_posting_summary: "PO.",
-      criteria_assessment: [
-        {
-          id: "domain",
-          label: "Assurance Vie",
-          weight_percent: 100,
-          evidence_level: 0,
-          cv_status: "not_evidenced",
-          evidence_from_job: "Domaine AV",
-          evidence_from_cv: null,
-          question_to_candidate: "As-tu travaillé en Assurance Vie ?",
-          confirmation_status: "none",
-          recruiter_block_risk: "high",
-        },
-      ],
+      criteria_assessment: [],
       score_breakdown: [],
       requirements_assessment: [],
       match_reasons: [],
       match_gaps: [],
-      keywords_matched: [],
+      keywords_from_job: ["roadmap", "agile"],
+      keywords_matched: [
+        {
+          job_term: "roadmap",
+          cv_term: "roadmap produit",
+          match_type: "partial",
+          evidence_from_job: "roadmap",
+          evidence_from_cv: "roadmap produit",
+        },
+        {
+          job_term: "agile",
+          cv_term: "scrum",
+          match_type: "fuzzy",
+          evidence_from_job: "agile",
+          evidence_from_cv: "scrum",
+        },
+        {
+          job_term: "product",
+          cv_term: "produit",
+          match_type: "weird_label",
+          evidence_from_job: "product",
+          evidence_from_cv: "produit",
+        },
+      ],
       keywords_missing: [],
-      keywords_from_job: [],
-      cv_improvements: [],
+      cv_improvements: [
+        {
+          id: "edit-1",
+          priority: "high",
+          cv_section: "Expériences",
+          action: "Reformuler conversion",
+          evidence_from_cv: "+9 % conversion ouverture de compte",
+          evidence_from_job: "acquisition conversion",
+          suggested_rewrite:
+            "Optimisation conversion onboarding (+9 %) alignée acquisition",
+          information_to_confirm: null,
+        },
+      ],
       cover_letter_angle: "",
     });
 
-    assert.equal(parsed.match_score, 0);
-    assert.equal(parsed.criteria_assessment?.[0]?.confirmation_status, "asked");
+    assert.equal(parsed.match_score, 40);
+    assert.ok(parsed.keywords_matched.includes("roadmap"));
+    assert.equal(parsed.cv_improvement_items?.length, 1);
     assert.match(
-      parsed.score_explanation ?? "",
-      /critères pondérés|niveau de preuve/i
+      parsed.cv_improvement_items?.[0]?.evidence_from_cv ?? "",
+      /conversion/
     );
   });
 });

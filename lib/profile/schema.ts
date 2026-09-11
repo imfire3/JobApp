@@ -1,5 +1,8 @@
 import { z } from "zod"
-import { LANGUAGE_LEVELS } from "@/lib/profile/types"
+import {
+  LANGUAGE_LEVELS,
+  normalizeLanguageLevel,
+} from "@/lib/profile/types"
 
 const optionalNullableString = z
   .union([z.string(), z.null()])
@@ -22,10 +25,11 @@ const employmentTypeSchema = z.enum([
 
 const locationTypeSchema = z.enum(["onsite", "hybrid", "remote", ""])
 
-const languageLevelSchema = z.union([
-  z.enum(LANGUAGE_LEVELS),
-  z.literal(""),
-])
+const languageLevelSchema = z.preprocess(
+  (value) =>
+    typeof value === "string" ? normalizeLanguageLevel(value) : value,
+  z.union([z.enum(LANGUAGE_LEVELS), z.literal("")])
+)
 
 export const profileExperienceEntrySchema = z.object({
   id: z.string().min(1),

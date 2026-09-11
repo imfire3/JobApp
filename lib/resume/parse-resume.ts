@@ -8,9 +8,12 @@ import {
   normalizeWebsite,
   type CvExtractedProfile,
 } from "@/lib/ai/schemas/cv-extract"
+import {
+  matchAtsSkillsFromCvText,
+  mergeSkillLists,
+} from "@/lib/profile/match-ats-skills"
 import { resumeDevLog } from "@/lib/resume/normalize-text"
 import { extractRegexContact } from "@/lib/resume/regex-contact"
-import { detectResumeSections } from "@/lib/resume/section-detect"
 import {
   field,
   type FieldWithConfidence,
@@ -116,7 +119,7 @@ function deriveSuggestedRoles(
 }
 
 /**
- * Parse CV text into ParsedResume: regex contact + section detect + LLM structured extract.
+ * Parse CV text into ParsedResume: regex contact + local ATS skills + LLM structured extract.
  */
 export async function parseResume(
   cvText: string,
@@ -125,12 +128,8 @@ export async function parseResume(
     ocrUsed?: boolean
   }
 ): Promise<ParsedResume> {
-  const sections = detectResumeSections(cvText)
-  resumeDevLog("CV PARSER", `Detected ${sections.length} section(s)`, {
-    ids: sections.map((s) => s.id),
-  })
-
   const contact = extractRegexContact(cvText)
+  const localSkills = matchAtsSkillsFromCvText(cvText)
   let ai: CvExtractedProfile | null = null
   let promptVersion: string | undefined
   let model: string | undefined
@@ -146,11 +145,15 @@ export async function parseResume(
 
   const experiences = ai ? experienceFromAi(ai) : []
   const education = ai ? educationFromAi(ai) : []
-  const skills =
-    ai?.skills.map((name) => ({
-      name,
-      confidence: 0.82,
-    })) ?? []
+  const mergedSkillNames = mergeSkillLists(ai?.skills ?? [], localSkills)
+  const skills = mergedSkillNames.map((name) => ({
+    name,
+    confidence: ai?.skills?.some(
+      (s) => s.toLowerCase() === name.toLowerCase()
+    )
+      ? 0.82
+      : 0.72,
+  }))
   const languages =
     ai?.language_entries.map((entry) => ({
       name: entry.language,

@@ -26,8 +26,9 @@ function mapLanguageLevel(level: string | undefined): ProfileLanguageEntry["leve
   )
   if (match) return match
   const lower = level.toLowerCase()
-  if (/native|maternel|maternelle|c2/.test(lower)) return "Maternel"
-  if (/fluent|courant|bilingual|bilingue|c1/.test(lower)) return "Courant"
+  if (/native|maternel|maternelle|natif|c2/.test(lower)) return "Natif"
+  if (/bilingual|bilingue/.test(lower)) return "Bilingue"
+  if (/fluent|courant|profession|c1/.test(lower)) return "Professionnel"
   if (/interm|b1|b2/.test(lower)) return "Intermédiaire"
   if (/beginner|début|debut|a1|a2|basic|bases/.test(lower)) return "Débutant"
   return ""

@@ -124,98 +124,161 @@ export async function POST(request: Request) {
     const storagePath = isPdf
       ? `${user.id}/original.pdf`
       : `${user.id}/original${extFromName(fileName)}`
-    let cvFileName: string | null = file.name
-    let cvFilePath: string | null = storagePath
-    let cvFileUpdatedAt: string | null = new Date().toISOString()
 
-    // Storage is best-effort — never abort profile fill if upload fails
-    try {
-      const { error: uploadError } = await supabase.storage
-        .from(CV_BUCKET)
-        .upload(storagePath, uploadBytes, {
-          contentType: isPdf ? "application/pdf" : mimeType,
-          upsert: true,
-        })
+    // Storage upload runs in parallel with profile extract (best-effort).
+    const storagePromise = (async () => {
+      let cvFileName: string | null = file.name
+      let cvFilePath: string | null = storagePath
+      let cvFileUpdatedAt: string | null = new Date().toISOString()
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from(CV_BUCKET)
+          .upload(storagePath, uploadBytes, {
+            contentType: isPdf ? "application/pdf" : mimeType,
+            upsert: true,
+          })
 
-      if (uploadError) {
-        console.warn("[import-cv] storage upload failed:", uploadError.message)
+        if (uploadError) {
+          console.warn("[import-cv] storage upload failed:", uploadError.message)
+          cvFileName = null
+          cvFilePath = null
+          cvFileUpdatedAt = null
+        }
+      } catch (uploadCaught) {
+        console.warn(
+          "[import-cv] storage upload threw:",
+          uploadCaught instanceof Error ? uploadCaught.message : uploadCaught
+        )
         cvFileName = null
         cvFilePath = null
         cvFileUpdatedAt = null
       }
-    } catch (uploadCaught) {
-      console.warn(
-        "[import-cv] storage upload threw:",
-        uploadCaught instanceof Error ? uploadCaught.message : uploadCaught
+
+      const { error: metaError } = await supabase.from("profiles").upsert(
+        {
+          id: user.id,
+          cv_file_name: cvFileName,
+          cv_file_path: cvFilePath,
+          cv_file_updated_at: cvFileUpdatedAt,
+        },
+        { onConflict: "id" }
       )
-      cvFileName = null
-      cvFilePath = null
-      cvFileUpdatedAt = null
-    }
 
-    const { error: metaError } = await supabase.from("profiles").upsert(
-      {
-        id: user.id,
-        cv_file_name: cvFileName,
-        cv_file_path: cvFilePath,
-        cv_file_updated_at: cvFileUpdatedAt,
-      },
-      { onConflict: "id" }
-    )
+      if (metaError && metaError.code !== "42P01" && metaError.code !== "42703") {
+        console.warn(
+          "[import-cv] profile file meta update failed:",
+          metaError.message
+        )
+      }
 
-    if (metaError && metaError.code !== "42P01" && metaError.code !== "42703") {
-      console.warn("[import-cv] profile file meta update failed:", metaError.message)
-    }
+      return { cvFileName, cvFilePath, cvFileUpdatedAt }
+    })()
 
-    // Structured profile fill in DB (prénom, expériences, skills…) — no UI visit required
     let profileFilled = false
     let profileExtractError: string | null = null
     let candidateProfile: Record<string, unknown> | null = null
-    if (extractedText.trim().length >= MIN_CV_LENGTH) {
-      try {
-        const extractResult = await runCvProfileExtraction(supabase, user.id, {
-          force: true,
-          persist: true,
-        })
-        profileFilled = extractResult.extracted === true && extractResult.ok
-        if (!extractResult.ok) {
-          profileExtractError = extractResult.error
+
+    const extractPromise =
+      extractedText.trim().length >= MIN_CV_LENGTH
+        ? (async () => {
+            try {
+              // force:false enables content-hash cache on re-upload of the same CV
+              const extractResult = await runCvProfileExtraction(
+                supabase,
+                user.id,
+                {
+                  force: false,
+                  persist: true,
+                }
+              )
+              const filled =
+                (extractResult.extracted === true && extractResult.ok) ||
+                (extractResult.ok &&
+                  (Boolean(
+                    typeof extractResult.profile.first_name === "string" &&
+                      extractResult.profile.first_name.trim()
+                  ) ||
+                    (Array.isArray(extractResult.profile.experience_entries) &&
+                      extractResult.profile.experience_entries.length > 0) ||
+                    (Array.isArray(extractResult.profile.skills) &&
+                      extractResult.profile.skills.length > 0)))
+              resumeDevLog("CV IMPORT", "Profile extract+persist done", {
+                ok: extractResult.ok,
+                extracted: extractResult.extracted,
+                first_name:
+                  typeof extractResult.draft?.first_name === "string"
+                    ? extractResult.draft.first_name
+                    : null,
+                experiences:
+                  extractResult.draft?.experience_entries?.length ?? 0,
+              })
+              return {
+                profileFilled: filled,
+                profileExtractError: extractResult.ok
+                  ? null
+                  : extractResult.error,
+                candidateProfile: extractResult.profile,
+              }
+            } catch (profileError) {
+              const message =
+                profileError instanceof Error
+                  ? profileError.message
+                  : "Profile extract failed"
+              console.warn("[import-cv] profile extract failed:", message)
+              return {
+                profileFilled: false,
+                profileExtractError: message,
+                candidateProfile: null as Record<string, unknown> | null,
+              }
+            }
+          })()
+        : Promise.resolve({
+            profileFilled: false,
+            profileExtractError: null as string | null,
+            candidateProfile: null as Record<string, unknown> | null,
+          })
+
+    const [fileMeta, extractOutcome] = await Promise.all([
+      storagePromise,
+      extractPromise,
+    ])
+
+    profileFilled = extractOutcome.profileFilled
+    profileExtractError = extractOutcome.profileExtractError
+    candidateProfile = extractOutcome.candidateProfile
+      ? {
+          ...extractOutcome.candidateProfile,
+          cv_file_name:
+            fileMeta.cvFileName ??
+            extractOutcome.candidateProfile.cv_file_name ??
+            null,
+          cv_file_path:
+            fileMeta.cvFilePath ??
+            extractOutcome.candidateProfile.cv_file_path ??
+            null,
+          cv_file_updated_at:
+            fileMeta.cvFileUpdatedAt ??
+            extractOutcome.candidateProfile.cv_file_updated_at ??
+            null,
         }
-        candidateProfile = extractResult.profile
-        resumeDevLog("CV IMPORT", "Profile extract+persist done", {
-          ok: extractResult.ok,
-          extracted: extractResult.extracted,
-          first_name:
-            typeof extractResult.draft?.first_name === "string"
-              ? extractResult.draft.first_name
-              : null,
-          experiences: extractResult.draft?.experience_entries?.length ?? 0,
-        })
-      } catch (profileError) {
-        profileExtractError =
-          profileError instanceof Error
-            ? profileError.message
-            : "Profile extract failed"
-        console.warn("[import-cv] profile extract failed:", profileExtractError)
-      }
-    }
+      : null
 
     // ATS analysis is deferred (runs later on profile pages) so signup import stays fast.
 
     return NextResponse.json({
       profile: candidateProfile ?? {
         ...cvRow,
-        cv_file_name: cvFileName,
-        cv_file_path: cvFilePath,
-        cv_file_updated_at: cvFileUpdatedAt,
+        cv_file_name: fileMeta.cvFileName,
+        cv_file_path: fileMeta.cvFilePath,
+        cv_file_updated_at: fileMeta.cvFileUpdatedAt,
       },
       extracted_text: extractedText,
       text_length: extractedText.length,
       ocr_used: ocrUsed,
       source,
-      cv_file_name: cvFileName,
-      cv_file_path: cvFilePath,
-      cv_file_updated_at: cvFileUpdatedAt,
+      cv_file_name: fileMeta.cvFileName,
+      cv_file_path: fileMeta.cvFilePath,
+      cv_file_updated_at: fileMeta.cvFileUpdatedAt,
       profile_filled: profileFilled,
       profile_extract_error: profileExtractError,
       analysis: null,

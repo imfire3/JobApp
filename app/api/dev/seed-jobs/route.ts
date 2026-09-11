@@ -4,7 +4,7 @@ import {
   isSelfSignupAllowed,
   SELF_SIGNUP_CLOSED_MESSAGE,
 } from "@/lib/auth/self-signup"
-import { generateFakeJobs } from "@/lib/dev/fake-jobs"
+import { generateFakeJobs, getFakeFillJobCount } from "@/lib/dev/fake-jobs"
 import { buildJobInsertPayload } from "@/lib/jobs/mapper"
 
 /**
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: authError }, { status: 401 })
   }
 
-  let count = 12
+  let count = getFakeFillJobCount()
   try {
     const body = (await request.json().catch(() => ({}))) as { count?: unknown }
     if (typeof body.count === "number" && Number.isFinite(body.count)) {

@@ -97,8 +97,10 @@ export async function updateSession(request: NextRequest) {
 
     if (onboardingPending && !isOnboardingAllowed(pathname) && !isPublicRoute(pathname)) {
       const url = request.nextUrl.clone();
-      // Resume onboarding: profile page gates to CV / API keys as needed
-      url.pathname = "/onboarding/profile";
+      // Resume at CV step; /login?cv=1 then routes to profile once CV exists
+      url.pathname = "/login";
+      url.search = "";
+      url.searchParams.set("cv", "1");
       return NextResponse.redirect(url);
     }
 

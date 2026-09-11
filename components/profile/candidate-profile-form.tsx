@@ -10,9 +10,7 @@ import {
   Link2,
   Plus,
   Search,
-  Trash2,
   UserRound,
-  X,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -21,20 +19,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  SearchableMultiSelect,
+  SearchableSelect,
+} from "@/components/jobs/searchable-multi-select"
 import { CvExperiencesCard } from "@/components/settings/cv-experiences-card"
 import { ExtractionProgress } from "@/components/onboarding/onboarding-progress"
-import { MONTH_OPTIONS, type CvExperience } from "@/lib/cv/experiences"
+import { DateOfBirthField } from "@/components/profile/date-of-birth-field"
+import { EducationEntriesCard } from "@/components/profile/education-entries-card"
+import { LanguageEntriesField } from "@/components/profile/language-entries-field"
+import type { CvExperience } from "@/lib/cv/experiences"
+import { FRANCE_CITIES } from "@/lib/onboarding/france-cities"
+import { listAtsSkillOptions } from "@/lib/profile/match-ats-skills"
 import {
-  emptyEducationEntry,
-  emptyLanguageEntry,
   formatDisplayDate,
   parseDisplayDateToIso,
 } from "@/lib/profile/helpers"
 import {
+  PROFILE_LOCATION_EXTRAS,
+  PROFILE_ROLE_SUGGESTIONS,
+} from "@/lib/profile/suggestion-catalogs"
+import {
   CONTRACT_TYPE_OPTIONS,
-  LANGUAGE_LEVELS,
   REMOTE_PREFERENCE_OPTIONS,
   type ProfileEducationEntry,
   type ProfileLanguageEntry,
@@ -134,12 +141,7 @@ export function CandidateProfileForm({
   const [activeSection, setActiveSection] = useState<SectionId>("personal")
   const [profile, setProfile] = useState<CandidateProfileData>(emptyProfile)
   const [birthDisplay, setBirthDisplay] = useState("")
-  const [skillDraft, setSkillDraft] = useState("")
-  const [languageDraft, setLanguageDraft] = useState("")
-  const [roleDraft, setRoleDraft] = useState("")
-  const [locationDraft, setLocationDraft] = useState("")
   const [pdfFile, setPdfFile] = useState<File | null>(null)
-  const [educationDraft, setEducationDraft] = useState<ProfileEducationEntry | null>(null)
   const extractAppliedRef = useRef(false)
 
   const applyProfile = useCallback((next: CandidateProfileData) => {
@@ -315,42 +317,6 @@ export function CandidateProfileForm({
     setProfile((prev) => ({ ...prev, [key]: value }))
   }
 
-  const handleAddSkill = () => {
-    const skill = skillDraft.trim()
-    if (!skill) return
-    if (profile.skills.some((s) => s.toLowerCase() === skill.toLowerCase())) {
-      setSkillDraft("")
-      return
-    }
-    updateField("skills", [...profile.skills, skill])
-    setSkillDraft("")
-  }
-
-  const handleRemoveSkill = (skill: string) => {
-    updateField(
-      "skills",
-      profile.skills.filter((item) => item !== skill)
-    )
-  }
-
-  const handleAddLanguage = () => {
-    const language = languageDraft.trim()
-    if (!language) return
-    if (
-      profile.language_entries.some(
-        (entry) => entry.language.toLowerCase() === language.toLowerCase()
-      )
-    ) {
-      setLanguageDraft("")
-      return
-    }
-    updateField("language_entries", [
-      ...profile.language_entries,
-      { ...emptyLanguageEntry(), language, level: "Intermédiaire" },
-    ])
-    setLanguageDraft("")
-  }
-
   const handleAddTag = (
     key: "target_roles" | "target_locations",
     draft: string,
@@ -377,31 +343,6 @@ export function CandidateProfileForm({
       return
     }
     updateField("preferred_contract_types", [...current, contract])
-  }
-
-  const handleSaveEducation = () => {
-    if (!educationDraft) return
-    if (!educationDraft.name.trim()) {
-      toast.error("Le nom du diplôme est requis")
-      return
-    }
-    const exists = profile.education_entries.some(
-      (entry) => entry.id === educationDraft.id
-    )
-    if (exists) {
-      updateField(
-        "education_entries",
-        profile.education_entries.map((entry) =>
-          entry.id === educationDraft.id ? educationDraft : entry
-        )
-      )
-    } else {
-      updateField("education_entries", [
-        ...profile.education_entries,
-        educationDraft,
-      ])
-    }
-    setEducationDraft(null)
   }
 
   const handleImportPdf = async () => {
@@ -446,7 +387,7 @@ export function CandidateProfileForm({
     last_name: profile.last_name,
     contact_email: profile.contact_email,
     phone: profile.phone,
-    date_of_birth: parseDisplayDateToIso(birthDisplay),
+    date_of_birth: profile.date_of_birth ?? parseDisplayDateToIso(birthDisplay),
     current_city: profile.current_city,
     current_title: profile.current_title,
     linkedin_url: profile.linkedin_url,
@@ -492,15 +433,6 @@ export function CandidateProfileForm({
       setSaving(false)
     }
   }
-
-  const yearOptions = useMemo(() => {
-    const current = new Date().getFullYear()
-    const years: string[] = []
-    for (let year = current + 1; year >= current - 60; year -= 1) {
-      years.push(String(year))
-    }
-    return years
-  }, [])
 
   if (loading || extracting) {
     return (
@@ -549,14 +481,6 @@ export function CandidateProfileForm({
       </nav>
 
       <div className="min-w-0 flex-1 space-y-4">
-        {extractDone && !extractError ? (
-          <div
-            role="status"
-            className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-base text-emerald-100"
-          >
-            CV analysé — vérifie et complète les champs avant d’enregistrer.
-          </div>
-        ) : null}
         {extractError ? (
           <div
             role="status"
@@ -620,22 +544,24 @@ export function CandidateProfileForm({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dob">Date de naissance</Label>
-                <Input
+                <DateOfBirthField
                   id="dob"
-                  value={birthDisplay}
-                  onChange={(e) => setBirthDisplay(e.target.value)}
-                  placeholder="JJ/MM/AAAA"
+                  value={profile.date_of_birth}
+                  onChange={(iso) => {
+                    updateField("date_of_birth", iso)
+                    setBirthDisplay(iso ? formatDisplayDate(iso) : "")
+                  }}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="city">Lieu de résidence</Label>
-                <Input
+                <SearchableSelect
                   id="city"
-                  value={profile.current_city ?? ""}
-                  onChange={(e) =>
-                    updateField("current_city", e.target.value || null)
-                  }
-                  placeholder="Ville"
+                  options={[...FRANCE_CITIES]}
+                  value={profile.current_city}
+                  onChange={(value) => updateField("current_city", value)}
+                  placeholder="Rechercher une ville…"
+                  allowCustom
                 />
               </div>
               <div className="space-y-2">
@@ -693,115 +619,29 @@ export function CandidateProfileForm({
                 </div>
               ) : null}
               <div className="space-y-2">
-                <Label htmlFor="role-draft">Intitulé de poste</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="role-draft"
-                    value={roleDraft}
-                    onChange={(e) => setRoleDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault()
-                        handleAddTag("target_roles", roleDraft, () =>
-                          setRoleDraft("")
-                        )
-                      }
-                    }}
-                    placeholder="Product Owner"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() =>
-                      handleAddTag("target_roles", roleDraft, () =>
-                        setRoleDraft("")
-                      )
-                    }
-                  >
-                    Ajouter
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {profile.target_roles.map((role) => (
-                    <Badge
-                      key={role}
-                      variant="tag"
-                      className="gap-1.5"
-                    >
-                      {role}
-                      <button
-                        type="button"
-                        aria-label={`Retirer ${role}`}
-                        onClick={() =>
-                          updateField(
-                            "target_roles",
-                            profile.target_roles.filter((item) => item !== role)
-                          )
-                        }
-                        className="rounded-full opacity-70 transition-opacity hover:opacity-100"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
+                <Label htmlFor="role-draft">Poste recherché</Label>
+                <SearchableMultiSelect
+                  id="role-draft"
+                  options={[...PROFILE_ROLE_SUGGESTIONS, ...suggestedRoles]}
+                  values={profile.target_roles}
+                  onChange={(values) => updateField("target_roles", values)}
+                  placeholder="Rechercher un métier…"
+                  allowCustom
+                  emptyLabel="Aucun poste sélectionné"
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location-draft">Lieu de travail souhaité</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="location-draft"
-                    value={locationDraft}
-                    onChange={(e) => setLocationDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault()
-                        handleAddTag("target_locations", locationDraft, () =>
-                          setLocationDraft("")
-                        )
-                      }
-                    }}
-                    placeholder="Paris"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() =>
-                      handleAddTag("target_locations", locationDraft, () =>
-                        setLocationDraft("")
-                      )
-                    }
-                  >
-                    Ajouter
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {profile.target_locations.map((location) => (
-                    <Badge
-                      key={location}
-                      variant="tag"
-                      className="gap-1.5"
-                    >
-                      {location}
-                      <button
-                        type="button"
-                        aria-label={`Retirer ${location}`}
-                        onClick={() =>
-                          updateField(
-                            "target_locations",
-                            profile.target_locations.filter(
-                              (item) => item !== location
-                            )
-                          )
-                        }
-                        className="rounded-full opacity-70 transition-opacity hover:opacity-100"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
+                <Label htmlFor="location-draft">Lieu de travail</Label>
+                <SearchableMultiSelect
+                  id="location-draft"
+                  options={[...PROFILE_LOCATION_EXTRAS, ...FRANCE_CITIES]}
+                  values={profile.target_locations}
+                  onChange={(values) => updateField("target_locations", values)}
+                  placeholder="Ville, région, Remote…"
+                  allowCustom
+                  emptyLabel="Aucun lieu sélectionné"
+                />
               </div>
 
               <div className="space-y-2">
@@ -892,48 +732,15 @@ export function CandidateProfileForm({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  value={skillDraft}
-                  onChange={(e) => setSkillDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      handleAddSkill()
-                    }
-                  }}
-                  placeholder="Exemple : Figma"
-                  aria-label="Cherchez une compétence"
-                />
-                <Button type="button" variant="secondary" onClick={handleAddSkill}>
-                  Ajouter
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {profile.skills.length === 0 ? (
-                  <p className="text-base text-muted-foreground">
-                    Aucune compétence pour l’instant.
-                  </p>
-                ) : (
-                  profile.skills.map((skill) => (
-                    <Badge
-                      key={skill}
-                      variant="tag"
-                      className="gap-1.5"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        aria-label={`Retirer ${skill}`}
-                        onClick={() => handleRemoveSkill(skill)}
-                        className="rounded-full opacity-70 transition-opacity hover:opacity-100"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </Badge>
-                  ))
-                )}
-              </div>
+              <SearchableMultiSelect
+                id="skills-search"
+                options={listAtsSkillOptions()}
+                values={profile.skills}
+                onChange={(values) => updateField("skills", values)}
+                placeholder="Rechercher une compétence ATS…"
+                allowCustom
+                emptyLabel="Aucune compétence pour l’instant."
+              />
             </CardContent>
           </Card>
         ) : null}
@@ -943,346 +750,23 @@ export function CandidateProfileForm({
             <CardHeader>
               <CardTitle>Langues</CardTitle>
               <CardDescription>
-                Listez les langues que vous pouvez utiliser professionnellement.
+                Sélectionne une langue puis son niveau.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  value={languageDraft}
-                  onChange={(e) => setLanguageDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      handleAddLanguage()
-                    }
-                  }}
-                  placeholder="Exemple : Français"
-                  aria-label="Cherchez une langue"
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleAddLanguage}
-                >
-                  Ajouter
-                </Button>
-              </div>
-              <ul className="space-y-2">
-                {profile.language_entries.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2"
-                  >
-                    <span className="min-w-24 flex-1 font-medium">
-                      {entry.language}
-                    </span>
-                    <select
-                      className="h-9 rounded-md border border-input bg-transparent px-2 text-base"
-                      value={entry.level}
-                      onChange={(e) =>
-                        updateField(
-                          "language_entries",
-                          profile.language_entries.map((item) =>
-                            item.id === entry.id
-                              ? {
-                                  ...item,
-                                  level: e.target
-                                    .value as ProfileLanguageEntry["level"],
-                                }
-                              : item
-                          )
-                        )
-                      }
-                      aria-label={`Niveau ${entry.language}`}
-                    >
-                      <option value="">Sélectionnez</option>
-                      {LANGUAGE_LEVELS.map((level) => (
-                        <option key={level} value={level}>
-                          {level}
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Retirer ${entry.language}`}
-                      onClick={() =>
-                        updateField(
-                          "language_entries",
-                          profile.language_entries.filter(
-                            (item) => item.id !== entry.id
-                          )
-                        )
-                      }
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+            <CardContent>
+              <LanguageEntriesField
+                entries={profile.language_entries}
+                onChange={(entries) => updateField("language_entries", entries)}
+              />
             </CardContent>
           </Card>
         ) : null}
 
         {activeSection === "education" ? (
-          <Card className="rounded-2xl">
-            <CardHeader className="flex flex-row items-start justify-between gap-4">
-              <div>
-                <CardTitle>Diplômes & formations</CardTitle>
-                <CardDescription>
-                  Listez vos diplômes, formations et certifications pertinents.
-                </CardDescription>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setEducationDraft(emptyEducationEntry())}
-              >
-                <Plus className="mr-1 h-4 w-4" />
-                Ajouter
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {profile.education_entries.length === 0 && !educationDraft ? (
-                <p className="rounded-2xl border border-dashed p-6 text-base text-muted-foreground">
-                  Aucun diplôme pour l’instant.
-                </p>
-              ) : null}
-
-              <ul className="space-y-3">
-                {profile.education_entries.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="flex items-start justify-between gap-3 rounded-2xl border border-border p-4"
-                  >
-                    <div>
-                      <p className="font-semibold">{entry.name}</p>
-                      <p className="text-base text-muted-foreground">
-                        {[entry.school, entry.level].filter(Boolean).join(" · ")}
-                      </p>
-                      <p className="text-base text-muted-foreground">
-                        {[
-                          entry.startMonth
-                            ? MONTH_OPTIONS.find((m) => m.value === entry.startMonth)
-                                ?.label
-                            : null,
-                          entry.startYear,
-                          "→",
-                          entry.isCurrent
-                            ? "présent"
-                            : [
-                                MONTH_OPTIONS.find((m) => m.value === entry.endMonth)
-                                  ?.label,
-                                entry.endYear,
-                              ]
-                                .filter(Boolean)
-                                .join(" "),
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEducationDraft(entry)}
-                      >
-                        Modifier
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Supprimer ${entry.name}`}
-                        onClick={() =>
-                          updateField(
-                            "education_entries",
-                            profile.education_entries.filter(
-                              (item) => item.id !== entry.id
-                            )
-                          )
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-
-              {educationDraft ? (
-                <div className="space-y-3 rounded-2xl border border-border p-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edu-name">Nom *</Label>
-                    <Input
-                      id="edu-name"
-                      value={educationDraft.name}
-                      onChange={(e) =>
-                        setEducationDraft({
-                          ...educationDraft,
-                          name: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="edu-school">École ou organisme</Label>
-                      <Input
-                        id="edu-school"
-                        value={educationDraft.school}
-                        onChange={(e) =>
-                          setEducationDraft({
-                            ...educationDraft,
-                            school: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edu-level">Niveau</Label>
-                      <Input
-                        id="edu-level"
-                        value={educationDraft.level}
-                        onChange={(e) =>
-                          setEducationDraft({
-                            ...educationDraft,
-                            level: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Du</Label>
-                      <div className="flex gap-2">
-                        <select
-                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
-                          value={educationDraft.startMonth}
-                          onChange={(e) =>
-                            setEducationDraft({
-                              ...educationDraft,
-                              startMonth: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">MM</option>
-                          {MONTH_OPTIONS.map((month) => (
-                            <option key={month.value} value={month.value}>
-                              {month.label}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
-                          value={educationDraft.startYear}
-                          onChange={(e) =>
-                            setEducationDraft({
-                              ...educationDraft,
-                              startYear: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">AAAA</option>
-                          {yearOptions.map((year) => (
-                            <option key={year} value={year}>
-                              {year}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Au</Label>
-                      <div className="flex gap-2">
-                        <select
-                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
-                          value={educationDraft.endMonth}
-                          disabled={educationDraft.isCurrent}
-                          onChange={(e) =>
-                            setEducationDraft({
-                              ...educationDraft,
-                              endMonth: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">MM</option>
-                          {MONTH_OPTIONS.map((month) => (
-                            <option key={month.value} value={month.value}>
-                              {month.label}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
-                          value={educationDraft.endYear}
-                          disabled={educationDraft.isCurrent}
-                          onChange={(e) =>
-                            setEducationDraft({
-                              ...educationDraft,
-                              endYear: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">AAAA</option>
-                          {yearOptions.map((year) => (
-                            <option key={year} value={year}>
-                              {year}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  <label className="flex items-center gap-2 text-base">
-                    <Checkbox
-                      checked={educationDraft.isCurrent}
-                      onCheckedChange={(checked) =>
-                        setEducationDraft({
-                          ...educationDraft,
-                          isCurrent: Boolean(checked),
-                          endMonth: checked ? "" : educationDraft.endMonth,
-                          endYear: checked ? "" : educationDraft.endYear,
-                        })
-                      }
-                    />
-                    J&apos;y étudie toujours
-                  </label>
-                  <div className="space-y-2">
-                    <Label htmlFor="edu-desc">Description</Label>
-                    <Textarea
-                      id="edu-desc"
-                      value={educationDraft.description}
-                      onChange={(e) =>
-                        setEducationDraft({
-                          ...educationDraft,
-                          description: e.target.value,
-                        })
-                      }
-                      rows={4}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="button" onClick={handleSaveEducation}>
-                      Enregistrer
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setEducationDraft(null)}
-                    >
-                      Annuler
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
+          <EducationEntriesCard
+            entries={profile.education_entries}
+            onChange={(entries) => updateField("education_entries", entries)}
+          />
         ) : null}
 
         {activeSection === "resources" ? (
@@ -1294,32 +778,49 @@ export function CandidateProfileForm({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2 rounded-xl border border-border p-4">
-                <div className="flex items-center gap-2">
+              <div className="space-y-3 rounded-xl border border-border p-4">
+                <div className="flex flex-wrap items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  <Label>CV</Label>
-                  <Badge variant="secondary">Recommandé</Badge>
+                  <Label>CV importé</Label>
+                  {profile.cv_file_name || profile.cv_text.trim() ? (
+                    <Badge variant="chip">Analysé</Badge>
+                  ) : (
+                    <Badge variant="secondary">Manquant</Badge>
+                  )}
                 </div>
                 {profile.cv_file_name ? (
+                  <div className="space-y-1 text-base leading-6">
+                    <p className="font-medium text-foreground">
+                      {profile.cv_file_name}
+                    </p>
+                    <p className="text-muted-foreground">
+                      Type :{" "}
+                      {profile.cv_file_name.toLowerCase().endsWith(".pdf")
+                        ? "PDF"
+                        : "Fichier"}
+                      {profile.cv_file_updated_at
+                        ? ` · mis à jour le ${new Date(
+                            profile.cv_file_updated_at
+                          ).toLocaleString("fr-FR")}`
+                        : null}
+                    </p>
+                  </div>
+                ) : profile.cv_text.trim() ? (
                   <p className="text-base text-muted-foreground">
-                    {profile.cv_file_name}
-                    {profile.cv_file_updated_at
-                      ? ` · mis à jour le ${new Date(
-                          profile.cv_file_updated_at
-                        ).toLocaleString("fr-FR")}`
-                      : null}
+                    CV texte collé · {profile.cv_text.trim().length} caractères
                   </p>
                 ) : (
                   <p className="text-base text-muted-foreground">
-                    Aucun fichier PDF enregistré (collage texte uniquement).
+                    Aucun CV enregistré.
                   </p>
                 )}
-                <div className="flex flex-wrap items-center gap-2 pt-2">
+                <div className="flex flex-wrap items-center gap-2 pt-1">
                   <Input
                     type="file"
                     accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
                     onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
-                    aria-label="Importer un fichier CV"
+                    aria-label="Remplacer le fichier CV"
+                    className="max-w-xs"
                   />
                   <Button
                     type="button"
@@ -1328,13 +829,13 @@ export function CandidateProfileForm({
                     onClick={() => void handleImportPdf()}
                   >
                     <FileUp className="mr-1 h-4 w-4" />
-                    {importingPdf ? "Import…" : "Importer un fichier"}
+                    {importingPdf
+                      ? "Import…"
+                      : profile.cv_file_name
+                        ? "Remplacer"
+                        : "Importer un fichier"}
                   </Button>
                 </div>
-                <p className="text-base text-muted-foreground">
-                  PDF ou image (PNG/JPEG/WebP). OCR Vision si le texte natif est
-                  insuffisant.
-                </p>
               </div>
 
               <div className="space-y-2">

@@ -14,12 +14,22 @@ import {
   PRODUCT_WELCOME_EVENT,
 } from "@/lib/onboarding/product-welcome";
 
+function isExtensionModalRoute(pathname: string) {
+  return (
+    pathname === "/jobs" ||
+    pathname.startsWith("/jobs/") ||
+    pathname === "/imports" ||
+    pathname.startsWith("/imports/")
+  );
+}
+
 function ChromeExtensionGate() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const [extensionOpen, setExtensionOpen] = useState(false);
   const [welcomeTick, setWelcomeTick] = useState(0);
+  const onAllowedRoute = isExtensionModalRoute(pathname);
 
   useEffect(() => {
     const onWelcomeDone = () => setWelcomeTick((n) => n + 1);
@@ -28,39 +38,24 @@ function ChromeExtensionGate() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    // Offres + Imports only — never on dashboard / settings / etc.
+    if (!isExtensionModalRoute(pathname)) return;
 
-    async function maybeShowExtension() {
-      let alreadySeen = false;
-      try {
-        alreadySeen = localStorage.getItem(EXTENSION_SEEN_KEY) === "1";
-      } catch {
-        alreadySeen = false;
-      }
-
-      const forceShow = searchParams.get("extension") === "1";
-      if (alreadySeen && !forceShow) return;
-
-      // Wait until the product welcome is done — Dialog would stack poorly.
-      if (!forceShow && !hasCompletedProductWelcomeLocal()) return;
-
-      try {
-        const res = await fetch("/api/tracked-searches");
-        if (!res.ok) return;
-        const data = (await res.json()) as { tracked_searches?: unknown[] };
-        const hasAlerts = (data.tracked_searches?.length ?? 0) > 0;
-        if (!cancelled && hasAlerts) {
-          setExtensionOpen(true);
-        }
-      } catch {
-        // ignore
-      }
+    let alreadySeen = false;
+    try {
+      alreadySeen = localStorage.getItem(EXTENSION_SEEN_KEY) === "1";
+    } catch {
+      alreadySeen = false;
     }
 
-    void maybeShowExtension();
-    return () => {
-      cancelled = true;
-    };
+    const forceShow = searchParams.get("extension") === "1";
+    if (alreadySeen && !forceShow) return;
+
+    // Wait until the product welcome is done — Dialog would stack poorly.
+    if (!forceShow && !hasCompletedProductWelcomeLocal()) return;
+
+    const timer = window.setTimeout(() => setExtensionOpen(true), 0);
+    return () => window.clearTimeout(timer);
   }, [searchParams, pathname, welcomeTick]);
 
   function clearExtensionQuery() {
@@ -73,7 +68,7 @@ function ChromeExtensionGate() {
 
   return (
     <ChromeExtensionModal
-      open={extensionOpen}
+      open={extensionOpen && onAllowedRoute}
       onOpenChange={setExtensionOpen}
       onDismiss={clearExtensionQuery}
     />

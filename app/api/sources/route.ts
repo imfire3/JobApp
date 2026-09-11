@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { ensureUserSources } from "@/lib/sources/bootstrap";
+import { presentSource } from "@/lib/sources/presentation";
 
 export async function GET() {
   const { supabase, user, error } = await getAuthenticatedUser();
@@ -22,7 +23,10 @@ export async function GET() {
     .from("source_searches")
     .select("id,source_id")
     .eq("user_id", user.id)
-    .in("source_id", sourceIds.length ? sourceIds : ["00000000-0000-0000-0000-000000000000"]);
+    .in(
+      "source_id",
+      sourceIds.length ? sourceIds : ["00000000-0000-0000-0000-000000000000"]
+    );
 
   const { data: lastRuns } = await supabase
     .from("sync_logs")
@@ -36,7 +40,10 @@ export async function GET() {
     searchCountBySource.set(search.source_id, count + 1);
   }
 
-  const runBySource = new Map<string, { status: string; started_at: string; error_message: string | null }>();
+  const runBySource = new Map<
+    string,
+    { status: string; started_at: string; error_message: string | null }
+  >();
   for (const run of lastRuns ?? []) {
     if (!runBySource.has(run.source_id)) {
       runBySource.set(run.source_id, run);
@@ -44,10 +51,24 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    sources: (sources ?? []).map((source) => ({
-      ...source,
-      searches_count: searchCountBySource.get(source.id) ?? 0,
-      latest_run: runBySource.get(source.id) ?? null,
-    })),
+    sources: (sources ?? []).map((source) => {
+      const presentation = presentSource(source.slug as string);
+      return {
+        ...source,
+        searches_count: searchCountBySource.get(source.id) ?? 0,
+        latest_run: runBySource.get(source.id) ?? null,
+        ingestion_mode: presentation.ingestionMode,
+        supports_server_sync: presentation.supportsServerSync,
+        mode_label: presentation.modeLabel,
+        display_status: presentation.displayStatus,
+        display_status_label: presentation.displayStatusLabel,
+        alternate_href: presentation.alternateHref,
+        alternate_label: presentation.alternateLabel,
+        auth_configured:
+          presentation.ingestionMode === "api"
+            ? presentation.supportsServerSync
+            : false,
+      };
+    }),
   });
 }

@@ -9,6 +9,11 @@ import { parseResume } from "@/lib/resume/parse-resume"
 import { resumeDevLog } from "@/lib/resume/normalize-text"
 import { loadUserOpenAIKey } from "@/lib/openai/api-key"
 import {
+  isCvExtractCacheHit,
+  snapshotHasUsefulExtract,
+  withCvExtractHash,
+} from "@/lib/profile/cv-extract-cache"
+import {
   parseEducationEntries,
   parseExperienceEntries,
   parseLanguageEntries,
@@ -256,6 +261,75 @@ export async function runCvProfileExtraction(
     }
   }
 
+  // Same CV content already extracted → skip OpenAI (force still re-runs)
+  if (
+    !options?.force &&
+    isCvExtractCacheHit(cvText, existing.extracted_cv) &&
+    snapshotHasUsefulExtract(existing.extracted_cv)
+  ) {
+    resumeDevLog("CV PARSER", "Extract cache hit — skipping OpenAI")
+    return {
+      ok: true,
+      profile: existing,
+      draft: emptyDraftFromProfile(existing),
+      parsed: {
+        personalInformation: {},
+        experiences: [],
+        skills: [],
+        languages: [],
+        education: [],
+        resources: {},
+        suggestedRoles: [],
+        meta: {
+          ocrUsed: false,
+          textLength: cvText.length,
+          promptVersion: existing.extracted_cv_prompt_version ?? undefined,
+        },
+      },
+      extracted: false,
+      prompt_version: existing.extracted_cv_prompt_version ?? "",
+      model: "",
+    }
+  }
+
+  // Already persisted structured profile for this CV hash — avoid redundant LLM
+  const alreadyFilled =
+    Boolean(String(existing.first_name ?? "").trim()) ||
+    Boolean(String(existing.last_name ?? "").trim()) ||
+    (Array.isArray(existing.experience_entries) &&
+      existing.experience_entries.length > 0) ||
+    (Array.isArray(existing.skills) && existing.skills.length > 0)
+
+  if (
+    !options?.force &&
+    alreadyFilled &&
+    isCvExtractCacheHit(cvText, existing.extracted_cv)
+  ) {
+    resumeDevLog("CV PARSER", "Profile already filled for CV hash — skip")
+    return {
+      ok: true,
+      profile: existing,
+      draft: emptyDraftFromProfile(existing),
+      parsed: {
+        personalInformation: {},
+        experiences: [],
+        skills: [],
+        languages: [],
+        education: [],
+        resources: {},
+        suggestedRoles: [],
+        meta: {
+          ocrUsed: false,
+          textLength: cvText.length,
+          promptVersion: existing.extracted_cv_prompt_version ?? undefined,
+        },
+      },
+      extracted: false,
+      prompt_version: existing.extracted_cv_prompt_version ?? "",
+      model: "",
+    }
+  }
+
   try {
     const userKey = await loadUserOpenAIKey(supabase, userId)
     const parsed = await parseResume(cvText, { apiKey: userKey })
@@ -271,7 +345,10 @@ export async function runCvProfileExtraction(
         ? existing.cv_file_updated_at
         : null
 
-    const snapshot = draftToExtractedSnapshot(draft)
+    const snapshot = withCvExtractHash(
+      draftToExtractedSnapshot(draft) as Record<string, unknown>,
+      cvText
+    )
     const promptVersion = parsed.meta.promptVersion ?? "resume-pipeline-v1"
 
     const snapshotPayload: Record<string, unknown> = {

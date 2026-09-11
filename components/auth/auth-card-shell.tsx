@@ -11,21 +11,24 @@ type AuthCardShellProps = {
 
 /**
  * Auth / onboarding shell:
- * - card height follows content when short
- * - scrollport is locked to the viewport (never past the bottom edge)
- * - when the card is taller than the screen, it scrolls inside
+ * - viewport locked (no page chrome scroll)
+ * - children size to content (no forced full-height stretch)
+ * - short content is vertically centered; tall content scrolls in the shell
+ * - cards may also use max-h + overflow-y-auto for inner scroll
  */
 export function AuthCardShell({ children, className }: AuthCardShellProps) {
   return (
-    <div className="box-border flex h-dvh flex-col overflow-hidden bg-muted/30 px-4 pb-4 pt-8 sm:px-8">
+    <div className="box-border flex h-dvh flex-col overflow-hidden bg-background px-4 pb-4 pt-8 sm:px-8">
       <div
         className={cn(
-          "mx-auto min-h-0 w-full flex-1 overflow-y-auto overscroll-contain [&>*]:w-full",
+          "mx-auto flex min-h-0 w-full flex-1 flex-col overflow-y-auto overscroll-contain",
           AUTH_CARD_MAX_WIDTH,
           className
         )}
       >
-        {children}
+        <div className="my-auto w-full [&>*]:w-full">
+          {children}
+        </div>
       </div>
     </div>
   )

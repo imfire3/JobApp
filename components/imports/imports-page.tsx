@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppWindow, Braces, Download, FileSpreadsheet, Puzzle, Upload } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,6 +72,7 @@ function rowsToPreviewCards(rows: ParsedImportRow[]): ImportJobCard[] {
 }
 
 export function ImportsPage() {
+  const websitePasteRef = useRef<HTMLTextAreaElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewRows, setPreviewRows] = useState<ParsedImportRow[]>([]);
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -92,6 +93,18 @@ export function ImportsPage() {
   const [previewInvalid, setPreviewInvalid] = useState<
     Array<{ rowNumber: number; errors: string[] }>
   >([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paste") !== "1") return;
+    setActiveTab("sheet");
+    const timer = window.setTimeout(() => {
+      websitePasteRef.current?.focus();
+      websitePasteRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const invalidPreview = useMemo(() => {
     if (!summary) return [];
@@ -685,6 +698,7 @@ export function ImportsPage() {
                   </Label>
                   <Textarea
                     id="website-paste"
+                    ref={websitePasteRef}
                     rows={6}
                     placeholder="Colle ici le titre, l'entreprise, la description et les infos de l'offre…"
                     value={websitePaste}

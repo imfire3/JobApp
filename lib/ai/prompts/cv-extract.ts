@@ -11,7 +11,7 @@ Rules:
 - Dates: start_month/end_month as "MM", start_year/end_year as "YYYY". Use is_current=true when still ongoing.
 - date_of_birth: prefer ISO YYYY-MM-DD when possible, otherwise DD/MM/YYYY as written.
 - location_type: only "onsite", "hybrid", or "remote" when clearly stated; otherwise null.
-- language level: Maternel, Courant, Intermédiaire, or Débutant when clear; otherwise null.
+- language level: Natif, Bilingue, Professionnel, Intermédiaire, or Débutant when clear; otherwise null.
 - Do not fill job-search preferences (salary, desired location) — leave those out of inventing.
 
 Contact header (often at the top of the CV):
@@ -78,10 +78,13 @@ Return strict JSON with this shape:
   }]
 }`
 
+import { truncateCvTextForExtract } from "@/lib/profile/cv-extract-cache"
+
 export function buildCvExtractUserPrompt(cvText: string) {
+  const { text } = truncateCvTextForExtract(cvText)
   return `Extract the candidate profile from this CV. Pay special attention to the contact header (name, email, phone, LinkedIn, GitHub). Remember: null for missing fields, never invent.
 
 --- CV TEXT ---
-${cvText}
+${text}
 ---`
 }

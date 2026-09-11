@@ -6,10 +6,17 @@
  * Wrapped to survive re-injection (extension icon / SPA navigations).
  */
 (() => {
-  if (globalThis.__jobtrackerPanelLoaded) return;
+  const JT_ROOT_ID = "jobtracker-wttj-root";
+
+  // Re-injection into the same isolated world: remount via stored ensure fn.
+  if (globalThis.__jobtrackerPanelLoaded) {
+    if (typeof globalThis.__jobtrackerEnsurePanel === "function") {
+      globalThis.__jobtrackerEnsurePanel();
+    }
+    return;
+  }
   globalThis.__jobtrackerPanelLoaded = true;
 
-  const JT_ROOT_ID = "jobtracker-wttj-root";
   const STORAGE_KEY = "wttj_jobs";
   const PANEL_OPEN_KEY = "wttj_panel_open";
   const BASE_FILE_META_KEY = "wttj_base_file_meta";
@@ -17,8 +24,25 @@
   const HANDLE_STORE = "handles";
   const HANDLE_KEY = "baseCsv";
   const DEFAULT_BASE_NAME = "jobtracker-wttj-jobs.csv";
-  const JT_DEBUG_VERSION = "1.3.0";
-  const DEFAULT_DEBUG_RUN = "indeed-support";
+
+  // #region agent log
+  function jtDebug(hypothesisId, location, message, data) {
+    try {
+      chrome.runtime.sendMessage(
+        {
+          type: "JT_DEBUG_LOG",
+          hypothesisId,
+          location,
+          message,
+          data,
+        },
+        () => void chrome.runtime.lastError
+      );
+    } catch {
+      // ignore
+    }
+  }
+  // #endregion
 
   function escapeHtml(value) {
     return String(value)
@@ -495,6 +519,11 @@
         if (typeof window.__jobtrackerParseWttjJob !== "function") {
           hideProgress();
           setStatus("Parser indisponible sur cette page.", "err");
+          // #region agent log
+          jtDebug("C", "panel.js:parse", "parser missing", {
+            href: location.href.slice(0, 180),
+          });
+          // #endregion
           return;
         }
 
@@ -503,8 +532,26 @@
         if (!job?.url || !job?.description) {
           hideProgress();
           setStatus("Impossible d’extraire l’URL ou la description.", "err");
+          // #region agent log
+          jtDebug("D", "panel.js:parse", "parse empty", {
+            hasUrl: Boolean(job?.url),
+            descLen: (job?.description || "").length,
+            titleLen: (job?.title || "").length,
+            source: job?.source || null,
+            href: location.href.slice(0, 180),
+          });
+          // #endregion
           return;
         }
+
+        // #region agent log
+        jtDebug("D", "panel.js:parse", "parse ok", {
+          source: job.source,
+          titleLen: (job.title || "").length,
+          descLen: (job.description || "").length,
+          company: (job.company || "").slice(0, 80),
+        });
+        // #endregion
 
         setProgress(35, "Enregistrement en mémoire…");
         const jobs = await getJobs();
@@ -537,8 +584,17 @@
               `${existingIndex >= 0 ? "Mis à jour" : "Ajouté"} : ${job.title} → ${name}`,
               "ok"
             );
+            // #region agent log
+            jtDebug("E", "panel.js:write", "csv write ok", { name });
+            // #endregion
           } catch (error) {
             hideProgress();
+            // #region agent log
+            jtDebug("E", "panel.js:write", "csv write failed", {
+              name: error?.name || null,
+              message: error instanceof Error ? error.message : String(error),
+            });
+            // #endregion
             if (error?.name === "AbortError") {
               setStatus(
                 `${existingIndex >= 0 ? "Mis à jour" : "Ajouté"} en mémoire. Relie le fichier pour écrire.`,
@@ -559,9 +615,17 @@
             `${existingIndex >= 0 ? "Mis à jour" : "Ajouté"} : ${job.title}. Lie un fichier pour l’enregistrer.`,
             "ok"
           );
+          // #region agent log
+          jtDebug("E", "panel.js:write", "no base file linked", {});
+          // #endregion
         }
       } catch (error) {
         hideProgress();
+        // #region agent log
+        jtDebug("E", "panel.js:parse", "unexpected error", {
+          message: error instanceof Error ? error.message : String(error),
+        });
+        // #endregion
         setStatus(
           error instanceof Error ? error.message : "Erreur extension",
           "err"
@@ -639,31 +703,53 @@
       }
     });
 
-    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-      if (message?.type === "TOGGLE_PANEL") {
-        const next = !panel.classList.contains("is-open");
-        void setOpen(next).then(() => sendResponse({ ok: true, open: next }));
-        return true;
-      }
-      if (message?.type === "OPEN_PANEL") {
-        void setOpen(true).then(() => sendResponse({ ok: true, open: true }));
-        return true;
-      }
-      return false;
-    });
+    if (!globalThis.__jobtrackerPanelMsgHooked) {
+      globalThis.__jobtrackerPanelMsgHooked = true;
+      chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+        // Always use the latest panel API so remounts don't stack dead listeners.
+        const api = globalThis.__jobtrackerPanelApi;
+        if (!api) return false;
+        if (message?.type === "TOGGLE_PANEL") {
+          const next = !api.isOpen();
+          void api.setOpen(next).then(() => sendResponse({ ok: true, open: next }));
+          return true;
+        }
+        if (message?.type === "OPEN_PANEL") {
+          void api.setOpen(true).then(() => sendResponse({ ok: true, open: true }));
+          return true;
+        }
+        return false;
+      });
+    }
 
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== "local") return;
-      if (changes[STORAGE_KEY]) {
-        const jobs = Array.isArray(changes[STORAGE_KEY].newValue)
-          ? changes[STORAGE_KEY].newValue
-          : [];
-        render(jobs);
-      }
-      if (changes[BASE_FILE_META_KEY]) {
-        void renderFile();
-      }
-    });
+    globalThis.__jobtrackerPanelApi = {
+      setOpen,
+      isOpen: () => panel.classList.contains("is-open"),
+    };
+
+    if (!globalThis.__jobtrackerPanelStorageHooked) {
+      globalThis.__jobtrackerPanelStorageHooked = true;
+      chrome.storage.onChanged.addListener((changes, area) => {
+        const api = globalThis.__jobtrackerPanelApi;
+        if (!api || area !== "local") return;
+        if (changes[STORAGE_KEY]) {
+          const jobs = Array.isArray(changes[STORAGE_KEY].newValue)
+            ? changes[STORAGE_KEY].newValue
+            : [];
+          api.renderJobs?.(jobs);
+        }
+        if (changes[BASE_FILE_META_KEY]) {
+          void api.renderFile?.();
+        }
+      });
+    }
+
+    globalThis.__jobtrackerPanelApi = {
+      setOpen,
+      isOpen: () => panel.classList.contains("is-open"),
+      renderJobs: render,
+      renderFile,
+    };
 
     void (async () => {
       const open = await getPanelOpen();
@@ -674,7 +760,17 @@
   }
 
   function ensureSidePanel() {
-    if (document.getElementById(JT_ROOT_ID)) return;
+    const existing = document.getElementById(JT_ROOT_ID);
+    if (existing) {
+      // After extension reload / re-inject, orphan DOM can remain without
+      // chrome.runtime listeners. Tear it down and rebuild so TOGGLE/OPEN work.
+      // #region agent log
+      jtDebug("C", "panel.js:ensure", "removing orphan panel before remount", {
+        href: location.href.slice(0, 180),
+      });
+      // #endregion
+      existing.remove();
+    }
 
     const host = document.createElement("div");
     host.id = JT_ROOT_ID;
@@ -682,7 +778,14 @@
     const parts = buildPanelDom(shadow);
     document.documentElement.appendChild(host);
     wirePanel(shadow, parts);
+    // #region agent log
+    jtDebug("C", "panel.js:ensure", "panel mounted", {
+      href: location.href.slice(0, 180),
+      host: location.hostname,
+    });
+    // #endregion
   }
 
+  globalThis.__jobtrackerEnsurePanel = ensureSidePanel;
   ensureSidePanel();
 })();

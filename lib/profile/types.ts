@@ -1,11 +1,44 @@
 import type { CvEmploymentType, CvLocationType } from "@/lib/cv/experiences"
 
 export const LANGUAGE_LEVELS = [
-  "Maternel",
-  "Courant",
+  "Natif",
+  "Bilingue",
+  "Professionnel",
   "Intermédiaire",
   "Débutant",
 ] as const
+
+/** Map legacy AI / stored levels onto the current enum. */
+export function normalizeLanguageLevel(
+  value: string | null | undefined
+): LanguageLevel {
+  if (!value?.trim()) return ""
+  const trimmed = value.trim()
+  if ((LANGUAGE_LEVELS as readonly string[]).includes(trimmed)) {
+    return trimmed as (typeof LANGUAGE_LEVELS)[number]
+  }
+  const lower = trimmed.toLowerCase()
+  if (lower.includes("maternel") || lower.includes("natif") || lower.includes("native")) {
+    return "Natif"
+  }
+  if (lower.includes("biling")) return "Bilingue"
+  if (
+    lower.includes("courant") ||
+    lower.includes("profession") ||
+    lower.includes("fluent") ||
+    lower.includes("c1") ||
+    lower.includes("c2")
+  ) {
+    return "Professionnel"
+  }
+  if (lower.includes("inter") || lower.includes("b1") || lower.includes("b2")) {
+    return "Intermédiaire"
+  }
+  if (lower.includes("début") || lower.includes("debut") || lower.includes("a1") || lower.includes("a2")) {
+    return "Débutant"
+  }
+  return ""
+}
 
 export type LanguageLevel = (typeof LANGUAGE_LEVELS)[number] | ""
 
