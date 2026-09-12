@@ -599,13 +599,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 Tu peux aussi commencer directement en collant une offre ou en important
                 un CSV / Excel dans JobTracker.
               </p>
-              <div className="mt-8">
-                <Link href="/extension" className={primaryCtaClass} tabIndex={0}>
-                  Découvrir l’extension
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                </Link>
-              </div>
-              <p className="mt-4 text-base italic text-[#111]/55">
+              <p className="mt-8 text-base italic text-[#111]/55">
                 L’installation actuelle se fait en mode développeur sur Chrome ou Arc.
               </p>
             </div>
