@@ -111,6 +111,9 @@ export interface JobRecord {
   match_gaps: string[] | null;
   cover_letter_angle: string | null;
   cover_letter: string | null;
+  cover_letter_subject: string | null;
+  cover_letter_angle_briefing: string | null;
+  cover_letter_coach_notes: string[] | null;
   selected: boolean;
   created_at: string;
   updated_at: string;

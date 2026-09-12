@@ -35,8 +35,13 @@ const WTTJ_COMPANIES: WttjCompany[] = [
   { name: "Datadog", slug: "datadog", industry: "SaaS", defaultRemote: true },
 ];
 
+type MockGenericSourceKey = Exclude<
+  ConnectorSourceKey,
+  "welcome-to-the-jungle" | "france-travail"
+>;
+
 const SOURCE_META: Record<
-  Exclude<ConnectorSourceKey, "welcome-to-the-jungle">,
+  MockGenericSourceKey,
   { name: string; source: string; companies: string[]; urlPrefix: string }
 > = {
   linkedin: {
@@ -183,7 +188,7 @@ class MockWttjConnector implements JobConnector {
 }
 
 class MockGenericConnector implements JobConnector {
-  constructor(public key: Exclude<ConnectorSourceKey, "welcome-to-the-jungle">) {}
+  constructor(public key: MockGenericSourceKey) {}
 
   get name() {
     return SOURCE_META[this.key].name;
