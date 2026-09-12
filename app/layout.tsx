@@ -1,20 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Montserrat } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ResetToLandingButton } from "@/components/reset-to-landing-button";
 import "./globals.css";
-
-const montserrat = Montserrat({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "JobTracker — Recherche d’offres PO/PM",
@@ -37,7 +26,7 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`dark ${montserrat.variable} ${geistMono.variable} h-full overflow-hidden antialiased`}
+      className="dark h-full overflow-hidden antialiased"
       suppressHydrationWarning
     >
       <body className="h-full overflow-hidden bg-background font-sans text-foreground">
