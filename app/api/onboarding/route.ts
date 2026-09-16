@@ -125,9 +125,21 @@ export async function GET() {
           onboarding_completed_at: new Date().toISOString(),
         },
         { onConflict: "id" }
+<<<<<<< Updated upstream
       )
       if (!updateError) {
         flags = { ...flags, completed: true }
+=======
+      );
+
+      // Column missing / schema cache: still let the user in via cookie
+      if (
+        updateError &&
+        updateError.code !== "42703" &&
+        !/onboarding_completed|schema cache/i.test(updateError.message)
+      ) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+>>>>>>> Stashed changes
       }
     }
 
@@ -172,8 +184,17 @@ export async function PATCH(request: Request) {
       { onConflict: "id" }
     )
 
+<<<<<<< Updated upstream
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
+=======
+    if (
+      updateError &&
+      updateError.code !== "42703" &&
+      !/onboarding_completed|schema cache/i.test(updateError.message)
+    ) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+>>>>>>> Stashed changes
     }
 
     const response = NextResponse.json({

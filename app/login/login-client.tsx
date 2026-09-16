@@ -1,22 +1,48 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+<<<<<<< Updated upstream
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Briefcase, CheckCircle2, Eye, EyeOff, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+=======
+import { useRouter, useSearchParams } from "next/navigation";
+import { Briefcase, CheckCircle2, FileUp, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+>>>>>>> Stashed changes
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+<<<<<<< Updated upstream
 import { AuthCardShell } from "@/components/auth/auth-card-shell";
 import { ExtractionProgress } from "@/components/onboarding/onboarding-progress";
 import { cn } from "@/lib/utils";
+=======
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+>>>>>>> Stashed changes
 
-/** Keep in sync with lib/cv-analysis/service.ts MIN_CV_LENGTH */
+/** Keep in sync with lib/cv-analysis/service.ts */
 const MIN_CV_LENGTH = 200;
+<<<<<<< Updated upstream
 const MIN_PASSWORD_LENGTH = 8;
 
 async function readApiJson<T extends Record<string, unknown>>(res: Response): Promise<T> {
@@ -33,8 +59,18 @@ async function readApiJson<T extends Record<string, unknown>>(res: Response): Pr
     );
   }
 }
+=======
+const MAX_CV_LENGTH = 10_000;
+>>>>>>> Stashed changes
 
 type Mode = "login" | "signup" | "cv";
+type ParsedCvVisibility = "show" | "hide";
+
+function modeFromSearchParams(params: URLSearchParams): Mode {
+  if (params.get("cv") === "1") return "cv";
+  if (params.get("signup") === "1") return "signup";
+  return "login";
+}
 
 function initialMode(
   searchParams: URLSearchParams,
@@ -113,11 +149,40 @@ export default function LoginPageClient({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+<<<<<<< Updated upstream
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<Mode>(() =>
     initialMode(searchParams, allowSelfSignup)
   );
+=======
+  const [mode, setMode] = useState<Mode>(() => modeFromSearchParams(searchParams));
+>>>>>>> Stashed changes
   const [loading, setLoading] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [signupReady, setSignupReady] = useState(
+    () => searchParams.get("signup") !== "1"
+  );
+  const signupClearedRef = useRef(false);
+
+  useEffect(() => {
+    const next = modeFromSearchParams(searchParams);
+    setMode((prev) => {
+      // Keep CV step after signup even if URL briefly still has signup=1
+      if (prev === "cv" && next === "signup") return prev;
+      return next;
+    });
+  }, [searchParams]);
+
+  // Créer un compte: clear pending session once, then show signup form
+  useEffect(() => {
+    if (searchParams.get("signup") !== "1") return;
+    if (signupClearedRef.current) return;
+    signupClearedRef.current = true;
+    void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+      setMode("signup");
+      setSignupReady(true);
+    });
+  }, [searchParams]);
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -125,11 +190,18 @@ export default function LoginPageClient({
 
   const [cvText, setCvText] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+<<<<<<< Updated upstream
   const [parsingCv, setParsingCv] = useState(false);
   const [cvReady, setCvReady] = useState(false);
   const [cvTab, setCvTab] = useState<"upload" | "paste">("upload");
   const pasteParseTimerRef = useRef<number | null>(null);
   const lastParsedPasteRef = useRef("");
+=======
+  const [parsedVisibility, setParsedVisibility] =
+    useState<ParsedCvVisibility>("show");
+  const [analyzeProgress, setAnalyzeProgress] = useState(0);
+  const [analyzeStep, setAnalyzeStep] = useState("");
+>>>>>>> Stashed changes
 
   const canSubmitCv = !parsingCv && !loading && cvReady;
 
@@ -267,6 +339,7 @@ export default function LoginPageClient({
     }
   }
 
+<<<<<<< Updated upstream
   async function parsePastedCv(text: string) {
     const trimmed = text.trim();
     if (trimmed.length < MIN_CV_LENGTH) {
@@ -329,8 +402,13 @@ export default function LoginPageClient({
     }
 
     if (pdfFile) {
+=======
+  async function parsePdfFile(file: File) {
+    setParsing(true);
+    try {
+>>>>>>> Stashed changes
       const formData = new FormData();
-      formData.append("file", pdfFile);
+      formData.append("file", file);
       const res = await fetch("/api/profile/import-cv", {
         method: "POST",
         body: formData,
@@ -342,22 +420,56 @@ export default function LoginPageClient({
       if (!res.ok) throw new Error(data.error ?? "Import PDF échoué");
       const text = data.extracted_text ?? "";
       setCvText(text);
+      setParsedVisibility("show");
       if (text.trim().length < MIN_CV_LENGTH) {
-        throw new Error(
-          `CV trop court après extraction (min. ${MIN_CV_LENGTH} caractères). Complète le texte.`
+        toast.message(
+          `Texte extrait trop court (min. ${MIN_CV_LENGTH} caractères). Complète-le ci-dessous.`
         );
+      } else {
+        toast.success("CV parsé — vérifie le texte ci-dessous");
       }
+<<<<<<< Updated upstream
       return;
     }
 
     if (cvText.trim().length < MIN_CV_LENGTH) {
       throw new Error(`Ajoute au moins ${MIN_CV_LENGTH} caractères de CV`);
     }
+=======
+    } catch (error) {
+      setPdfFile(null);
+      toast.error(error instanceof Error ? error.message : "Import PDF échoué");
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  const handlePdfChange = (file: File | null) => {
+    setPdfFile(file);
+    if (file) {
+      void parsePdfFile(file);
+    }
+  };
+
+  async function saveCvAndEnterApp() {
+    if (cvText.trim().length < MIN_CV_LENGTH) {
+      throw new Error(`Ajoute au moins ${MIN_CV_LENGTH} caractères de CV`);
+    }
+    if (cvText.trim().length > MAX_CV_LENGTH) {
+      throw new Error(`CV trop long (max. ${MAX_CV_LENGTH} caractères)`);
+    }
+
+    setAnalyzeStep("Enregistrement du CV…");
+    setAnalyzeProgress(12);
+
+    // Persist final text (paste or edited parse). PDF was already saved on extract.
+>>>>>>> Stashed changes
     const res = await fetch("/api/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cv_text: cvText }),
     });
+<<<<<<< Updated upstream
     const data = await readApiJson<{ error?: string }>(res);
     if (!res.ok) throw new Error(data.error ?? "Sauvegarde CV échouée");
   }
@@ -431,6 +543,51 @@ export default function LoginPageClient({
     } finally {
       setLoading(false)
     }
+=======
+    const data = (await res.json()) as { error?: string };
+    if (!res.ok) throw new Error(data.error ?? "Sauvegarde CV échouée");
+
+    setAnalyzeStep("Finalisation du profil…");
+    setAnalyzeProgress(32);
+    await completeOnboarding();
+
+    setAnalyzeStep("Analyse IA du CV…");
+    setAnalyzeProgress(48);
+
+    let tick = 48;
+    const progressTimer = window.setInterval(() => {
+      tick = Math.min(tick + 2, 88);
+      setAnalyzeProgress(tick);
+    }, 280);
+
+    try {
+      const analyzeRes = await fetch("/api/profile/analyze-cv", {
+        method: "POST",
+      });
+      const analyzeData = (await analyzeRes.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!analyzeRes.ok) {
+        toast.message(
+          analyzeData.error ??
+            "CV enregistré — tu pourras relancer l’analyse depuis CV Context"
+        );
+      } else {
+        toast.success("CV analysé");
+      }
+    } finally {
+      window.clearInterval(progressTimer);
+    }
+
+    setAnalyzeStep("Presque prêt…");
+    setAnalyzeProgress(100);
+
+    toast.message(
+      "Define tracked searches once — collection runs every day at 08:00."
+    );
+    router.replace("/jobs?setup=1");
+    router.refresh();
+>>>>>>> Stashed changes
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -472,6 +629,7 @@ export default function LoginPageClient({
       setMode("cv");
       router.replace("/login?cv=1");
       toast.message("Importe ton CV pour continuer");
+      router.replace("/login?cv=1");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Connexion échouée");
     } finally {
@@ -479,9 +637,66 @@ export default function LoginPageClient({
     }
   }
 
-  async function handleCv(e: React.FormEvent) {
+<<<<<<< Updated upstream
+=======
+  async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          password: signupPassword,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Inscription échouée");
+      }
+
+      toast.success("Compte créé — importe ton CV");
+      setMode("cv");
+      router.replace("/login?cv=1");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Inscription échouée");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+>>>>>>> Stashed changes
+  async function handleCv(e: React.FormEvent) {
+    e.preventDefault();
+
+    const trimmed = cvText.trim();
+    if (!trimmed && !pdfFile) {
+      toast.error("Importe un PDF ou colle ton CV pour continuer");
+      return;
+    }
+    if (!trimmed) {
+      toast.error("Aucun texte CV détecté — importe un PDF ou colle ton CV");
+      return;
+    }
+    if (trimmed.length < MIN_CV_LENGTH) {
+      toast.error(
+        `CV trop court : ${trimmed.length} / ${MIN_CV_LENGTH} caractères minimum`
+      );
+      return;
+    }
+    if (trimmed.length > MAX_CV_LENGTH) {
+      toast.error(
+        `CV trop long : ${trimmed.length} / ${MAX_CV_LENGTH} caractères maximum`
+      );
+      return;
+    }
+
+    setLoading(true);
+    setAnalyzeProgress(0);
+    setAnalyzeStep("Préparation…");
     try {
       // Import already persists structured profile server-side on file select;
       // paste/edit path triggers extract+persist via PUT /api/profile.
@@ -490,6 +705,8 @@ export default function LoginPageClient({
       router.push("/onboarding/profile");
       router.refresh();
     } catch (error) {
+      setAnalyzeProgress(0);
+      setAnalyzeStep("");
       toast.error(error instanceof Error ? error.message : "Import CV échoué");
     } finally {
       setLoading(false);
@@ -504,6 +721,7 @@ export default function LoginPageClient({
         : "Connexion";
   const description =
     mode === "cv"
+<<<<<<< Updated upstream
       ? "Ensuite on analyse ton profil, puis tu arrives sur le dashboard."
       : mode === "signup"
         ? "Crée ton compte, puis importe ton CV."
@@ -863,6 +1081,438 @@ export default function LoginPageClient({
             )}
           </p>
         </CardContent>
+=======
+      ? "Ensuite : définis tes tracked searches — collecte auto tous les jours à 08:00."
+      : "Track PO/PM offers, score matches, generate cover letters.";
+
+  const hasCvContent = Boolean(pdfFile) || cvText.trim().length > 0;
+  const cvReady =
+    cvText.trim().length >= MIN_CV_LENGTH &&
+    cvText.trim().length <= MAX_CV_LENGTH;
+
+  const analyzeProgressBar = (
+    <div
+      className="w-full space-y-3 rounded-xl border border-border/80 bg-muted/40 px-4 py-3"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60 opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+          </span>
+          <p className="truncate text-sm font-medium">
+            {analyzeStep || "Analyse en cours…"}
+          </p>
+        </div>
+        <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+          {analyzeProgress}%
+        </span>
+      </div>
+      <div
+        className="relative h-3 overflow-hidden rounded-full bg-background/80 ring-1 ring-border/60"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={analyzeProgress}
+        aria-label="Progression de l’analyse du CV"
+      >
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-primary via-primary/85 to-primary/70 transition-[width] duration-300 ease-out"
+          style={{ width: `${Math.max(analyzeProgress, 4)}%` }}
+        />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-full animate-pulse bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        On extrait les compétences et le profil ATS — ne ferme pas cette page.
+      </p>
+    </div>
+  );
+
+  const analyzeCta = loading ? (
+    analyzeProgressBar
+  ) : (
+    <div className="w-full space-y-2">
+      <Button
+        type="submit"
+        size="lg"
+        className="h-12 w-full text-base font-semibold"
+        disabled={parsing}
+      >
+        Analyse mon CV
+      </Button>
+      {!cvReady ? (
+        <p className="text-center text-xs text-destructive" role="status">
+          {!cvText.trim() && !pdfFile
+            ? "CV manquant — importe un PDF ou colle ton texte."
+            : !cvText.trim()
+              ? "Aucun texte détecté dans le CV."
+              : cvText.trim().length < MIN_CV_LENGTH
+                ? `Encore ${MIN_CV_LENGTH - cvText.trim().length} caractères minimum.`
+                : `Réduis le CV (max. ${MAX_CV_LENGTH} caractères).`}
+        </p>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <div
+      className={`flex min-h-screen bg-muted/30 p-4 ${
+        mode === "cv" && hasCvContent
+          ? "items-stretch justify-center"
+          : "items-center justify-center"
+      }`}
+    >
+      <Card
+        className={`w-full shadow-lg ${
+          mode === "cv" && hasCvContent
+            ? "flex h-[calc(100vh-2rem)] max-w-2xl flex-col"
+            : mode === "cv"
+              ? "max-w-2xl"
+              : "max-w-md"
+        }`}
+      >
+        <CardHeader className="shrink-0 text-center">
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Briefcase className="h-6 w-6" />
+          </div>
+          <CardTitle className="text-2xl">{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+
+        {mode === "cv" ? (
+          <form
+            onSubmit={handleCv}
+            className={
+              hasCvContent ? "flex min-h-0 flex-1 flex-col" : undefined
+            }
+          >
+            <CardContent
+              className={
+                hasCvContent
+                  ? "flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pb-4"
+                  : "space-y-4"
+              }
+            >
+              <div className={`space-y-2 ${hasCvContent ? "shrink-0" : ""}`}>
+                <Label htmlFor="cv-pdf">Import PDF</Label>
+                <input
+                  id="cv-pdf"
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="sr-only"
+                  disabled={loading || parsing}
+                  onChange={(e) => {
+                    handlePdfChange(e.target.files?.[0] ?? null)
+                    e.target.value = ""
+                  }}
+                />
+                <label
+                  htmlFor="cv-pdf"
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if (loading || parsing) return
+                    const file = e.dataTransfer.files?.[0] ?? null
+                    if (file) handlePdfChange(file)
+                  }}
+                  className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 text-center transition-colors ${
+                    hasCvContent ? "min-h-20 py-3" : "min-h-36 py-6"
+                  } ${
+                    pdfFile && !parsing
+                      ? "border-emerald-500/50 bg-emerald-500/10 hover:border-emerald-500/70 hover:bg-emerald-500/15"
+                      : "border-border bg-muted/40 hover:border-foreground/40 hover:bg-muted/70"
+                  } ${loading || parsing ? "pointer-events-none opacity-60" : ""}`}
+                  tabIndex={0}
+                  aria-label={
+                    pdfFile && !parsing
+                      ? "CV PDF importé — cliquer pour en choisir un autre"
+                      : "Choisir un fichier CV PDF"
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      document.getElementById("cv-pdf")?.click()
+                    }
+                  }}
+                >
+                  {parsing ? (
+                    <>
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      <span className="text-sm font-medium">Parsing du CV…</span>
+                    </>
+                  ) : pdfFile ? (
+                    <>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Changer le fichier PDF"
+                        className="inline-flex cursor-pointer rounded-full p-1 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          document.getElementById("cv-pdf")?.click()
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            document.getElementById("cv-pdf")?.click()
+                          }
+                        }}
+                      >
+                        <CheckCircle2
+                          className={`${hasCvContent ? "h-7 w-7" : "h-10 w-10"} pointer-events-none text-emerald-600`}
+                          aria-hidden
+                        />
+                      </span>
+                      <span className="text-sm font-semibold text-emerald-700">
+                        CV importé
+                      </span>
+                      <span className="truncate text-sm font-medium">{pdfFile.name}</span>
+                      {!hasCvContent ? (
+                        <span className="text-xs text-muted-foreground">
+                          Clique l’icône ou la zone pour un autre PDF
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Choisir un fichier CV PDF"
+                        className="inline-flex cursor-pointer rounded-full bg-background/80 p-3 ring-1 ring-border transition-colors hover:bg-background hover:ring-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          document.getElementById("cv-pdf")?.click()
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            document.getElementById("cv-pdf")?.click()
+                          }
+                        }}
+                      >
+                        <FileUp
+                          className="pointer-events-none h-8 w-8 text-muted-foreground"
+                          aria-hidden
+                        />
+                      </span>
+                      <span className="text-sm font-medium">Choisir un fichier CV</span>
+                      <span className="text-xs text-muted-foreground">
+                        Clique l’icône, la zone, ou glisse un PDF ici
+                      </span>
+                    </>
+                  )}
+                </label>
+                {!hasCvContent ? (
+                  <p className="text-xs text-muted-foreground">
+                    Importe un PDF ou colle ton CV pour continuer.
+                  </p>
+                ) : null}
+              </div>
+
+              {!hasCvContent ? (
+                <div className="space-y-2">
+                  <Label htmlFor="cv-text-paste">Ou colle ton CV</Label>
+                  <Textarea
+                    id="cv-text-paste"
+                    value={cvText}
+                    onChange={(e) => setCvText(e.target.value)}
+                    rows={4}
+                    disabled={loading || parsing}
+                    placeholder="Colle ton CV ici pour ouvrir l’éditeur…"
+                    className="font-mono text-sm"
+                  />
+                </div>
+              ) : null}
+
+              {hasCvContent ? (
+                <div className="flex min-h-0 flex-1 flex-col gap-2">
+                  <div className="shrink-0 space-y-2">
+                    <Label htmlFor="parsed-visibility">Texte du CV</Label>
+                    <Select
+                      value={parsedVisibility}
+                      onValueChange={(value) => {
+                        if (value === "show" || value === "hide") {
+                          setParsedVisibility(value);
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="parsed-visibility" className="w-full">
+                        <SelectValue
+                          placeholder={
+                            parsedVisibility === "hide"
+                              ? "Masquer le CV parsé"
+                              : "Afficher le CV parsé"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="show">Afficher le CV parsé</SelectItem>
+                        <SelectItem value="hide">Masquer le CV parsé</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {parsedVisibility === "show" ? (
+                    <>
+                      <Label htmlFor="cv-text" className="shrink-0">
+                        {pdfFile ? "CV parsé (modifiable)" : "Colle ton CV"}
+                      </Label>
+                      <div className="relative min-h-0 flex-1">
+                        <Textarea
+                          id="cv-text"
+                          value={cvText}
+                          onChange={(e) => setCvText(e.target.value)}
+                          disabled={loading || parsing}
+                          placeholder="Expérience, compétences, outils, résultats…"
+                          className="absolute inset-0 h-full w-full resize-none overflow-y-auto font-mono text-sm"
+                        />
+                      </div>
+                      <p className="shrink-0 text-xs text-muted-foreground">
+                        {cvText.trim().length} / {MAX_CV_LENGTH} caractères (min.{" "}
+                        {MIN_CV_LENGTH})
+                      </p>
+                    </>
+                  ) : (
+                    <p className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                      CV masqué · {cvText.trim().length} / {MAX_CV_LENGTH} caractères
+                      {cvText.trim().length < MIN_CV_LENGTH
+                        ? ` (min. ${MIN_CV_LENGTH})`
+                        : cvText.trim().length > MAX_CV_LENGTH
+                          ? " — trop long"
+                          : " — prêt"}
+                    </p>
+                  )}
+                </div>
+              ) : null}
+
+              {!hasCvContent ? analyzeCta : null}
+            </CardContent>
+
+            {hasCvContent ? (
+              <CardFooter className="sticky bottom-0 mt-auto shrink-0 bg-card">
+                {analyzeCta}
+              </CardFooter>
+            ) : null}
+          </form>
+        ) : (
+          <CardContent>
+            <div className="mb-4 rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
+              Demo: <span className="font-medium text-foreground">admin</span> /{" "}
+              <span className="font-medium text-foreground">admin</span>
+            </div>
+
+            {mode === "login" ? (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="identifier">Email or username</Label>
+                  <Input
+                    id="identifier"
+                    type="text"
+                    autoComplete="username"
+                    placeholder="admin"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="admin"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={5}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Patiente…" : "Se connecter"}
+                </Button>
+              </form>
+            ) : null}
+
+            {mode === "signup" ? (
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="first-name">Prénom</Label>
+                    <Input
+                      id="first-name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      autoComplete="given-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last-name">Nom</Label>
+                    <Input
+                      id="last-name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      autoComplete="family-name"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    placeholder="toi@email.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Mot de passe</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    required
+                    minLength={5}
+                    autoComplete="new-password"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading || !signupReady}>
+                  {loading || !signupReady ? "Patiente…" : "Continuer"}
+                </Button>
+              </form>
+            ) : null}
+
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              {mode === "signup" ? "Already have an account?" : "No account yet?"}{" "}
+              <button
+                type="button"
+                className="font-medium text-foreground underline-offset-4 hover:underline"
+                onClick={() => setMode(mode === "signup" ? "login" : "signup")}
+              >
+                {mode === "signup" ? "Sign in" : "Create one"}
+              </button>
+            </p>
+          </CardContent>
+        )}
+>>>>>>> Stashed changes
       </Card>
     </AuthCardShell>
   );

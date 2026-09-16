@@ -1,0 +1,84 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - paragraph [ref=e4]: JobTracker
+      - generic [ref=e5]:
+        - group "Language" [ref=e6]:
+          - button "FR" [ref=e7]
+          - button "EN" [active] [pressed] [ref=e8]
+        - link "Log in" [ref=e90] [cursor=pointer]:
+          - /url: /login
+        - link "Create account" [ref=e91] [cursor=pointer]:
+          - /url: /login?signup=1
+    - main [ref=e11]:
+      - generic [ref=e14]:
+        - paragraph [ref=e15]: JobTracker
+        - heading "From scraped job to ready-to-send application" [level=1] [ref=e92]
+        - paragraph [ref=e17]: Import roles, score CV fit, generate a credible cover letter — without juggling tabs, spreadsheets, and ChatGPT.
+        - generic [ref=e18]:
+          - link "Create account" [ref=e93] [cursor=pointer]:
+            - /url: /login?signup=1
+          - link "Log in" [ref=e94] [cursor=pointer]:
+            - /url: /login
+      - generic [ref=e21]:
+        - heading "The hard part isn’t finding jobs" [level=2] [ref=e95]
+        - paragraph [ref=e23]: It’s centralizing them, knowing which ones are worth it, adapting your CV without inventing, and writing a credible letter — fast.
+        - list [ref=e24]:
+          - listitem [ref=e96]: Tabs across WTTJ / LinkedIn / Indeed
+          - listitem [ref=e97]: Spreadsheets or Notion for tracking
+          - listitem [ref=e98]: ChatGPT out of context on every role
+          - listitem [ref=e99]: Applications on gut feel
+      - generic [ref=e30]:
+        - heading "How it works" [level=2] [ref=e100]
+        - list [ref=e32]:
+          - listitem [ref=e33]:
+            - paragraph [ref=e34]: "01"
+            - heading "CV" [level=3] [ref=e35]
+            - paragraph [ref=e36]: Sign up + import your CV. AI extracts structure, ATS keywords, and gaps.
+          - listitem [ref=e37]:
+            - paragraph [ref=e38]: "02"
+            - heading "Import" [level=3] [ref=e39]
+            - paragraph [ref=e40]: Jobs via CSV / WTTJ extension. Deduped by URL.
+          - listitem [ref=e41]:
+            - paragraph [ref=e42]: "03"
+            - heading "Triage" [level=3] [ref=e43]
+            - paragraph [ref=e44]: "Jobs board + bulk actions: In progress, Archive, Applied."
+          - listitem [ref=e101]:
+            - paragraph [ref=e102]: "04"
+            - heading "Decide" [level=3] [ref=e103]
+            - paragraph [ref=e104]: "Job page: fit score, keywords, CV upgrades, cover letter."
+          - listitem [ref=e49]:
+            - paragraph [ref=e50]: "05"
+            - heading "Pipeline" [level=3] [ref=e51]
+            - paragraph [ref=e52]: Applications + dashboard KPIs to keep your pace.
+      - generic [ref=e53]:
+        - heading "The decision moment" [level=2] [ref=e105]
+        - paragraph [ref=e55]: Stop guessing. Decide with evidence.
+        - list [ref=e56]:
+          - listitem [ref=e106]:
+            - paragraph [ref=e107]: "1"
+            - paragraph [ref=e108]: CV analysis
+          - listitem [ref=e109]:
+            - paragraph [ref=e110]: "2"
+            - paragraph [ref=e111]: Job analysis
+          - listitem [ref=e112]:
+            - paragraph [ref=e113]: "3"
+            - paragraph [ref=e114]: Keyword match
+          - listitem [ref=e115]:
+            - paragraph [ref=e116]: "4"
+            - paragraph [ref=e117]: CV upgrades
+          - listitem [ref=e69]:
+            - paragraph [ref=e70]: "5"
+            - paragraph [ref=e71]: Cover letter
+      - generic [ref=e73]:
+        - generic [ref=e74]:
+          - heading "Ready to try JobTracker?" [level=2] [ref=e118]
+          - paragraph [ref=e76]: "Goal: help more people find work, faster, with less friction."
+        - generic [ref=e77]:
+          - link "Create account" [ref=e119] [cursor=pointer]:
+            - /url: /login?signup=1
+          - link "Log in" [ref=e120] [cursor=pointer]:
+            - /url: /login
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e85] [cursor=pointer]
+  - alert [ref=e89]

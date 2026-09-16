@@ -7,7 +7,7 @@ import type { CvAnalysisResponse } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const MIN_CV_LENGTH = 200;
-export const MAX_CV_LENGTH = 30_000;
+export const MAX_CV_LENGTH = 10_000;
 
 export class CvAnalysisError extends Error {
   status: number;

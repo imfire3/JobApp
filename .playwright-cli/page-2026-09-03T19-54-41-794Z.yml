@@ -1,0 +1,29 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e122]:
+    - generic [ref=e123]:
+      - generic [ref=e128]: Créer un compte
+      - generic [ref=e129]: Track PO/PM offers, score matches, generate cover letters.
+    - generic [ref=e130]:
+      - generic [ref=e131]: "Demo: admin / admin"
+      - generic [ref=e132]:
+        - generic [ref=e133]:
+          - generic [ref=e134]:
+            - generic [ref=e135]: Prénom
+            - textbox "Prénom" [ref=e136]
+          - generic [ref=e137]:
+            - generic [ref=e138]: Nom
+            - textbox "Nom" [ref=e139]
+        - generic [ref=e140]:
+          - generic [ref=e141]: Email
+          - textbox "Email" [ref=e142]:
+            - /placeholder: toi@email.com
+        - generic [ref=e143]:
+          - generic [ref=e144]: Mot de passe
+          - textbox "Mot de passe" [ref=e145]
+        - button "Continuer" [ref=e146]
+      - paragraph [ref=e147]:
+        - text: Already have an account?
+        - button "Sign in" [ref=e148]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e85] [cursor=pointer]
+  - alert [ref=e89]

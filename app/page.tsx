@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import type { Metadata } from "next"
 import { LandingPage } from "@/components/landing/landing-page"
 import { isSelfSignupAllowed } from "@/lib/auth/self-signup"
@@ -14,4 +15,16 @@ export default function Home() {
       <LandingPage allowSelfSignup={isSelfSignupAllowed()} />
     </div>
   )
+=======
+import { redirect } from "next/navigation"
+import { getAuthenticatedUser } from "@/lib/auth"
+import { LandingPage } from "@/components/marketing/landing-page"
+
+export default async function Home() {
+  const { user } = await getAuthenticatedUser()
+  if (user) {
+    redirect("/dashboard")
+  }
+  return <LandingPage />
+>>>>>>> Stashed changes
 }

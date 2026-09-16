@@ -23,7 +23,11 @@ type JobBulkActionsProps = {
   deleteLoading?: boolean;
   onBulkUpdate: (updates: BulkUpdates) => void | Promise<void>;
   onGenerateCoverLetters?: () => void | Promise<void>;
+<<<<<<< Updated upstream
   onBulkDelete?: () => void | Promise<void>;
+=======
+  onDeleteSelected?: () => void | Promise<void>;
+>>>>>>> Stashed changes
 };
 
 const ACTIONS: Array<{
@@ -71,7 +75,11 @@ export function JobBulkActions({
   deleteLoading = false,
   onBulkUpdate,
   onGenerateCoverLetters,
+<<<<<<< Updated upstream
   onBulkDelete,
+=======
+  onDeleteSelected,
+>>>>>>> Stashed changes
 }: JobBulkActionsProps) {
   if (selectedCount === 0) return null;
 
@@ -127,13 +135,22 @@ export function JobBulkActions({
         </Button>
       ) : null}
 
+<<<<<<< Updated upstream
       {onBulkDelete ? (
+=======
+      {onDeleteSelected ? (
+>>>>>>> Stashed changes
         <Button
           type="button"
           size="sm"
           variant="destructive"
           disabled={busy}
+<<<<<<< Updated upstream
           onClick={() => void onBulkDelete()}
+=======
+          aria-label="Supprimer la sélection"
+          onClick={() => void onDeleteSelected()}
+>>>>>>> Stashed changes
         >
           {deleteLoading ? (
             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />

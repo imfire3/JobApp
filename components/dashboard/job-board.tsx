@@ -36,7 +36,11 @@ export function JobBoard() {
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
+<<<<<<< Updated upstream
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+=======
+  const [deleteLoading, setDeleteLoading] = useState(false);
+>>>>>>> Stashed changes
   const [bulkProgress, setBulkProgress] = useState<{
     total: number;
     current: number;
@@ -202,7 +206,11 @@ export function JobBoard() {
     }
   }
 
+<<<<<<< Updated upstream
   async function handleSelectAllVisible(selected: boolean) {
+=======
+  async function handleSelectAll(selected: boolean) {
+>>>>>>> Stashed changes
     const ids = filteredJobs.map((job) => job.id);
     if (ids.length === 0) return;
 
@@ -211,7 +219,11 @@ export function JobBoard() {
       const res = await fetch("/api/jobs", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+<<<<<<< Updated upstream
         body: JSON.stringify({ ids, selected, selection_only: true }),
+=======
+        body: JSON.stringify({ ids, selected }),
+>>>>>>> Stashed changes
       });
       const data = (await readJsonSafe(res)) as {
         jobs?: Job[];
@@ -234,32 +246,52 @@ export function JobBoard() {
     }
   }
 
+<<<<<<< Updated upstream
   async function handleBulkDelete() {
     const selected = jobs.filter((j) => j.selected);
+=======
+  async function handleDeleteSelected() {
+    const selected = jobs.filter((job) => job.selected);
+>>>>>>> Stashed changes
     if (selected.length === 0) {
       toast.error("Sélectionne au moins une offre");
       return;
     }
     if (
       !window.confirm(
+<<<<<<< Updated upstream
         `Supprimer définitivement ${selected.length} offre${selected.length > 1 ? "s" : ""} ?`
+=======
+        `Supprimer ${selected.length} offre(s) ? Cette action est définitive.`
+>>>>>>> Stashed changes
       )
     ) {
       return;
     }
 
+<<<<<<< Updated upstream
     setBulkDeleteLoading(true);
     try {
       const res = await fetch("/api/jobs", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: selected.map((job) => job.id) }),
+=======
+    setDeleteLoading(true);
+    try {
+      const ids = selected.map((job) => job.id);
+      const res = await fetch("/api/jobs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+>>>>>>> Stashed changes
       });
       const data = (await readJsonSafe(res)) as {
         ids?: string[];
         error?: string;
       };
       if (!res.ok) {
+<<<<<<< Updated upstream
         throw new Error(data.error ?? "Suppression groupée échouée");
       }
       const deletedIds = new Set(data.ids ?? selected.map((job) => job.id));
@@ -271,6 +303,20 @@ export function JobBoard() {
       toast.error(error instanceof Error ? error.message : "Suppression groupée échouée");
     } finally {
       setBulkDeleteLoading(false);
+=======
+        throw new Error(data.error ?? "Suppression échouée");
+      }
+      const deletedIds = new Set(data.ids ?? ids);
+      setJobs((prev) => prev.filter((job) => !deletedIds.has(job.id)));
+      if (coverLetterJob && deletedIds.has(coverLetterJob.id)) {
+        setCoverLetterJob(null);
+      }
+      toast.success(`${deletedIds.size} offre(s) supprimée(s)`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Suppression échouée");
+    } finally {
+      setDeleteLoading(false);
+>>>>>>> Stashed changes
     }
   }
 
@@ -426,10 +472,17 @@ export function JobBoard() {
         selectedCount={selectedCount}
         loading={bulkStatusLoading}
         coverLetterLoading={bulkLoading}
+<<<<<<< Updated upstream
         deleteLoading={bulkDeleteLoading}
         onBulkUpdate={handleBulkStatusUpdate}
         onGenerateCoverLetters={handleBulkGenerateCoverLetters}
         onBulkDelete={handleBulkDelete}
+=======
+        deleteLoading={deleteLoading}
+        onBulkUpdate={handleBulkStatusUpdate}
+        onGenerateCoverLetters={handleBulkGenerateCoverLetters}
+        onDeleteSelected={handleDeleteSelected}
+>>>>>>> Stashed changes
       />
 
       <KpiCards kpis={kpis} />
@@ -513,7 +566,13 @@ export function JobBoard() {
             <JobTable
               jobs={filteredJobs}
               onSelect={(id, selected) => updateJob(id, { selected })}
+<<<<<<< Updated upstream
               onSelectAll={handleSelectAllVisible}
+=======
+              onSelectAll={handleSelectAll}
+              onDeleteSelected={handleDeleteSelected}
+              deleteLoading={deleteLoading}
+>>>>>>> Stashed changes
               onStatusChange={(id, status) => updateJob(id, { status })}
               onAnalyze={handleAnalyze}
               onViewCoverLetter={setCoverLetterJob}

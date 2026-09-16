@@ -74,6 +74,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (localUser) {
+<<<<<<< Updated upstream
     if (pathname === "/") {
       const url = request.nextUrl.clone();
       if (onboardingDone) {
@@ -86,12 +87,41 @@ export async function updateSession(request: NextRequest) {
     }
 
     if (isAuthRoute) {
+=======
+    // Pending users can still see the marketing landing and start signup again
+    if (pathname === "/") {
+>>>>>>> Stashed changes
       if (onboardingDone) {
         const url = request.nextUrl.clone();
         url.pathname = "/dashboard";
         return NextResponse.redirect(url);
       }
-      // Pending: stay on login/signup to import CV on the same page
+      return NextResponse.next({ request });
+    }
+
+    if (isAuthRoute) {
+      const wantsSignup = request.nextUrl.searchParams.get("signup") === "1";
+      const wantsCv = request.nextUrl.searchParams.get("cv") === "1";
+
+      // Explicit new account form
+      if (wantsSignup) {
+        return NextResponse.next({ request });
+      }
+
+      if (onboardingDone) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
+      }
+
+      // Logged in + pending: CV import step
+      if (!wantsCv && onboardingPending) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        url.searchParams.set("cv", "1");
+        return NextResponse.redirect(url);
+      }
+
       return NextResponse.next({ request });
     }
 
