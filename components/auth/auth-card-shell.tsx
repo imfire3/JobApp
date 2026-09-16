@@ -21,12 +21,12 @@ export function AuthCardShell({ children, className }: AuthCardShellProps) {
     <div className="box-border flex h-dvh flex-col overflow-hidden bg-background px-4 pb-4 pt-8 sm:px-8">
       <div
         className={cn(
-          "mx-auto flex min-h-0 w-full flex-1 flex-col overflow-y-auto overscroll-contain",
+          "mx-auto flex min-h-0 w-full flex-1 flex-col",
           AUTH_CARD_MAX_WIDTH,
           className
         )}
       >
-        <div className="my-auto w-full [&>*]:w-full">
+        <div className="flex min-h-0 flex-1 flex-col">
           {children}
         </div>
       </div>

@@ -10,6 +10,14 @@ export type SourceCatalogEntry = {
   ingestionMode: SourceIngestionMode
 }
 
+/** Virtual research slug — all imported jobs, not a job_sources row */
+export const MY_IMPORTED_SOURCE_SLUG = "my-imported" as const
+
+export const MY_IMPORTED_SOURCE = {
+  slug: MY_IMPORTED_SOURCE_SLUG,
+  name: "Mes offres importées",
+} as const
+
 export const SOURCE_CATALOG: readonly SourceCatalogEntry[] = [
   {
     name: "France Travail",

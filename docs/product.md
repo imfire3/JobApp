@@ -24,6 +24,7 @@ Centralize the job-search loop in one product:
 | ATS analysis | Parsing/structure/impact/keyword view of the CV vs expectations |
 | Keywords | Detected and missing terms that drive CV suggestions |
 | Matching score | AI fit between CV and a specific job |
+| Company outcome score | 0-100 spontaneous-application opportunity: profile, sector, location, product team, growth, contact |
 | Recommendations | Actionable improvements (CV or prioritization), not invented experience |
 | Cover letters | Personalized letters grounded in CV + job description |
 
@@ -57,10 +58,30 @@ Typical product paths that stay inside this loop:
 | `/jobs` | Job board (cards/table), filters, selection, analyze, batch letters |
 | `/jobs/[id]` | Job detail, match, ATS keywords, cover letter |
 | `/applications` | Application CRM pipeline |
+| `/companies` | Spontaneous-application prospection CRM (search, opportunity score, pipeline, outreach) |
+| `/research` | AI search plans feeding connectors (offer search, distinct from company prospection) |
 | `/profile-ai` | CV upload/parsing and AI profile preferences |
 | `/sources` | Connectors and saved searches |
 | `/settings` | Settings, ATS keywords, prompts, provider keys |
 | `/imports` | CSV/Excel import |
+
+## Company prospection flow (Phase A)
+
+Spontaneous applications complement the offer loop — no published offer required:
+
+```text
+Describe target companies in one sentence
+→ Parse into criteria (roles, sectors, locations, size, remote)
+→ Search connector (mock first)  [Phase B: similar companies]
+→ Score match (CV/profile) + opportunity score
+→ Persist company + mock contact suggestions → pipeline
+→ Generate outreach (email + LinkedIn) grounded in real company info
+→ Track status: to_contact → … → opportunity
+```
+
+- **No invented facts** — outreach and enrichment must cite real company/product information; outreach emails never assert personal experience absent from the CV.
+- **No auto-send** — messages are copied and sent by the candidate.
+- Discovery is *spontaneous* or *offer_detected*; Phase B (similar companies) is deferred.
 
 ## Product principles
 

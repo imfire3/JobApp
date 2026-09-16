@@ -13,15 +13,14 @@ export function emptyExperienceEntry(): ProfileExperienceEntry {
 }
 
 export function emptyEducationEntry(): ProfileEducationEntry {
-  const now = new Date()
   return {
     id: crypto.randomUUID(),
     name: "",
     school: "",
     level: "",
     isCurrent: false,
-    startMonth: String(now.getMonth() + 1).padStart(2, "0"),
-    startYear: String(now.getFullYear()),
+    startMonth: "",
+    startYear: "",
     endMonth: "",
     endYear: "",
     description: "",

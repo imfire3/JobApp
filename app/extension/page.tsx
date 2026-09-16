@@ -1,25 +1,16 @@
 import { AppShell } from "@/components/layout/app-shell"
 import { StickyPageHeader } from "@/components/layout/sticky-page-header"
-import { ChromeExtensionPanel } from "@/components/imports/chrome-extension-panel"
-import { PageHelpButton } from "@/components/onboarding/page-help-button"
+import { ExtensionGuide } from "@/components/extension/extension-guide"
+import { ExtensionHeader } from "@/components/extension/extension-header"
 
 export default function ExtensionPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-7xl space-y-6">
         <StickyPageHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Extension</h1>
-              <p className="text-base text-muted-foreground">
-                Télécharge l’extension Chrome, installe-la en mode développeur, puis enregistre
-                des offres Welcome to the Jungle en CSV.
-              </p>
-            </div>
-            <PageHelpButton pageId="extension" />
-          </div>
+          <ExtensionHeader />
         </StickyPageHeader>
-        <ChromeExtensionPanel />
+        <ExtensionGuide />
       </div>
     </AppShell>
   )

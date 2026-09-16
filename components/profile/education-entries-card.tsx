@@ -72,8 +72,8 @@ export function EducationEntriesCard({
   }
 
   return (
-    <Card className="rounded-2xl">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 space-y-0">
+    <Card className="max-h-full flex flex-col rounded-2xl">
+      <CardHeader className="shrink-0 flex flex-row flex-wrap items-start justify-between gap-4 space-y-0">
         <div className="space-y-1">
           <CardTitle>Diplômes & formations</CardTitle>
           <CardDescription>
@@ -85,7 +85,7 @@ export function EducationEntriesCard({
           Ajouter un diplôme
         </Button>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-4">
         {entries.length === 0 ? (
           <p className="rounded-2xl border border-dashed p-6 text-base text-muted-foreground">
             Aucun diplôme pour l’instant.

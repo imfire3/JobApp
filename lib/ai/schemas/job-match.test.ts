@@ -175,6 +175,101 @@ describe("parseJobMatchAnalysis", () => {
     assert.match(parsed.match_reasons[0] ?? "", /Priorisation/);
   });
 
+  it("maps v12 suggestions and confirmation_required entries", () => {
+    const parsed = parseJobMatchAnalysis({
+      status: "ok",
+      match_score: 72,
+      score_confidence: "medium",
+      score_explanation: "OK",
+      limitations: [],
+      job_posting_summary: "PO Assurance Vie.",
+      criteria_assessment: [],
+      score_breakdown: [],
+      requirements_assessment: [],
+      match_reasons: [],
+      match_gaps: [],
+      keywords_matched: [],
+      keywords_missing: [],
+      keywords_from_job: ["Product Owner", "backlog"],
+      cv_improvements: [
+        {
+          id: "rec_1",
+          section: "expérience professionnelle",
+          cv_original: "J’ai géré des projets et des équipes chez Alinea.",
+          reformulation:
+            "J’ai piloté la roadmap produit et le backlog en tant que Product Owner (Scrum).",
+          reason: "Alignement sur le vocabulaire Product Owner du poste.",
+          keywords_added: ["Product Owner", "backlog", "Scrum"],
+          source_offer_requirement: "Pilotage de backlog.",
+          confidence: "medium",
+          safe: true,
+        },
+        {
+          type: "confirmation_required",
+          requirement: "Expérience Assurance Vie",
+          question: "As-tu déjà travaillé sur un portefeuille Assurance Vie ?",
+        },
+      ],
+      cover_letter_angle: "",
+    });
+
+    assert.equal(parsed.cv_improvement_items?.length, 2);
+    const suggestion = parsed.cv_improvement_items?.[0];
+    assert.equal(suggestion?.type, "suggestion");
+    assert.equal(suggestion?.safe, true);
+    assert.equal(suggestion?.cv_original, "J’ai géré des projets et des équipes chez Alinea.");
+    assert.match(suggestion?.reformulation ?? "", /backlog/);
+    assert.deepEqual(suggestion?.keywords_added, ["Product Owner", "backlog", "Scrum"]);
+    assert.equal(suggestion?.source_offer_requirement, "Pilotage de backlog.");
+    assert.equal(suggestion?.confidence, "medium");
+    assert.match(parsed.cv_improvements[0] ?? "", /expérience professionnelle/);
+
+    const confirmation = parsed.cv_improvement_items?.[1];
+    assert.equal(confirmation?.type, "confirmation_required");
+    assert.equal(confirmation?.safe, false);
+    assert.equal(confirmation?.action, "Expérience Assurance Vie");
+    assert.equal(confirmation?.information_to_confirm, "As-tu déjà travaillé sur un portefeuille Assurance Vie ?");
+  });
+
+  it("coerces safe as a boolean-like string and keywords_added from CSV", () => {
+    const parsed = parseJobMatchAnalysis({
+      status: "ok",
+      match_score: 60,
+      score_confidence: "medium",
+      score_explanation: "OK",
+      limitations: [],
+      job_posting_summary: "PO.",
+      criteria_assessment: [],
+      score_breakdown: [],
+      requirements_assessment: [],
+      match_reasons: [],
+      match_gaps: [],
+      keywords_matched: [],
+      keywords_missing: [],
+      keywords_from_job: [],
+      cv_improvements: [
+        {
+          id: "rec_2",
+          section: "compétences",
+          cv_original: "Masteurise SQL.",
+          reformulation: "Pratique avancée de SQL et gestion de bases de données.",
+          reason: "SQL demandé.",
+          keywords_added: "SQL, bases de données",
+          source_offer_requirement: "SQL",
+          confidence: "high",
+          safe: "false",
+        },
+      ],
+      cover_letter_angle: "",
+    });
+
+    const item = parsed.cv_improvement_items?.[0];
+    assert.equal(item?.safe, false);
+    assert.deepEqual(item?.keywords_added, ["SQL", "bases de données"]);
+    assert.equal(item?.confidence, "high");
+    assert.equal(item?.cv_section, "compétences");
+  });
+
   it("computes match_score from criteria_assessment (v4) over AI score", () => {
     const parsed = parseJobMatchAnalysis({
       status: "ok",
@@ -290,5 +385,91 @@ describe("parseJobMatchAnalysis", () => {
       parsed.cv_improvement_items?.[0]?.evidence_from_cv ?? "",
       /conversion/
     );
+  });
+
+  it("coerces invented gap_type, importance, and recruiter_block_risk", () => {
+    const parsed = parseJobMatchAnalysis({
+      status: "ok",
+      match_score: 55,
+      score_confidence: "moderate",
+      score_explanation: "Partial fit",
+      limitations: [],
+      job_posting_summary: "PO.",
+      criteria_assessment: [
+        {
+          id: "c1",
+          label: "Roadmap",
+          weight_percent: 50,
+          evidence_level: 2,
+          cv_status: "proven",
+          evidence_from_job: "roadmap",
+          evidence_from_cv: "roadmap produit",
+          question_to_candidate: null,
+          confirmation_status: "none",
+          recruiter_block_risk: "critique",
+        },
+      ],
+      score_breakdown: [],
+      requirements_assessment: [
+        {
+          requirement: "Agile",
+          importance: "must_have",
+          evidence_from_job: "agile",
+          cv_status: "mentioned",
+          evidence_from_cv: "scrum",
+          assessment: "ok",
+        },
+      ],
+      match_reasons: [
+        {
+          title: "Produit",
+          evidence_from_cv: "PM",
+          evidence_from_job: "PO",
+          explanation: "fit",
+        },
+      ],
+      match_gaps: [
+        {
+          title: "Data",
+          severity: "élevé",
+          gap_type: "missing",
+          evidence_from_job: "SQL",
+          evidence_from_cv: null,
+          explanation: "absent",
+          question_to_candidate: null,
+        },
+        {
+          title: "UX",
+          severity: "med",
+          gap_type: "incomplete",
+          evidence_from_job: "UX research",
+          evidence_from_cv: "design light",
+          explanation: "partiel",
+          question_to_candidate: null,
+        },
+      ],
+      keywords_from_job: ["SQL"],
+      keywords_matched: [],
+      keywords_missing: [
+        {
+          keyword: "SQL",
+          importance: "nice-to-have",
+          evidence_from_job: "SQL",
+          comment: "pas dans le CV",
+        },
+        {
+          keyword: "KPI",
+          importance: "obligatoire",
+          evidence_from_job: "KPI",
+          comment: "manquant",
+        },
+      ],
+      cv_improvements: [],
+      cover_letter_angle: "",
+    });
+
+    assert.ok(typeof parsed.match_score === "number");
+    assert.ok(parsed.match_gaps.some((g) => /Data|UX|SQL|research/i.test(g)));
+    assert.ok(Array.isArray(parsed.keywords_missing));
   });
 });

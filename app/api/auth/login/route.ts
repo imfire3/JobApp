@@ -8,6 +8,7 @@ import {
   SESSION_COOKIE,
 } from "@/lib/local-auth";
 import { ensureLocalAuthUserInSupabase } from "@/lib/supabase/ensure-local-user";
+import { createServiceClient } from "@/lib/supabase/admin";
 import {
   ONBOARDING_COOKIE,
   getOnboardingCookieOptions,
@@ -36,13 +37,27 @@ export async function POST(request: Request) {
   // Best-effort: seed auth.users so cv_contexts / jobs FK succeed after login
   await ensureLocalAuthUserInSupabase(result.user);
 
+  let onboardingCookieValue: "pending" | "done" = "pending";
+  try {
+    const supabase = createServiceClient();
+    const { data: settings } = await supabase
+      .from("user_settings")
+      .select("onboarding_completed")
+      .eq("id", result.user.id)
+      .maybeSingle();
+    if (settings?.onboarding_completed === true) {
+      onboardingCookieValue = "done";
+    }
+  } catch {
+    // If DB check fails, default to pending (will auto-complete via /api/onboarding)
+  }
+
   const response = NextResponse.json({ user: result.user });
   response.cookies.set(
     SESSION_COOKIE,
     createSessionToken(result.user, getAuthSecret()),
     getSessionCookieOptions()
   );
-  // Pending until /api/onboarding auto-completes (existing CV) or user finishes wizard
-  response.cookies.set(ONBOARDING_COOKIE, "pending", getOnboardingCookieOptions());
+  response.cookies.set(ONBOARDING_COOKIE, onboardingCookieValue, getOnboardingCookieOptions());
   return response;
 }

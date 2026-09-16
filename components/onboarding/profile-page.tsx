@@ -4,13 +4,6 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { CandidateProfileForm } from "@/components/profile/candidate-profile-form"
 import { AuthCardShell } from "@/components/auth/auth-card-shell"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export function OnboardingProfilePageClient() {
@@ -66,7 +59,7 @@ export function OnboardingProfilePageClient() {
   if (!ready) {
     return (
       <AuthCardShell className="!max-w-5xl">
-        <div className="w-full space-y-4 overflow-y-auto">
+        <div className="w-full space-y-4">
           <Skeleton className="h-10 w-72" />
           <Skeleton className="h-[480px] w-full rounded-2xl" />
         </div>
@@ -76,20 +69,23 @@ export function OnboardingProfilePageClient() {
 
   return (
     <AuthCardShell className="!max-w-5xl">
-      <Card className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden shadow-lg sm:max-h-[calc(100dvh-4rem)]">
-        <CardHeader className="shrink-0 space-y-3 border-b border-border">
-          <div className="space-y-2">
-            <CardTitle className="text-2xl">Complète ton profil</CardTitle>
-            <CardDescription>
-              Nous avons rempli ce que ton CV permet d&apos;extraire. Vérifie,
-              complète, puis continue — les champs vides sont OK.
-            </CardDescription>
-            <p className="text-base leading-6 text-muted-foreground">
-              CV analysé — vérifie et complète les champs avant d&apos;enregistrer.
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-8">
+      <div className="flex h-full flex-col overflow-hidden">
+        <div className="shrink-0 space-y-2 pb-4">
+          <h1 className="text-2xl font-bold tracking-tight">
+            Complète ton profil
+          </h1>
+          <p className="text-base leading-6 text-muted-foreground">
+            Nous avons rempli ce que ton CV permet d&apos;extraire. Vérifie,
+            complète, puis continue — les champs vides sont OK.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            CV analysé — vérifie et complète les champs avant d&apos;enregistrer.
+          </p>
+        </div>
+
+        <div className="shrink-0 border-b border-border" />
+
+        <div className="min-h-0 flex-1 overflow-hidden">
           <CandidateProfileForm
             mode="onboarding"
             onContinue={async () => {
@@ -103,15 +99,15 @@ export function OnboardingProfilePageClient() {
                   error?: string
                 }
                 throw new Error(
-                  data.error ?? "Impossible de finaliser l’inscription"
+                  data.error ?? "Impossible de finaliser l'inscription"
                 )
               }
               router.push("/dashboard")
               router.refresh()
             }}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </AuthCardShell>
   )
 }

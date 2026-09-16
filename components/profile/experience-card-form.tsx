@@ -26,6 +26,7 @@ import {
   type CvLocationType,
 } from "@/lib/cv/experiences"
 import type { ProfileExperienceEntry } from "@/lib/profile/types"
+import { PROFILE_SKILL_SUGGESTIONS } from "@/lib/profile/suggestion-catalogs"
 
 type ExperienceCardFormProps = {
   initial?: ProfileExperienceEntry | null
@@ -85,6 +86,14 @@ export function ExperienceCardForm({
       draft.startYear.trim().length > 0
     )
   }, [draft])
+
+  const skillOptions = useMemo(
+    () =>
+      [
+        ...new Set([...PROFILE_SKILL_SUGGESTIONS, ...draft.skills]),
+      ] as string[],
+    [draft.skills]
+  )
 
   function updateDraft<K extends keyof ProfileExperienceEntry>(
     key: K,

@@ -20,8 +20,8 @@ export default async function SourceDetailsRoute({
             This MVP focuses on importing jobs, selecting opportunities, and generating cover
             letters.
           </p>
-          <Link href="/imports" className={buttonVariants({ variant: "outline" })}>
-            Import jobs now
+          <Link href="/jobs" className={buttonVariants({ variant: "outline" })}>
+            Voir les offres
           </Link>
         </CardContent>
       </Card>

@@ -273,7 +273,7 @@ export function SettingsForm() {
     <div className="space-y-8">
       <Tabs value={activeSection} onValueChange={handleSectionChange} className="gap-6">
         <StickyPageHeader>
-          <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2">
               <h1 className="text-3xl font-bold tracking-tight">Profil & CV</h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground">

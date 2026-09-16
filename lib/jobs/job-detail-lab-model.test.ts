@@ -4,6 +4,7 @@ import {
   buildCriteriaRows,
   buildKeywordRows,
   buildMatchNarrative,
+  buildOptimizeBuckets,
   buildOverviewRewritePairs,
   buildPriorityActionCards,
   buildPriorityActions,
@@ -12,9 +13,11 @@ import {
   criterionMatchDisplay,
   estimatePotentialScore,
   isRichScoreExplanation,
+  keywordsForCvImprovement,
   parseScoreExplanationLines,
   splitScoreExplanation,
   isSafeSuggestion,
+  matchScoreMeta,
   matchVerdict,
   projectOptimizedScore,
   resolveLabAnalysisState,
@@ -145,8 +148,8 @@ describe("job-detail-lab-model", () => {
     )
   })
 
-  it("treats null score with fit data as partial verdict, not pending", () => {
-    assert.equal(matchVerdict(null).tone, "partial")
+  it("treats null score with fit data as pending verdict", () => {
+    assert.equal(matchVerdict(null).tone, "pending")
     assert.match(matchVerdict(null).label, /Score/)
   })
 
@@ -248,10 +251,124 @@ describe("job-detail-lab-model", () => {
     assert.match(pairs[0]?.forOffer ?? "", /Acquisition/)
   })
 
-  it("match verdict for scored jobs stays clear", () => {
-    assert.equal(matchVerdict(78).label, "Bon match")
+  it("isSafeSuggestion respects explicit safe and confirmation_required", () => {
+    const unsafeSuggestion: JobCvImprovementItem = {
+      id: "s1",
+      type: "suggestion",
+      priority: "medium",
+      cv_section: "Exp.",
+      action: "Reformuler",
+      evidence_from_cv: "Vente B2B",
+      evidence_from_job: "Assurance",
+      reformulation: "Vente B2B orientée Assurance",
+      suggested_rewrite: null,
+      information_to_confirm: null,
+      safe: false,
+      confidence: "low",
+    }
+    assert.equal(isSafeSuggestion(unsafeSuggestion), false)
+
+    const confirmation: JobCvImprovementItem = {
+      id: "c1",
+      type: "confirmation_required",
+      priority: "high",
+      cv_section: "Exp.",
+      action: "Expérience Assurance Vie",
+      evidence_from_cv: "",
+      evidence_from_job: "",
+      suggested_rewrite: null,
+      information_to_confirm: "As-tu déjà travaillé en Assurance Vie ?",
+      safe: false,
+      confidence: "low",
+    }
+    assert.equal(isSafeSuggestion(confirmation), false)
+  })
+
+  it("keywordsForCvImprovement prefers keywords_added", () => {
+    const item: JobCvImprovementItem = {
+      id: "edit-kw",
+      priority: "medium",
+      cv_section: "Compétences",
+      action: "Alignement vocabulaire offre",
+      evidence_from_cv: "Analyses",
+      evidence_from_job: "SQL",
+      suggested_rewrite: null,
+      information_to_confirm: null,
+      reformulation: "Analyses et requêtes SQL",
+      keywords_added: ["SQL", "bases de données"],
+      safe: true,
+    }
+    const job = baseJob({ keywords_missing: ["SQL", "KPI", "agile"] })
+    assert.deepEqual(keywordsForCvImprovement(job, item), ["SQL", "bases de données"])
+  })
+
+  it("buildOptimizeBuckets routes confirmation_required into toConfirm", () => {
+    const suggestion: JobCvImprovementItem = {
+      id: "rec_1",
+      type: "suggestion",
+      priority: "high",
+      cv_section: "Exp.",
+      action: "Alignement vocabulaire",
+      evidence_from_cv: "J’ai piloté des projets.",
+      evidence_from_job: "Pilotage de backlog",
+      reformulation: "Pilotage de la roadmap et du backlog.",
+      suggested_rewrite: null,
+      information_to_confirm: null,
+      safe: true,
+      keywords_added: ["roadmap"],
+    }
+    const confirmation: JobCvImprovementItem = {
+      id: "cf_1",
+      type: "confirmation_required",
+      priority: "high",
+      cv_section: "Exp.",
+      action: "Certification Scrum (faux)",
+      evidence_from_cv: "",
+      evidence_from_job: "",
+      suggested_rewrite: null,
+      information_to_confirm: "Es-tu certifié en Scrum ?",
+      requirement: "Certification Scrum",
+      question: "Es-tu certifié en Scrum ?",
+      safe: false,
+    }
+    const buckets = buildOptimizeBuckets(
+      baseJob({ cv_improvement_items: [suggestion, confirmation] }),
+      null
+    )
+    assert.equal(buckets.safe.length, 1)
+    assert.equal(buckets.safe[0]?.id, "rec_1")
+    assert.equal(buckets.toConfirm.length, 1)
+    assert.equal(buckets.toConfirm[0]?.id, "cf_1")
+  })
+
+  it("match verdict follows the centralized thresholds", () => {
+    assert.equal(matchVerdict(92).label, "Excellent match")
+    assert.equal(matchVerdict(78).label, "Très bon match")
+    assert.equal(matchVerdict(74).label, "Bon match")
+    assert.equal(matchVerdict(60).label, "Bon match")
+    assert.equal(matchVerdict(59).label, "Match partiel")
     assert.equal(matchVerdict(50).label, "Match partiel")
-    assert.equal(matchVerdict(null).tone, "partial")
+    assert.equal(matchVerdict(39).label, "Match faible")
+    assert.equal(matchVerdict(null).tone, "pending")
+  })
+
+  it("matchScoreMeta centralizes value, label, summary and colors", () => {
+    const weak = matchScoreMeta(30)
+    assert.equal(weak.label, "Match faible")
+    assert.equal(weak.barColor, "bg-red-500")
+    const partial = matchScoreMeta(50)
+    assert.equal(partial.label, "Match partiel")
+    assert.equal(partial.barColor, "bg-orange-500")
+    const good = matchScoreMeta(70)
+    assert.equal(good.label, "Bon match")
+    assert.equal(good.barColor, "bg-amber-500")
+    const veryGood = matchScoreMeta(80)
+    assert.equal(veryGood.label, "Très bon match")
+    assert.equal(veryGood.barColor, "bg-emerald-500")
+    const excellent = matchScoreMeta(95)
+    assert.equal(excellent.label, "Excellent match")
+    assert.equal(excellent.barColor, "bg-emerald-500")
+    assert.equal(matchScoreMeta(null).tone, "pending")
   })
 
   it("builds criteria rows and prefers them over legacy sub-scores", () => {

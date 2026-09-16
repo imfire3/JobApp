@@ -35,6 +35,23 @@ Criteria come from the user’s enabled France Travail `source_searches` (defaul
 
 Other catalog cards link to `/extension` or `/imports?paste=1` — they do not expose server Run now.
 
+## Recherche IA
+
+Page `/research` : consigne en langage naturel → plan structuré → exécution.
+
+1. `POST /api/research/plan` — OpenAI parse `{ roles, location, published_within_hours, min_match_score, source_slugs, summary_fr }`.
+2. `POST /api/research/run` — live API si configurée (FT / Apify) ; sinon filtre des offres déjà en base. Slug virtuel `my-imported` = tout le board (toutes sources).
+3. `POST /api/research/import` — insert live sélectionnés ; offres `origin=imported` déjà en base → analyse + `selected` selon score.
+
+Le scoring match n’est **pas** fait avant import (coût / latence).
+
+| Source | Live | Importé |
+|--------|------|---------|
+| `my-imported` | — | Tout le board |
+| `france-travail` | Si API FT configurée | Sinon filtre FT |
+| `welcome-to-the-jungle` / `linkedin-jobs` | Si Apify mode + token + actor | Sinon filtre plateforme |
+| Autres catalogue | — | Filtre plateforme |
+
 ## Legacy Apify / tracked searches
 
 ```bash
@@ -52,6 +69,9 @@ SUPABASE_SERVICE_ROLE_KEY=    # required for multi-user cron
 |----------|------|---------|
 | `POST /api/sources/france-travail/sync` | User session | France Travail API sync for current user |
 | `POST /api/sync/source/[sourceId]` | User session | FT if slug=`france-travail`; 400 for extension sources |
+| `POST /api/research/plan` | User session | NL → research plan |
+| `POST /api/research/run` | User session | FT preview + extension actions |
+| `POST /api/research/import` | User session | Import selection + analyze + score gate |
 | `POST /api/tracked-searches/[id]/run` | User session | Run one tracked search now (legacy) |
 | `POST /api/tracked-searches/run-all` | User session | Sync all enabled searches for current user |
 | `POST /api/sync-jobs` | `Authorization: Bearer <JOB_SYNC_SECRET>` | Cron — all users, all enabled searches |

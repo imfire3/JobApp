@@ -75,7 +75,10 @@ export function DateOfBirthField({
   const anchorRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const calendarStyle = useAnchoredDropdownStyle(open, anchorRef, 360)
+  const calendarStyle = useAnchoredDropdownStyle(open, anchorRef, 360, {
+    alwaysBelow: true,
+    gap: 8,
+  })
   const display = formatDisplayDate(value)
   const [day, setDay] = useState(display.slice(0, 2) || "")
   const [month, setMonth] = useState(display.slice(3, 5) || "")

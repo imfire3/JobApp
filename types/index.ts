@@ -4,11 +4,46 @@ export const JOB_STATUSES = [
   "cover_generated",
   "applied",
   "interview",
+  "offer",
   "rejected",
   "archived",
 ] as const;
 
 export type JobStatus = (typeof JOB_STATUSES)[number];
+
+/** Spontaneous-application prospection pipeline (companies CRM). */
+export const COMPANY_PIPELINE_STATUSES = [
+  "to_contact",
+  "contact_found",
+  "message_prepared",
+  "application_sent",
+  "follow_up_pending",
+  "response_received",
+  "interview",
+  "refused",
+  "opportunity",
+] as const;
+
+export type CompanyPipelineStatus = (typeof COMPANY_PIPELINE_STATUSES)[number];
+
+export const COMPANY_DISCOVERY_TYPES = ["offer_detected", "spontaneous"] as const;
+export type CompanyDiscoveryType = (typeof COMPANY_DISCOVERY_TYPES)[number];
+
+export const COMPANY_ROLE_TYPES = [
+  "recruiter",
+  "head_of_product",
+  "cpo",
+  "product_director",
+  "founder",
+  "other",
+] as const;
+export type CompanyRoleType = (typeof COMPANY_ROLE_TYPES)[number];
+
+export const OUTREACH_KINDS = ["email", "linkedin"] as const;
+export type OutreachKind = (typeof OUTREACH_KINDS)[number];
+
+export const OUTREACH_STATUSES = ["draft", "ready", "sent"] as const;
+export type OutreachStatus = (typeof OUTREACH_STATUSES)[number];
 
 export const JOB_SOURCES = [
   "Welcome to the Jungle",
@@ -121,6 +156,7 @@ export interface JobRecord {
 
 export interface JobCvImprovementItem {
   id: string;
+  type?: "suggestion" | "confirmation_required";
   priority: "low" | "medium" | "high";
   cv_section: string;
   action: string;
@@ -128,6 +164,18 @@ export interface JobCvImprovementItem {
   evidence_from_job: string;
   suggested_rewrite: string | null;
   information_to_confirm: string | null;
+  /** New prompt v12 fields (fallback: computed from legacy fields by the parser). */
+  section?: string;
+  cv_original?: string;
+  reformulation?: string | null;
+  reason?: string;
+  keywords_added?: string[];
+  source_offer_requirement?: string;
+  confidence?: "low" | "medium" | "high";
+  safe?: boolean;
+  /** Confirmation-required entries (new prompt v12). */
+  requirement?: string | null;
+  question?: string | null;
 }
 
 export type JobCriterionEvidenceLevel = 0 | 1 | 2 | 3;
@@ -205,6 +253,134 @@ export interface JobAnalysis {
   limitations?: string[];
 }
 
+/** Natural-language company search intent (editable criteria). */
+export interface CompanySearchCriteria {
+  roles: string[];
+  sectors: string[];
+  locations: string[];
+  size_min: number | null;
+  size_max: number | null;
+  remote: boolean;
+  priority?: string;
+  summary_fr: string;
+}
+
+/** Company record stored in Supabase `companies`. */
+export interface Company {
+  id: string;
+  user_id: string;
+  search_id: string | null;
+  name: string;
+  slug: string;
+  domain: string;
+  website: string | null;
+  logo_url: string | null;
+  sectors: string[];
+  industry: string | null;
+  size_min: number | null;
+  size_max: number | null;
+  headquarters: string | null;
+  locations: string[];
+  remote_ok: boolean;
+  description: string | null;
+  discovery_type: CompanyDiscoveryType;
+  ai_enriched: {
+    activity?: string;
+    products?: string[];
+    positioning?: string;
+    keywords?: string[];
+    sources?: string[];
+    extracted_at?: string;
+  } | null;
+  match_score: number | null;
+  opportunity_score: number | null;
+  opportunity_breakdown: CompanyOpportunityBreakdown | null;
+  status: CompanyPipelineStatus;
+  next_action_at: string | null;
+  outcome_reason: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  contacts?: CompanyContact[];
+  outreach_messages?: OutreachMessage[];
+}
+
+export interface CompanyOpportunityBreakdown {
+  profile_match: number | null;
+  sector: number | null;
+  location: number | null;
+  product_team: number | null;
+  growth: number | null;
+  contact_available: number | null;
+  why: string[];
+}
+
+export interface CompanyContact {
+  id: string;
+  user_id: string;
+  company_id: string;
+  name: string;
+  role_title: string;
+  role_type: CompanyRoleType;
+  linkedin_url: string | null;
+  email: string | null;
+  email_confidence: number | null;
+  relevance_score: number | null;
+  active: boolean;
+  current_company: boolean;
+  source: string;
+  notes: string | null;
+  relevance_factors: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OutreachMessage {
+  id: string;
+  user_id: string;
+  company_id: string;
+  contact_id: string | null;
+  kind: OutreachKind;
+  subject: string;
+  body: string;
+  status: OutreachStatus;
+  sent_at: string | null;
+  response_received_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompanySearch {
+  id: string;
+  user_id: string;
+  query: string;
+  criteria: CompanySearchCriteria;
+  status: "pending" | "running" | "done" | "error";
+  results_found: number;
+  companies_added: number;
+  raw: CompanyCandidate[];
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Connector output candidate before persistence. */
+export interface CompanyCandidate {
+  name: string;
+  domain: string;
+  website: string | null;
+  sector: string | null;
+  size_min: number | null;
+  size_max: number | null;
+  headquarters: string | null;
+  locations?: string[];
+  remote_ok: boolean;
+  description: string | null;
+  discovery_type: CompanyDiscoveryType;
+  sourceUrl: string | null;
+  reasons: string[];
+}
+
 /** UI-facing job view model (mapped from JobRecord). */
 export interface Job extends ImportedJob {
   id: string;
@@ -280,6 +456,10 @@ export interface Job extends ImportedJob {
   } | null;
   score_explanation?: string | null;
   job_posting_summary?: string | null;
+  /** Cache keys from raw_data.job_fit (optional mapped fields). */
+  job_fit_cv_hash?: string | null;
+  job_fit_job_hash?: string | null;
+  job_fit_prompt_version?: string | null;
   created_at: string;
   updated_at: string;
 }

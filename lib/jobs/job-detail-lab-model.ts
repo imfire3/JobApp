@@ -174,6 +174,17 @@ export type LabPriorityActionCard = {
   keywords: string[]
   kind: "safe_rewrite" | "gap" | "confirm"
   question: string | null
+  /** Linked criterion (whenever detectable) so "À confirmer" can run the confirm flow. */
+  criterionId: string | null
+}
+
+/** Criteria the analysis explicitly asked the candidate to confirm (Oui / Non flow). */
+export type LabConfirmCard = {
+  id: string
+  title: string
+  question: string
+  criterionId: string
+  weightPercent: number
 }
 
 export type ProjectedScoreResult = {
@@ -326,41 +337,90 @@ export function resolveLabAnalysisState(input: {
   return "idle_unanalyzed"
 }
 
-export function matchVerdict(score: number | null): {
+export type MatchScoreTone = "good" | "partial" | "weak" | "pending"
+
+export type MatchScoreMeta = {
   label: string
   summary: string
-  tone: "good" | "partial" | "weak" | "pending"
-} {
+  tone: MatchScoreTone
+  textColor: string
+  barColor: string
+}
+
+/**
+ * Single source of truth for the global match score:
+ * value, label per thresholds, AI one-liner, semantic colors.
+ * 0–39 Match faible · 40–59 Match partiel · 60–74 Bon match
+ * 75–89 Très bon match · 90–100 Excellent match.
+ */
+export function matchScoreMeta(score: number | null): MatchScoreMeta {
   if (typeof score !== "number") {
     return {
       label: "Score non calculé",
       summary:
         "L’analyse a extrait des éléments de l’offre, mais le score global n’a pas pu être calculé. Tu peux quand même consulter les forces, écarts et mots-clés ci-dessous.",
-      tone: "partial",
+      tone: "pending",
+      textColor: "text-muted-foreground",
+      barColor: "bg-muted-foreground/40",
     }
   }
-  if (score >= 70) {
+  if (score >= 90) {
+    return {
+      label: "Excellent match",
+      summary:
+        "Ton profil est en très forte adéquation avec l’offre. Peu de choses à améliorer.",
+      tone: "good",
+      textColor: "text-emerald-500",
+      barColor: "bg-emerald-500",
+    }
+  }
+  if (score >= 75) {
+    return {
+      label: "Très bon match",
+      summary:
+        "Ton profil correspond très bien au poste, avec quelques finitions possibles.",
+      tone: "good",
+      textColor: "text-emerald-500",
+      barColor: "bg-emerald-500",
+    }
+  }
+  if (score >= 60) {
     return {
       label: "Bon match",
       summary:
         "Ton profil correspond bien au poste, mais quelques éléments peuvent encore améliorer ta candidature.",
-      tone: "good",
+      tone: "partial",
+      textColor: "text-amber-500",
+      barColor: "bg-amber-500",
     }
   }
-  if (score >= 45) {
+  if (score >= 40) {
     return {
       label: "Match partiel",
       summary:
         "Des points forts existent, mais des écarts ou mots-clés ATS manquent encore.",
-      tone: "partial",
+      tone: "weak",
+      textColor: "text-orange-500",
+      barColor: "bg-orange-500",
     }
   }
   return {
-    label: "Écarts importants",
+    label: "Match faible",
     summary:
       "Ton CV ne couvre pas assez les exigences visibles de l’offre pour l’instant.",
     tone: "weak",
+    textColor: "text-red-500",
+    barColor: "bg-red-500",
   }
+}
+
+export function matchVerdict(score: number | null): {
+  label: string
+  summary: string
+  tone: "good" | "partial" | "weak" | "pending"
+} {
+  const meta = matchScoreMeta(score)
+  return { label: meta.label, summary: meta.summary, tone: meta.tone }
 }
 
 /**
@@ -399,7 +459,13 @@ export function suggestionLinksToCriterion(
   if (Array.isArray(related) && related.includes(criterion.id)) return true
 
   const hayTokens = tokenizeForLink(
-    [item.action, item.evidence_from_job, item.suggested_rewrite ?? ""].join(" ")
+    [
+      item.action,
+      item.reason ?? "",
+      item.evidence_from_job,
+      item.source_offer_requirement ?? "",
+      item.reformulation ?? item.suggested_rewrite ?? "",
+    ].join(" ")
   )
   const needleTokens = tokenizeForLink(
     [criterion.label, criterion.evidence_from_job].join(" ")
@@ -545,10 +611,13 @@ export function keywordsForCvImprovement(
   job: Job,
   item: JobCvImprovementItem
 ): string[] {
+  if (Array.isArray(item.keywords_added) && item.keywords_added.length > 0) {
+    return item.keywords_added.slice(0, 5)
+  }
   const missing = job.keywords_missing ?? []
   if (missing.length === 0) return []
   const hay = [
-    item.suggested_rewrite ?? "",
+    item.reformulation ?? item.suggested_rewrite ?? "",
     item.evidence_from_job,
     item.action,
   ]
@@ -569,6 +638,28 @@ function keywordsForRewrite(
   return keywordsForCvImprovement(job, item)
 }
 
+/** Accessors with legacy fallbacks for analyses persisted before prompt v12. */
+export function cvOriginalOf(item: JobCvImprovementItem): string {
+  return item.cv_original?.trim() || item.evidence_from_cv?.trim() || ""
+}
+export function reformulationOf(item: JobCvImprovementItem): string {
+  return (item.reformulation ?? item.suggested_rewrite)?.trim() || ""
+}
+export function reasonOf(item: JobCvImprovementItem): string {
+  return item.reason?.trim() || item.action?.trim() || ""
+}
+export function sourceOf(item: JobCvImprovementItem): string {
+  return (
+    item.source_offer_requirement?.trim() || item.evidence_from_job?.trim() || ""
+  )
+}
+export function questionOf(item: JobCvImprovementItem): string {
+  return item.question?.trim() || item.information_to_confirm?.trim() || ""
+}
+export function sectionOf(item: JobCvImprovementItem): string {
+  return item.section?.trim() || item.cv_section?.trim() || ""
+}
+
 function importanceFromPriority(
   priority: JobCvImprovementItem["priority"]
 ): LabPriorityAction["importance"] {
@@ -582,27 +673,32 @@ function importanceFromPriority(
  */
 export function buildPriorityActionCards(job: Job): LabPriorityActionCard[] {
   const items = job.cv_improvement_items ?? []
+  const criteria = job.criteria_assessment ?? []
   if (items.length > 0) {
     return items.slice(0, 5).map((item, index) => {
       const id = item.id || `action-${index}`
       const safe = isSafeSuggestion(item)
-      const needsConfirm = Boolean(item.information_to_confirm?.trim())
+      const needsConfirm = Boolean(questionOf(item))
       const kind: LabPriorityActionCard["kind"] = needsConfirm
         ? "confirm"
         : safe
           ? "safe_rewrite"
           : "gap"
+      const linked = needsConfirm
+        ? criteria.find((c) => suggestionLinksToCriterion(item, c))
+        : undefined
       return {
         id,
-        title: item.action,
+        title: reasonOf(item) || item.action,
         importance: importanceFromPriority(item.priority),
         estimatedImpact: safe ? estimateSuggestionScoreImpact(job, item.id) : null,
-        cvSection: item.cv_section?.trim() || null,
-        fromCv: item.evidence_from_cv?.trim() || null,
-        rewrite: item.suggested_rewrite?.trim() || null,
+        cvSection: sectionOf(item) || null,
+        fromCv: cvOriginalOf(item) || null,
+        rewrite: reformulationOf(item) || null,
         keywords: safe ? keywordsForRewrite(job, item) : [],
         kind,
-        question: item.information_to_confirm?.trim() || null,
+        question: questionOf(item) || null,
+        criterionId: linked?.id ?? null,
       }
     })
   }
@@ -618,7 +714,21 @@ export function buildPriorityActionCards(job: Job): LabPriorityActionCard[] {
     keywords: (job.keywords_missing ?? []).slice(0, 3),
     kind: "gap" as const,
     question: null,
+    criterionId: null,
   }))
+}
+
+/** Criteria awaiting user confirmation, rendered inline within the overview. */
+export function buildConfirmCards(job: Job): LabConfirmCard[] {
+  return buildCriteriaRows(job)
+    .filter((row) => row.needsConfirmation)
+    .map((row) => ({
+      id: `confirm-${row.id}`,
+      title: row.label,
+      question: row.question ?? "As-tu déjà cette expérience ?",
+      criterionId: row.id,
+      weightPercent: row.weightPercent,
+    }))
 }
 
 export function buildSubScores(job: Job): LabSubScore[] {
@@ -707,7 +817,7 @@ export function buildPriorityActions(job: Job): LabPriorityAction[] {
   if (items.length > 0) {
     return items.slice(0, 5).map((item, index) => ({
       id: item.id || `action-${index}`,
-      title: item.action,
+      title: reasonOf(item) || item.action,
       importance:
         item.priority === "high"
           ? "élevée"
@@ -715,13 +825,13 @@ export function buildPriorityActions(job: Job): LabPriorityAction[] {
             ? "moyenne"
             : "faible",
       reason:
-        item.evidence_from_job ||
-        item.evidence_from_cv ||
+        sourceOf(item) ||
+        cvOriginalOf(item) ||
         "Recommandation issue de la comparaison CV ↔ offre.",
       estimatedImpact:
         item.priority === "high" ? 5 : item.priority === "medium" ? 3 : 2,
-      experienceHint: item.cv_section?.trim() || null,
-      cta: item.suggested_rewrite ? "suggestion" : "experiences",
+      experienceHint: sectionOf(item) || null,
+      cta: reformulationOf(item) ? "suggestion" : "experiences",
       improvementId: item.id,
     }))
   }
@@ -829,7 +939,9 @@ function itemMatchesExperience(
 }
 
 export function isSafeSuggestion(item: JobCvImprovementItem): boolean {
-  return Boolean(item.suggested_rewrite?.trim()) && !item.information_to_confirm?.trim()
+  if (item.type === "confirmation_required") return false
+  if (typeof item.safe === "boolean") return item.safe
+  return Boolean(reformulationOf(item)) && !questionOf(item)
 }
 
 export type LabRewritePair = {
@@ -846,8 +958,8 @@ export function buildOverviewRewritePairs(
   return (job.cv_improvement_items ?? [])
     .filter(isSafeSuggestion)
     .map((item) => {
-      const fromCv = item.evidence_from_cv?.trim() ?? ""
-      const forOffer = item.suggested_rewrite?.trim() ?? ""
+      const fromCv = cvOriginalOf(item)
+      const forOffer = reformulationOf(item)
       if (!fromCv || !forOffer) return null
       return { id: item.id, fromCv, forOffer } satisfies LabRewritePair
     })

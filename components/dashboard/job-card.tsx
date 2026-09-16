@@ -1,7 +1,8 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -18,15 +19,19 @@ import {
 import type { Job, JobStatus } from "@/types";
 import { JOB_STATUSES } from "@/types";
 import {
+  Bookmark,
   ChevronDown,
-  ExternalLink,
+  CircleCheck,
+  Eye,
   FileText,
   MapPin,
   Sparkles,
   Wifi,
+  X,
 } from "lucide-react";
 import {
   JobScoringProgressBar,
+  analyzingLabelForProgress,
   type JobScoringProgress,
 } from "@/components/jobs/job-scoring-progress";
 
@@ -159,6 +164,11 @@ export function JobCard({
               status={scoring.status}
               title={job.title}
               error={scoring.error}
+              label={
+                scoring.status === "analyzing" || scoring.status === "queued"
+                  ? analyzingLabelForProgress(scoring.progress)
+                  : null
+              }
             />
           </div>
         ) : null}
@@ -179,74 +189,88 @@ export function JobCard({
       </CardContent>
 
       <CardFooter
-        className="flex flex-wrap gap-2 border-t pt-4"
+        className="flex items-center gap-2 border-t pt-4"
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
       >
-        <a
-          href={job.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-          View
-        </a>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onAnalyze(job.id)}
-          disabled={
-            isAnalyzing ||
-            scoring?.status === "analyzing" ||
-            scoring?.status === "queued"
-          }
-        >
-          <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-          {isAnalyzing || scoring?.status === "analyzing"
-            ? "Analyse…"
-            : scoring?.status === "queued"
-              ? "En file…"
-              : "Analyze"}
-        </Button>
-
-        {job.cover_letter ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onViewCoverLetter(job)}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "flex-1 justify-between"
+            )}
           >
-            <FileText className="mr-1.5 h-3.5 w-3.5" />
-            Cover letter
-          </Button>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onGenerateCoverLetter(job.id)}
-            disabled={isGenerating}
-          >
-            <FileText className="mr-1.5 h-3.5 w-3.5" />
-            {isGenerating ? "Generating..." : "Generate CL"}
-          </Button>
-        )}
-
-        <Button variant="ghost" size="sm" onClick={() => onStatusChange(job.id, "applied")}>
-          Apply
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => onStatusChange(job.id, "rejected")}>
-          Reject
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => onStatusChange(job.id, "selected")}>
-          Save
-        </Button>
+            Actions
+            <ChevronDown className="ml-1 h-3.5 w-3.5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() =>
+                job.url &&
+                window.open(job.url, "_blank", "noopener,noreferrer")
+              }
+              disabled={!job.url}
+            >
+              <Eye />
+              View
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onAnalyze(job.id)}
+              disabled={
+                isAnalyzing ||
+                scoring?.status === "analyzing" ||
+                scoring?.status === "queued"
+              }
+            >
+              <Sparkles />
+              {isAnalyzing || scoring?.status === "analyzing"
+                ? "Analyse…"
+                : scoring?.status === "queued"
+                  ? "En file…"
+                  : "Analyze"}
+            </DropdownMenuItem>
+            {job.cover_letter ? (
+              <DropdownMenuItem onClick={() => onViewCoverLetter(job)}>
+                <FileText />
+                Cover letter
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onClick={() => onGenerateCoverLetter(job.id)}
+                disabled={isGenerating}
+              >
+                <FileText />
+                {isGenerating ? "Generating..." : "Generate CL"}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onClick={() => onStatusChange(job.id, "applied")}
+            >
+              <CircleCheck />
+              Apply
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => onStatusChange(job.id, "rejected")}
+            >
+              <X />
+              Reject
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onStatusChange(job.id, "selected")}
+            >
+              <Bookmark />
+              Save
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger
             className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
-            Status
+            <span className="text-muted-foreground">Status:</span>
+            <span className="ml-1">{job.status.replace(/_/g, " ")}</span>
             <ChevronDown className="ml-1 h-3.5 w-3.5" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

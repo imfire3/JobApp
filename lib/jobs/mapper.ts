@@ -123,10 +123,10 @@ export function buildJobInsertPayload(input: {
     match_gaps: null,
     cover_letter_angle: null,
     cover_letter: null,
+    selected: false,
     cover_letter_subject: null,
     cover_letter_angle_briefing: null,
     cover_letter_coach_notes: null,
-    selected: false,
   };
 }
 
@@ -300,6 +300,12 @@ export function toJobViewModel(row: JobRow): Job {
     score_explanation: scoreExplanation,
     job_posting_summary:
       typeof jobFit?.job_posting_summary === "string" ? jobFit.job_posting_summary : null,
+    job_fit_cv_hash:
+      typeof jobFit?.cv_content_hash === "string" ? jobFit.cv_content_hash : null,
+    job_fit_job_hash:
+      typeof jobFit?.job_content_hash === "string" ? jobFit.job_content_hash : null,
+    job_fit_prompt_version:
+      typeof jobFit?.prompt_version === "string" ? jobFit.prompt_version : null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

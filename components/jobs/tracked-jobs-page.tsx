@@ -4,17 +4,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { JobFiltersBar, JobDateFilter } from "@/components/dashboard/job-filters";
+import { JobFiltersBar, JobDateFilter, JobFilterMenu } from "@/components/dashboard/job-filters";
 import { JobCard } from "@/components/dashboard/job-card";
 import { JobTable } from "@/components/dashboard/job-table";
+import { JobKanban } from "@/components/dashboard/job-kanban";
 import { JobBulkActions } from "@/components/dashboard/job-bulk-actions";
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
 import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 import { filterJobs } from "@/lib/jobs/utils";
 import type { Job, JobFilters, JobStatus } from "@/types";
-import { ClipboardPaste, List, RefreshCw, LayoutGrid, Upload } from "lucide-react";
+import { ClipboardPaste, Columns3, List, RefreshCw, LayoutGrid, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import type { JobScoringProgress } from "@/components/jobs/job-scoring-progress";
 import { useRouter } from "next/navigation";
 
@@ -47,7 +49,7 @@ export function TrackedJobsPage({
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
-  const [view, setView] = useState<"cards" | "table">("table");
+  const [view, setView] = useState<"cards" | "table" | "kanban">("table");
   const [seedingFakeJobs, setSeedingFakeJobs] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
   const [analysisByJobId, setAnalysisByJobId] = useState<
@@ -60,6 +62,7 @@ export function TrackedJobsPage({
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{
     total: number;
     current: number;
@@ -107,6 +110,58 @@ export function TrackedJobsPage({
     // Initial load only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function handleSync() {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/sources");
+      const data = await readJsonSafe(res);
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Impossible de charger les sources"
+        );
+      }
+      const sources = (data.sources ?? []) as Array<{
+        id: string;
+        slug: string;
+        supports_server_sync?: boolean;
+        ingestion_mode?: string;
+      }>;
+      const syncable = sources.filter(
+        (source) => source.supports_server_sync || source.ingestion_mode === "api"
+      );
+      if (syncable.length === 0) {
+        toast.message(
+          "Aucune source avec sync serveur. Utilise Imports ou l’extension Chrome."
+        );
+        return;
+      }
+
+      let imported = 0;
+      let skipped = 0;
+      for (const source of syncable) {
+        const path =
+          source.slug === "france-travail"
+            ? "/api/sources/france-travail/sync"
+            : `/api/sync/source/${source.id}`;
+        const sres = await fetch(path, { method: "POST" });
+        const sdata = await readJsonSafe(sres);
+        if (sres.ok) {
+          imported += typeof sdata.imported === "number" ? sdata.imported : 0;
+          skipped += typeof sdata.skipped === "number" ? sdata.skipped : 0;
+        }
+      }
+      await loadAll({ silent: true });
+      toast.success(
+        `Synchronisation terminée : ${imported} importée(s), ${skipped} doublon(s)`
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Synchronisation échouée");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   const filteredJobs = useMemo(() => filterJobs(jobs, filters), [jobs, filters]);
   const sources = useMemo(() => [...new Set(jobs.map((job) => job.source))].sort(), [jobs]);
@@ -657,12 +712,12 @@ export function TrackedJobsPage({
               Importe ou colle des offres, puis analyse le match avec ton CV.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <PageHelpButton pageId="jobs" />
+          <div className="flex items-center gap-2">
             {allowLocalDevTools ? (
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => void seedFakeJobs()}
                 disabled={seedingFakeJobs}
                 aria-label="Ajouter des offres d’emploi de test"
@@ -672,7 +727,7 @@ export function TrackedJobsPage({
             ) : null}
             <Button
               type="button"
-              size="lg"
+              size="sm"
               onClick={openCsvPicker}
               disabled={importingCsv}
               aria-label="Importer mes offres"
@@ -682,27 +737,18 @@ export function TrackedJobsPage({
             </Button>
             <Button
               type="button"
-              size="lg"
+              size="sm"
               variant="secondary"
-              onClick={() => router.push("/imports?paste=1")}
+          onClick={() => router.push("/jobs")}
               aria-label="Copier-coller l’offre"
             >
               <ClipboardPaste className="mr-2 h-4 w-4" aria-hidden />
               Copier-coller l’offre
             </Button>
+            <PageHelpButton pageId="jobs" />
           </div>
         </div>
       </StickyPageHeader>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-semibold tracking-tight">
-          {loading ? "Offres…" : `Toutes les offres (${jobs.length})`}
-        </h2>
-        <Button variant="outline" onClick={() => void loadAll()}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Rafraîchir
-        </Button>
-      </div>
 
       <JobBulkActions
         selectedCount={jobs.filter((job) => job.selected).length}
@@ -730,9 +776,19 @@ export function TrackedJobsPage({
 
       <JobFiltersBar filters={filters} onChange={setFilters} sources={sources} />
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold tracking-tight">
+          {loading ? "Offres…" : `Toutes les offres (${jobs.length})`}
+        </h2>
+        <Button variant="outline" onClick={() => void handleSync()} disabled={syncing}>
+          <RefreshCw className={cn("mr-2 h-4 w-4", syncing && "animate-spin")} />
+          {syncing ? "Synchronisation…" : "Synchroniser"}
+        </Button>
+      </div>
+
       <Tabs
         value={view}
-        onValueChange={(value) => setView(value as "cards" | "table")}
+        onValueChange={(value) => setView(value as "cards" | "table" | "kanban")}
       >
         <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
           <TabsList>
@@ -744,14 +800,20 @@ export function TrackedJobsPage({
               <List className="mr-2 h-4 w-4" />
               Tableau
             </TabsTrigger>
+            <TabsTrigger value="kanban">
+              <Columns3 className="mr-2 h-4 w-4" />
+              Suivi
+            </TabsTrigger>
           </TabsList>
-          <JobDateFilter filters={filters} onChange={setFilters} />
+          <div className="flex flex-wrap items-center gap-3">
+            <JobFilterMenu filters={filters} onChange={setFilters} />
+            <JobDateFilter filters={filters} onChange={setFilters} />
+          </div>
         </div>
         {jobs.length > 0 && filteredJobs.length !== jobs.length ? (
           <p className="mb-3 text-base text-muted-foreground">
             {filteredJobs.length} offre{filteredJobs.length > 1 ? "s" : ""} affichée
-            {filteredJobs.length > 1 ? "s" : ""} sur {jobs.length} — élargis le filtre Date
-            ou désactive « 24 h seulement ».
+            {filteredJobs.length > 1 ? "s" : ""} sur {jobs.length} — élargis le filtre Date.
           </p>
         ) : null}
 
@@ -759,8 +821,7 @@ export function TrackedJobsPage({
           {filteredJobs.length === 0 ? (
             jobs.length > 0 ? (
               <p className="rounded-lg border border-dashed p-8 text-center text-base text-muted-foreground">
-                Aucune offre ne correspond aux filtres actifs. Élargis la date ou
-                désactive « 24 h seulement ».
+                Aucune offre ne correspond aux filtres actifs. Élargis le filtre Date.
               </p>
             ) : (
               emptyJobsCta
@@ -790,8 +851,7 @@ export function TrackedJobsPage({
           {filteredJobs.length === 0 ? (
             jobs.length > 0 ? (
               <p className="rounded-lg border border-dashed p-8 text-center text-base text-muted-foreground">
-                Aucune offre ne correspond aux filtres actifs. Élargis la date ou
-                désactive « 24 h seulement ».
+                Aucune offre ne correspond aux filtres actifs. Élargis le filtre Date.
               </p>
             ) : (
               emptyJobsCta
@@ -806,6 +866,23 @@ export function TrackedJobsPage({
               onViewCoverLetter={setCoverLetterJob}
               onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
               analysisByJobId={analysisByJobId}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="kanban" className="mt-0">
+          {filteredJobs.length === 0 ? (
+            jobs.length > 0 ? (
+              <p className="rounded-lg border border-dashed p-8 text-center text-base text-muted-foreground">
+                Aucune offre ne correspond aux filtres actifs. Élargis le filtre Date.
+              </p>
+            ) : (
+              emptyJobsCta
+            )
+          ) : (
+            <JobKanban
+              jobs={filteredJobs}
+              onJobsChange={setJobs}
             />
           )}
         </TabsContent>

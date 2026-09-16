@@ -56,7 +56,10 @@ export function SearchableMultiSelect({
   const [query, setQuery] = useState("")
   const [open, setOpen] = useState(false)
   const anchorRef = useRef<HTMLDivElement>(null)
-  const listStyle = useAnchoredDropdownStyle(open, anchorRef, 192)
+  const listStyle = useAnchoredDropdownStyle(open, anchorRef, 192, {
+    alwaysBelow: true,
+    gap: 8,
+  })
   const catalog = useMemo(() => toOptions(options), [options])
   const filtered = useMemo(
     () =>
@@ -236,7 +239,10 @@ export function SearchableSelect({
   const [query, setQuery] = useState("")
   const [open, setOpen] = useState(false)
   const anchorRef = useRef<HTMLDivElement>(null)
-  const listStyle = useAnchoredDropdownStyle(open, anchorRef, 256)
+  const listStyle = useAnchoredDropdownStyle(open, anchorRef, 256, {
+    alwaysBelow: true,
+    gap: 8,
+  })
   const catalog = useMemo(() => toOptions(options), [options])
   const selectedLabel = value ? labelFor(catalog, value) : ""
 

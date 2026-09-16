@@ -88,14 +88,14 @@ export function DashboardOverview() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <PageHelpButton pageId="dashboard" />
-            <Link href="/imports" className={buttonVariants({ variant: "outline" })}>
+            <Link href="/jobs" className={buttonVariants({ variant: "outline" })}>
               <Cable className="mr-2 h-4 w-4" />
-              Importer des offres
+              Voir mes offres
             </Link>
             <Link href="/jobs" className={buttonVariants({})}>
               Voir mes offres
             </Link>
+            <PageHelpButton pageId="dashboard" />
           </div>
         </div>
       </StickyPageHeader>
@@ -151,14 +151,16 @@ export function DashboardOverview() {
                 </p>
               </div>
             ))}
-            <div className="pt-2">
-              <Link
-                href="/profile-ai"
-                className={buttonVariants({ variant: "secondary" })}
-              >
-                Affiner Profil & CV
-              </Link>
-            </div>
+            {(data?.jobs?.length ?? 0) > 0 && (
+              <div className="pt-2">
+                <Link
+                  href="/profile-ai"
+                  className={buttonVariants({ variant: "secondary" })}
+                >
+                  Affiner Profil & CV
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

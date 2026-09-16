@@ -138,8 +138,8 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
   }
 
   return (
-    <Card className="rounded-2xl">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 space-y-0 p-6 md:p-8">
+    <Card className="max-h-full flex flex-col rounded-2xl">
+      <CardHeader className="shrink-0 flex flex-row flex-wrap items-start justify-between gap-4 space-y-0 p-6 md:p-8">
         <div className="space-y-2">
           <CardTitle className="text-xl font-semibold">Expériences</CardTitle>
           <CardDescription className="text-base leading-7">
@@ -151,7 +151,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
           Ajouter une expérience
         </Button>
       </CardHeader>
-      <CardContent className="space-y-6 px-6 pb-6 md:px-8 md:pb-8">
+      <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-6 px-6 pb-6 md:px-8 md:pb-8">
         {experiences.length === 0 ? (
           <p className="rounded-2xl border border-dashed p-6 text-base leading-7 text-muted-foreground">
             Aucune expérience ajoutée pour l’instant.

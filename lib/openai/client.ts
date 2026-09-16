@@ -5,6 +5,7 @@ import {
   buildJobMatchUserPrompt,
 } from "@/lib/ai/prompts/job-match";
 import { parseJobMatchAnalysis } from "@/lib/ai/schemas/job-match";
+import { prepareJobMatchInputs } from "@/lib/jobs/job-match-input";
 import {
   mapOpenAIError,
   resolveOpenAIApiKey,
@@ -45,12 +46,21 @@ export async function analyzeJobMatch(
 ): Promise<JobAnalysis> {
   const client = getOpenAIClient(options?.apiKey);
   const systemPrompt = buildJobMatchSystemPrompt(options?.systemPrompt);
+  const prepared = prepareJobMatchInputs({
+    cvText: params.cvText,
+    jobDescription: params.jobDescription,
+  });
+  const truncatedNote =
+    prepared.cvTruncated || prepared.jobTruncated
+      ? "Input may be truncated for latency; analyze only the provided text."
+      : null;
 
   let response: OpenAI.Chat.Completions.ChatCompletion;
   try {
     response = await client.chat.completions.create({
       model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
       temperature: 0.1,
+      max_tokens: 3500,
       response_format: { type: "json_object" },
       messages: [
         {
@@ -59,7 +69,12 @@ export async function analyzeJobMatch(
         },
         {
           role: "user",
-          content: buildJobMatchUserPrompt(params),
+          content: buildJobMatchUserPrompt({
+            ...params,
+            cvText: prepared.cvText,
+            jobDescription: prepared.jobDescription,
+            truncatedNote,
+          }),
         },
       ],
     });
@@ -70,7 +85,9 @@ export async function analyzeJobMatch(
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("Empty response from OpenAI");
 
-  return parseJobMatchAnalysis(JSON.parse(content), { cvText: params.cvText });
+  return parseJobMatchAnalysis(JSON.parse(content), {
+    cvText: prepared.cvText,
+  });
 }
 
 export async function parseCvProfileWithAI(

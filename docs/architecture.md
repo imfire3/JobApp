@@ -17,6 +17,9 @@ This document describes the current scalable architecture of JobTracker after th
 - `app/dashboard` -> KPI dashboard + activity + AI recommendations
 - `app/jobs` -> job board (cards/table + filters)
 - `app/applications` -> application CRM pipeline
+- `app/companies` -> spontaneous-application prospection CRM (search + pipeline + outreach)
+- `app/companies/[id]` -> company detail (opportunity score, contacts, outreach, status)
+- `app/research` -> AI search plans feeding offer connectors
 - `app/sources` -> connectors overview
 - `app/sources/[sourceId]` -> connector detail and search configuration
 - `app/profile-ai` -> CV upload/parsing and AI profile preferences
@@ -31,6 +34,11 @@ This document describes the current scalable architecture of JobTracker after th
 - `app/api/sources/*` -> connectors and saved searches
 - `app/api/sync/*` -> daily/source/search automation entrypoints
 - `app/api/applications` -> CRM applications data
+- `app/api/searches/companies/parse` -> NL → company search criteria
+- `app/api/searches/companies/run` -> connector search + scoring + persistence
+- `app/api/companies` / `app/api/companies/[id]` -> company CRM read/update
+- `app/api/companies/[id]/contacts` -> company contacts
+- `app/api/companies/[id]/outreach` -> outreach message generation (email + LinkedIn)
 - `app/api/settings` -> user-level product settings
 - `app/api/notifications` -> in-app notifications
 - `app/api/dashboard/summary` -> dashboard aggregate endpoint
@@ -40,6 +48,10 @@ This document describes the current scalable architecture of JobTracker after th
 - `lib/sources/*` -> connector catalog, criteria normalization, sync orchestration
 - `lib/profile/parser.ts` -> local CV extraction fallback
 - `lib/openai/client.ts` -> OpenAI matching, cover letter, CV structured parsing
+- `lib/ai/company-ai.ts` -> company search intent / enrichment / outreach AI calls
+- `lib/connectors/companies/*` -> company prospection connector (mock provider, web fetch ready)
+- `lib/jobs/company-score.ts` -> deterministic match + opportunity scoring
+- `lib/jobs/company-prospecting.ts` -> company search pipeline (persistence, contacts, outreach)
 - `lib/jobs/utils.ts` -> filters, KPIs, formatting helpers
 - `lib/supabase/*` -> browser/server/proxy session clients
 
@@ -56,12 +68,17 @@ Core tables:
 - `sync_logs`
 - `notifications`
 - `user_settings`
+- `company_searches`
+- `companies`
+- `company_contacts`
+- `outreach_messages`
 
 Related migrations:
 
 - `001_initial_schema.sql`
 - `002_sources_and_sync.sql`
 - `003_crm_and_profile_ai.sql`
+- `027_company_prospecting.sql` (companies CRM: search, prospects, contacts, outreach)
 
 ## 4) Automation flow
 

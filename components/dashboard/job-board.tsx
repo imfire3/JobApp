@@ -133,7 +133,7 @@ export function JobBoard() {
       await fetchJobs();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Sample import failed");
-      router.push("/imports");
+      router.push("/jobs");
     } finally {
       setImporting(false);
     }

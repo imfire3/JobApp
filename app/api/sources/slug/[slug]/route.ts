@@ -49,10 +49,13 @@ export async function GET(
       display_status_label: presentation.displayStatusLabel,
       alternate_href: presentation.alternateHref,
       alternate_label: presentation.alternateLabel,
+      research_capability: presentation.researchCapability,
+      research_label: presentation.researchLabel,
+      research_detail: presentation.researchDetail,
       auth_configured:
         presentation.ingestionMode === "api"
           ? presentation.supportsServerSync
-          : false,
+          : presentation.researchCapability === "live_api",
     },
     searches: searches ?? [],
     sync_runs: runs ?? [],

@@ -17,9 +17,7 @@ import {
 function isExtensionModalRoute(pathname: string) {
   return (
     pathname === "/jobs" ||
-    pathname.startsWith("/jobs/") ||
-    pathname === "/imports" ||
-    pathname.startsWith("/imports/")
+    pathname.startsWith("/jobs/")
   );
 }
 

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { ExternalLink, KeyRound } from "lucide-react"
 import { toast } from "sonner"
 import { AuthCardShell } from "@/components/auth/auth-card-shell"
-import { OnboardingProgress } from "@/components/onboarding/onboarding-progress"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field } from "@/components/ui/field"
@@ -143,7 +142,6 @@ export function ApiKeysPageClient() {
         <Card className="w-full shadow-lg">
           <form onSubmit={handleContinue}>
             <CardHeader className="space-y-4 text-center">
-              <OnboardingProgress current="api-keys" className="text-left" />
               <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <KeyRound className="h-6 w-6" />
               </div>

@@ -6,7 +6,9 @@ export type GuidePageId =
   | "imports"
   | "extension"
   | "sources"
+  | "research"
   | "cv"
+  | "companies"
   | "settings"
 
 export type PageHelpTip = {
@@ -126,6 +128,51 @@ export const PAGE_HELP: Record<GuidePageId, { title: string; tips: PageHelpTip[]
       },
     ],
   },
+  research: {
+    title: "Recherche IA",
+    tips: [
+      {
+        id: "research-intro",
+        title: "Décris ta recherche en une phrase",
+        body: "L’agent transforme ta consigne en plan (rôles, lieu, récence, score min, sources). Vérifie le plan avant de lancer.",
+      },
+      {
+        id: "research-ft",
+        title: "API ou bibliothèque",
+        body: "France Travail (et Apify si configuré) cherchent en live. « Mes offres importées » filtre tout ton board. Les autres cartes filtrent par plateforme — pas de scrape.",
+      },
+      {
+        id: "research-score",
+        title: "Score après validation",
+        body: "Tu coches les résultats, puis l’analyse match tourne. Les offres sous le seuil restent dans le board mais non sélectionnées.",
+      },
+    ],
+  },
+  companies: {
+    title: "Recherche entreprises",
+    tips: [
+      {
+        id: "companies-intro",
+        title: "Prospecte sans attente d’offre",
+        body: "Décris en une phrase les entreprises que tu vises (secteurs, lieux, taille, télétravail). L’agent transforme ta consigne en critères que tu peux ajuster.",
+      },
+      {
+        id: "companies-score",
+        title: "Score d’opportunité",
+        body: "Chaque entreprise reçoit un score d’opportunité (adéquation profil, secteur, lieu, équipe produit, croissance, contact trouvé). Le score de match est calculé depuis ton profil et tes critères.",
+      },
+      {
+        id: "companies-outreach",
+        title: "Prépare ta candidature spontanée",
+        body: "Dans le détail d’une entreprise, génère un email et un message LinkedIn personnalisés : l’IA cite une vraie information sur l’entreprise et n’invente jamais de contenu.",
+      },
+      {
+        id: "companies-pipeline",
+        title: "Suis ta prospection",
+        body: "Fais avancer chaque entreprise dans le pipeline : contact trouvé, message préparé, envoyé, relance, réponse, entretien… jusqu’à l’opportunité.",
+      },
+    ],
+  },
   settings: {
     title: "Réglages",
     tips: [
@@ -147,6 +194,9 @@ export const pathnameToGuidePage = (pathname: string): GuidePageId | null => {
   if (pathname.startsWith("/dashboard")) return "dashboard"
   if (pathname.startsWith("/extension")) return "extension"
   if (pathname.startsWith("/sources")) return "sources"
+  if (pathname.match(/^\/companies\/[^/]+/)) return "companies"
+  if (pathname.startsWith("/companies")) return "companies"
+  if (pathname.startsWith("/research")) return "research"
   if (pathname.startsWith("/settings")) return "settings"
   return null
 }

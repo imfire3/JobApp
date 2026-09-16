@@ -245,7 +245,7 @@ export function SourceDetailPage({ sourceSlug }: { sourceSlug: string }) {
                   Extension Chrome
                 </Link>
                 <Link
-                  href="/imports?paste=1"
+                  href="/jobs"
                   className={buttonVariants({ variant: "outline" })}
                 >
                   Coller une offre

@@ -257,7 +257,7 @@ export default function ApplicationsPage() {
     <AppShell>
       <div className="space-y-6">
         <StickyPageHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Candidatures</h1>
               <p className="text-base text-muted-foreground">
@@ -265,7 +265,6 @@ export default function ApplicationsPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <PageHelpButton pageId="applications" />
               <Button
                 type="button"
                 variant="outline"
@@ -279,6 +278,7 @@ export default function ApplicationsPage() {
                 <Plus className="mr-2 h-4 w-4" />
                 Nouvelle candidature
               </Button>
+              <PageHelpButton pageId="applications" />
             </div>
           </div>
         </StickyPageHeader>

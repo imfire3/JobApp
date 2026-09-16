@@ -4,16 +4,12 @@ import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ArrowLeft,
-  CheckCircle2,
-  CircleAlert,
   ExternalLink,
   FileText,
   Loader2,
   Mail,
   MessageSquare,
   Mic,
-  Sparkles,
-  WandSparkles,
 } from "lucide-react"
 import { toast } from "sonner"
 import { AppShell } from "@/components/layout/app-shell"
@@ -30,6 +26,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { AnalyzingProgressPanel } from "@/components/jobs/job-scoring-progress"
+import {
+  ImportanceBadge,
+  JobDetailOverview,
+} from "@/components/jobs/lab/job-detail-overview"
 import {
   Table,
   TableBody,
@@ -41,31 +42,26 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { JOB_MATCH_PROMPT_VERSION } from "@/lib/ai/prompts/job-match"
 import {
-  buildCriteriaRows,
   buildKeywordRows,
-  buildMatchNarrative,
   buildOptimizeBuckets,
-  buildPriorityActionCards,
-  buildSubScores,
-  criteriaDerivedHighlights,
-  criterionMatchDisplay,
+  cvOriginalOf,
   hasJobFitResult,
-  isRichScoreExplanation,
-  splitScoreExplanation,
   keywordsForCvImprovement,
-  matchVerdict,
   offerMissionHints,
   offerSkillHints,
   projectOptimizedScore,
-  resolveLabAnalysisState,
-  type LabCriterionRow,
+  questionOf,
+  reformulationOf,
+  reasonOf,
+  sectionOf,
+  sourceOf,
 } from "@/lib/jobs/job-detail-lab-model"
+import { isJobFitCacheValidClient } from "@/lib/jobs/job-fit-cache-client"
+import { jobStatusLabel } from "@/lib/jobs/status-labels"
 import { getMatchScoreColor, getStatusColor } from "@/lib/jobs/utils"
 import { cn } from "@/lib/utils"
 import type { CvAnalysisResponse, Job, JobStatus } from "@/types"
@@ -76,69 +72,6 @@ type JobDetailLabPageProps = {
 }
 
 type LabTab = "overview" | "offer" | "optimize" | "apply"
-
-const ANALYSIS_STEPS = [
-  "Lecture de l’offre",
-  "Extraction des compétences",
-  "Comparaison avec ton CV",
-  "Analyse ATS",
-  "Création des recommandations",
-] as const
-
-function ScoreBar({ value }: { value: number | null }) {
-  const pct = typeof value === "number" ? Math.max(0, Math.min(100, value)) : 0
-  return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-      <div
-        className={cn(
-          "h-full rounded-full transition-all",
-          typeof value !== "number"
-            ? "bg-muted-foreground/20"
-            : value >= 70
-              ? "bg-emerald-500"
-              : value >= 45
-                ? "bg-amber-500"
-                : "bg-orange-500"
-        )}
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  )
-}
-
-function ImportanceBadge({
-  level,
-}: {
-  level: "élevée" | "moyenne" | "faible" | "Critique" | "Important" | "Secondaire"
-}) {
-  const tone =
-    level === "élevée" || level === "Critique"
-      ? "border-orange-500/40 bg-orange-500/10 text-orange-200"
-      : level === "moyenne" || level === "Important"
-        ? "border-amber-500/30 bg-amber-500/10 text-amber-100"
-        : "border-border bg-muted text-muted-foreground"
-  return (
-    <Badge variant="outline" className={cn("capitalize", tone)}>
-      {level}
-    </Badge>
-  )
-}
-
-function EvidenceLevelBadge({ row }: { row: LabCriterionRow }) {
-  const tone =
-    row.levelTone === "strong"
-      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-      : row.levelTone === "good"
-        ? "border-sky-500/40 bg-sky-500/10 text-sky-100"
-        : row.levelTone === "weak"
-          ? "border-amber-500/40 bg-amber-500/10 text-amber-100"
-          : "border-border bg-muted text-muted-foreground"
-  return (
-    <Badge variant="outline" className={cn(tone)}>
-      {row.evidenceLevel}/3 · {row.levelLabel}
-    </Badge>
-  )
-}
 
 export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
   const [job, setJob] = useState<Job | null>(null)
@@ -157,7 +90,10 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [confirmDetail, setConfirmDetail] = useState("")
   const [confirmSaving, setConfirmSaving] = useState(false)
-  const autoJobAnalyzeStarted = useRef(false)
+  const [optimizePhase, setOptimizePhase] = useState<
+    "idle" | "loading" | "success" | "error" | "cached"
+  >("idle")
+  const autoOptimizeKeyRef = useRef<string | null>(null)
 
   const loadJob = useCallback(async () => {
     setLoading(true)
@@ -198,7 +134,6 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- data bootstrap on mount
     void loadJob()
     void loadCvAnalysis()
   }, [loadJob, loadCvAnalysis])
@@ -220,10 +155,11 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
     setJob(payload.job)
   }
 
-  async function handleAnalyze(options?: { silent?: boolean }) {
+  async function handleAnalyze(options?: { silent?: boolean; force?: boolean }) {
     if (!job) return
     setAnalyzing(true)
     setAnalyzeError(null)
+    if (!options?.silent) setOptimizePhase("loading")
     try {
       const res = await fetch("/api/analyze-job", {
         method: "POST",
@@ -236,17 +172,14 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
       }
       if (payload.job) setJob(payload.job)
       else await loadJob()
+      setOptimizePhase("success")
       if (!options?.silent) toast.success("Analyse terminée")
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Analyse offre échouée"
       setAnalyzeError(message)
-      if (options?.silent) {
-        const permanent = /cv|settings|candidat|unauthorized|401/i.test(message)
-        if (!permanent) autoJobAnalyzeStarted.current = false
-      } else {
-        toast.error(message)
-      }
+      setOptimizePhase("error")
+      if (!options?.silent) toast.error(message)
     } finally {
       setAnalyzing(false)
     }
@@ -311,20 +244,100 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
     }
   }
 
+  // Auto job↔CV analysis when opening Optimiser mon CV (cache-aware).
   useEffect(() => {
-    autoJobAnalyzeStarted.current = false
-  }, [jobId])
+    if (tab !== "optimize") return
+    if (!job || loading || cvLoading) return
+    if (analyzing || cvAnalyzing) return
 
-  useEffect(() => {
-    if (!job || loading || analyzing || autoJobAnalyzeStarted.current) return
-    if (typeof job.match_score === "number" && job.job_posting_summary) return
-    // Skip re-analysis when job-fit artifacts already exist (even with null match_score)
-    if (hasJobFitResult(job)) return
-    autoJobAnalyzeStarted.current = true
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot auto analysis
-    void handleAnalyze({ silent: true })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot auto analysis
-  }, [job?.id, job?.match_score, job?.job_posting_summary, loading, analyzing])
+    if (isJobFitCacheValidClient(job, cvAnalysis, JOB_MATCH_PROMPT_VERSION)) {
+      return
+    }
+
+    const runKey = `auto:${job.id}:${cvAnalysis?.cv_content_hash ?? "none"}:${cvAnalysis?.is_stale ? "1" : "0"}`
+    if (autoOptimizeKeyRef.current === runKey) return
+    autoOptimizeKeyRef.current = runKey
+
+    let cancelled = false
+    ;(async () => {
+      setOptimizePhase("loading")
+      setAnalyzeError(null)
+
+      let analysis = cvAnalysis
+      if (!analysis || analysis.is_stale) {
+        setCvAnalyzing(true)
+        try {
+          const res = await fetch("/api/profile/analyze-cv", { method: "POST" })
+          const payload = (await res.json()) as {
+            analysis?: CvAnalysisResponse
+            error?: string
+          }
+          if (res.ok && payload.analysis) {
+            analysis = payload.analysis
+            if (!cancelled) setCvAnalysis(payload.analysis)
+          }
+        } catch {
+          // continue — job analyze may still work with saved CV
+        } finally {
+          if (!cancelled) setCvAnalyzing(false)
+        }
+      }
+
+      if (cancelled) return
+
+      if (
+        analysis &&
+        isJobFitCacheValidClient(job, analysis, JOB_MATCH_PROMPT_VERSION)
+      ) {
+        setOptimizePhase("idle")
+        return
+      }
+
+      setAnalyzing(true)
+      try {
+        const res = await fetch("/api/analyze-job", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId: job.id }),
+        })
+        const payload = (await res.json()) as { job?: Job; error?: string }
+        if (!res.ok) {
+          throw new Error(payload.error ?? "Analyse échouée")
+        }
+        if (cancelled) return
+        if (payload.job) setJob(payload.job)
+        else await loadJob()
+        setOptimizePhase("success")
+      } catch (error) {
+        if (cancelled) return
+        const message =
+          error instanceof Error ? error.message : "Analyse offre échouée"
+        setAnalyzeError(message)
+        setOptimizePhase("error")
+      } finally {
+        if (!cancelled) setAnalyzing(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+      // Allow Strict Mode remount to re-run the same key
+      if (autoOptimizeKeyRef.current === runKey) {
+        autoOptimizeKeyRef.current = null
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- auto once per optimize + cache inputs
+  }, [
+    tab,
+    job?.id,
+    job?.job_fit_cv_hash,
+    job?.job_fit_job_hash,
+    job?.job_fit_prompt_version,
+    cvLoading,
+    loading,
+    cvAnalysis?.cv_content_hash,
+    cvAnalysis?.is_stale,
+  ])
 
   async function handleGenerateCoverLetter() {
     if (!job) return
@@ -360,11 +373,20 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
     }
   }
 
-  const analysisState = resolveLabAnalysisState({
-    analyzing,
-    error: analyzeError,
-    job,
-  })
+  const optimizeCacheHit = Boolean(
+    job &&
+      isJobFitCacheValidClient(job, cvAnalysis, JOB_MATCH_PROMPT_VERSION)
+  )
+  const optimizeUiPhase: "idle" | "loading" | "success" | "error" | "cached" =
+    analyzing || (optimizePhase === "loading" && !optimizeCacheHit)
+      ? "loading"
+      : optimizePhase === "error"
+        ? "error"
+        : optimizeCacheHit
+          ? "cached"
+          : optimizePhase === "success"
+            ? "success"
+            : "idle"
 
   const optimize = useMemo(
     () => (job ? buildOptimizeBuckets(job, cvAnalysis) : null),
@@ -373,21 +395,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
 
   const projected = job ? projectOptimizedScore(job) : null
   const potentialScore = projected?.projected ?? null
-  const narrative = job ? buildMatchNarrative(job) : null
-  const richExplanation = isRichScoreExplanation(job?.score_explanation)
-  const whyScore = useMemo(
-    () => splitScoreExplanation(job?.score_explanation),
-    [job?.score_explanation]
-  )
-
-  const subScores = job ? buildSubScores(job) : []
-  const criteriaRows = job ? buildCriteriaRows(job) : []
-  const actionCards = job ? buildPriorityActionCards(job) : []
-  const highlights = job
-    ? criteriaDerivedHighlights(job)
-    : { strengths: [], gaps: [] }
   const keywordRows = job ? buildKeywordRows(job) : []
-  const verdict = matchVerdict(job?.match_score ?? null)
   const missions = job ? offerMissionHints(job) : []
   const skills = job ? offerSkillHints(job) : { hard: [], soft: [] }
 
@@ -407,9 +415,10 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
     const nextDrafts = { ...draftRewrites }
     let count = 0
     for (const item of optimize.safe) {
-      if (ignoredIds.has(item.id) || !item.suggested_rewrite) continue
+      const rewrite = reformulationOf(item)
+      if (ignoredIds.has(item.id) || !rewrite) continue
       nextApplied.add(item.id)
-      nextDrafts[item.id] = item.suggested_rewrite
+      nextDrafts[item.id] = rewrite
       count += 1
     }
     setAppliedIds(nextApplied)
@@ -477,7 +486,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                     ) : null}
                     {job.remote ? <Badge variant="tag">Remote</Badge> : null}
                     <Badge className={getStatusColor(job.status)} variant="secondary">
-                      {job.status.replace(/_/g, " ")}
+                      {jobStatusLabel(job.status)}
                     </Badge>
                   </div>
                 </div>
@@ -505,7 +514,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                     <SelectContent>
                       {JOB_STATUSES.map((status) => (
                         <SelectItem key={status} value={status}>
-                          {status.replace(/_/g, " ")}
+                          {jobStatusLabel(status)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -522,618 +531,32 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
             </StickyPageHeader>
 
             <TabsContent value="overview" className="space-y-4">
-              {analysisState === "analyzing" ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Analyse de ton offre</CardTitle>
-                    <p className="text-base text-muted-foreground">
-                      Comparaison en cours avec ton CV…
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      {ANALYSIS_STEPS.map((step) => (
-                        <div
-                          key={step}
-                          className="flex items-center gap-2 text-base text-muted-foreground"
-                        >
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          {step}
-                        </div>
-                      ))}
-                    </div>
-                    <Skeleton className="h-28 w-full rounded-xl" />
-                    <Skeleton className="h-40 w-full rounded-xl" />
-                  </CardContent>
-                </Card>
-              ) : null}
-
-              {analysisState === "idle_unanalyzed" ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Analyse ton offre</CardTitle>
-                    <p className="text-base text-muted-foreground">
-                      Identifie les compétences communes et les éléments à renforcer avant
-                      de candidater.
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <Button onClick={() => void handleAnalyze()} disabled={analyzing}>
-                      <Sparkles className="mr-1.5 h-4 w-4" />
-                      Analyser cette offre
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : null}
-
-              {analysisState === "error" ? (
-                <Card className="border-destructive/40">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CircleAlert className="h-5 w-5 text-destructive" />
-                      Analyse impossible
-                    </CardTitle>
-                    <p className="text-base text-muted-foreground">
-                      {analyzeError ?? "Une erreur est survenue."}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="flex flex-wrap gap-2">
-                    <Button onClick={() => void handleAnalyze()}>
-                      Relancer l’analyse
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => void handleRunCvAnalysis()}
-                      disabled={cvAnalyzing}
-                    >
-                      Ré-analyser mon CV
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : null}
-
-              {analysisState === "ready" ? (
-                <>
-                  <Card className="w-full border-border/80 bg-gradient-to-b from-card to-muted/20">
-                    <CardContent className="space-y-6 pt-6">
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <p className="text-base font-medium uppercase tracking-wide text-muted-foreground">
-                            Match avec ton profil
-                          </p>
-                          <p
-                            className={cn(
-                              "text-5xl font-bold tracking-tight",
-                              typeof job.match_score === "number"
-                                ? getMatchScoreColor(job.match_score)
-                                : "text-muted-foreground"
-                            )}
-                          >
-                            {typeof job.match_score === "number"
-                              ? `${job.match_score}`
-                              : "—"}
-                            <span className="text-2xl text-muted-foreground">
-                              {" "}
-                              / 100
-                            </span>
-                          </p>
-                          <p className="pt-1 text-lg font-medium">{verdict.label}</p>
-                          {richExplanation ? null : narrative ? (
-                            <div className="w-full space-y-2 text-base text-muted-foreground">
-                              <p>
-                                <span className="font-medium text-foreground">
-                                  Sur ton CV :
-                                </span>{" "}
-                                {narrative.fromCv}
-                              </p>
-                              <p>
-                                <span className="font-medium text-foreground">
-                                  La fiche demande :
-                                </span>{" "}
-                                {narrative.fromJob}
-                              </p>
-                            </div>
-                          ) : (
-                            <p className="text-base text-muted-foreground">
-                              {verdict.summary}
-                            </p>
-                          )}
-                        </div>
-
-                        {(whyScore.context ||
-                          whyScore.bullets.length > 0 ||
-                          criteriaRows.length > 0) &&
-                        typeof job.match_score === "number" ? (
-                          <div className="w-full space-y-3">
-                            <div className="w-full space-y-2 rounded-xl border border-border/80 bg-background/60 p-4">
-                              <p className="text-base font-medium uppercase tracking-wide text-muted-foreground">
-                                Pourquoi ce score
-                              </p>
-                              {whyScore.context ? (
-                                <p className="text-base leading-relaxed text-foreground/90">
-                                  {whyScore.context}
-                                </p>
-                              ) : whyScore.bullets.length === 0 ? (
-                                <p className="text-base text-muted-foreground">
-                                  Relance l’analyse pour obtenir un briefing synthétique
-                                  sur ce score.
-                                </p>
-                              ) : (
-                                <ul className="space-y-2 text-base leading-snug text-foreground/90">
-                                  {whyScore.bullets.map((item, index) => (
-                                    <li
-                                      key={`why-inline-${index}`}
-                                      className="flex gap-2"
-                                    >
-                                      <span
-                                        className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/50"
-                                        aria-hidden
-                                      />
-                                      <span>{item}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-
-                            {whyScore.context && whyScore.bullets.length > 0 ? (
-                              <div className="w-full rounded-xl border border-border/80 bg-background/60 p-4">
-                                <ul className="space-y-2 text-base leading-snug text-foreground/90">
-                                  {whyScore.bullets.map((item, index) => (
-                                    <li
-                                      key={`why-bullet-${index}`}
-                                      className="flex gap-2"
-                                    >
-                                      <span
-                                        className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/50"
-                                        aria-hidden
-                                      />
-                                      <span>{item}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            ) : null}
-
-                            {criteriaRows.length > 0 ? (
-                              <div className="w-full overflow-x-auto rounded-xl border border-border/80 bg-background/60 p-4">
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Critère clé</TableHead>
-                                      <TableHead className="w-20 text-right">
-                                        Poids
-                                      </TableHead>
-                                      <TableHead className="w-28 text-right">
-                                        Match
-                                      </TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {criteriaRows.map((row) => {
-                                      const match = criterionMatchDisplay(
-                                        row.evidenceLevel
-                                      )
-                                      return (
-                                        <TableRow key={row.id}>
-                                          <TableCell className="font-medium">
-                                            {row.label}
-                                          </TableCell>
-                                          <TableCell className="text-right text-muted-foreground">
-                                            {row.weightPercent}&nbsp;%
-                                          </TableCell>
-                                          <TableCell className="text-right tabular-nums">
-                                            {match.emoji} {match.scoreOutOf10}/10
-                                          </TableCell>
-                                        </TableRow>
-                                      )
-                                    })}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : null}
-
-                        <div className="w-full rounded-xl border border-border/80 bg-background/60 p-4">
-                          <p className="text-base uppercase tracking-wide text-muted-foreground">
-                            Potentiel après optimisation
-                          </p>
-                          <p className="mt-2 text-2xl font-semibold">
-                            {projected?.current ?? "—"}
-                            <span className="mx-2 text-muted-foreground">→</span>
-                            <span className="text-emerald-400">
-                              {potentialScore ?? "—"}
-                            </span>
-                          </p>
-                          <p className="mt-2 text-base text-muted-foreground">
-                            {projected &&
-                            projected.safeSuggestionCount > 0 &&
-                            projected.projected !== projected.current
-                              ? `Si tu améliores ces parties par reformulation et mots-clés ATS, sans inventer d’expérience, tu atteins ${projected.current} → ${projected.projected}.`
-                              : projected && projected.safeSuggestionCount === 0
-                                ? "Rien à gagner sans inventer d’expérience ou confirmer un écart."
-                                : "Score recalculé à partir des critères si tu appliques les reformulations sûres (sans mentir)."}
-                          </p>
-                          {projected && projected.safeSuggestionCount > 0 ? (
-                            <p className="mt-1 text-base text-muted-foreground">
-                              Leviers : {projected.safeSuggestionCount}{" "}
-                              reformulation
-                              {projected.safeSuggestionCount > 1 ? "s" : ""} safe
-                              {projected.missingKeywordCount > 0
-                                ? ` · ${projected.missingKeywordCount} mot${projected.missingKeywordCount > 1 ? "s" : ""}-clé${projected.missingKeywordCount > 1 ? "s" : ""} ATS`
-                                : ""}
-                              {projected.bumpedCriterionIds.length > 0
-                                ? ` · ${projected.bumpedCriterionIds.length} critère${projected.bumpedCriterionIds.length > 1 ? "s" : ""} amélioré${projected.bumpedCriterionIds.length > 1 ? "s" : ""}`
-                                : ""}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      {criteriaRows.length > 0 ? (
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-base font-medium">Critères (diagnostic)</p>
-                            <p className="text-base text-muted-foreground">
-                              Extraits de l’offre, pondérés, notés 0–3 selon ton CV.
-                            </p>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {criteriaRows.map((row) => (
-                              <div
-                                key={row.id}
-                                className={cn(
-                                  "min-w-[140px] max-w-full rounded-xl border px-3 py-2",
-                                  row.levelTone === "absent" ||
-                                    row.recruiterBlockRisk === "high"
-                                    ? "border-orange-500/40 bg-orange-500/5"
-                                    : "border-border/70 bg-background/50"
-                                )}
-                              >
-                                <p className="text-sm font-medium leading-snug">
-                                  {row.label}
-                                </p>
-                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                                  <EvidenceLevelBadge row={row} />
-                                  <Badge variant="secondary">
-                                    {row.weightPercent}%
-                                  </Badge>
-                                  <span className="text-sm tabular-nums text-muted-foreground">
-                                    +{row.scoreContribution}
-                                  </span>
-                                  {row.recruiterBlockRisk === "high" ? (
-                                    <Badge
-                                      variant="outline"
-                                      className="border-orange-500/40 text-orange-200"
-                                    >
-                                      Must-have
-                                    </Badge>
-                                  ) : null}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          {criteriaRows.some((row) => row.needsConfirmation) ? (
-                            <div className="space-y-2">
-                              {criteriaRows
-                                .filter((row) => row.needsConfirmation)
-                                .map((row) => (
-                                  <div
-                                    key={`confirm-${row.id}`}
-                                    className="rounded-xl border border-border/70 bg-background/50 p-3"
-                                  >
-                                    <p className="font-medium">{row.label}</p>
-                                    {row.question ? (
-                                      <p className="mt-2 text-base text-amber-100/90">
-                                        À confirmer : {row.question}
-                                      </p>
-                                    ) : null}
-                                    <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
-                                      {confirmingId === row.id ? (
-                                        <>
-                                          <Textarea
-                                            value={confirmDetail}
-                                            onChange={(event) =>
-                                              setConfirmDetail(event.target.value)
-                                            }
-                                            placeholder="Ex. 2 ans sur un portefeuille Assurance Vie chez X, résultats…"
-                                            rows={3}
-                                            aria-label={`Détail pour ${row.label}`}
-                                          />
-                                          <div className="flex flex-wrap gap-2">
-                                            <Button
-                                              size="sm"
-                                              disabled={confirmSaving}
-                                              onClick={() =>
-                                                void handleConfirmCriterion(row.id, "yes")
-                                              }
-                                            >
-                                              {confirmSaving ? (
-                                                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                                              ) : null}
-                                              Oui, j’ai cette expérience
-                                            </Button>
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              disabled={confirmSaving}
-                                              onClick={() =>
-                                                void handleConfirmCriterion(row.id, "no")
-                                              }
-                                            >
-                                              Non
-                                            </Button>
-                                            <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              disabled={confirmSaving}
-                                              onClick={() => {
-                                                setConfirmingId(null)
-                                                setConfirmDetail("")
-                                              }}
-                                            >
-                                              Annuler
-                                            </Button>
-                                          </div>
-                                        </>
-                                      ) : (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => {
-                                            setConfirmingId(row.id)
-                                            setConfirmDetail("")
-                                          }}
-                                        >
-                                          Répondre
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : subScores.length > 0 ? (
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        {subScores.slice(0, 4).map((score) => (
-                          <div
-                            key={score.id}
-                            className="rounded-xl border border-border/70 bg-background/50 p-3"
-                          >
-                            <div className="mb-2 flex items-center justify-between gap-2">
-                              <Tooltip>
-                                <TooltipTrigger
-                                  className="text-left text-base font-medium underline-offset-2 hover:underline"
-                                  type="button"
-                                >
-                                  {score.label}
-                                </TooltipTrigger>
-                                <TooltipContent>{score.tooltip}</TooltipContent>
-                              </Tooltip>
-                              <span className="text-base font-semibold tabular-nums">
-                                {typeof score.score === "number" ? `${score.score}%` : "—"}
-                              </span>
-                            </div>
-                            <ScoreBar value={score.score} />
-                          </div>
-                        ))}
-                      </div>
-                      ) : null}
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button onClick={() => setTab("optimize")}>
-                          <WandSparkles className="mr-1.5 h-4 w-4" />
-                          Optimiser mon CV
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => void handleAnalyze()}
-                          disabled={analyzing}
-                        >
-                          Ré-analyser l’offre
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="w-full">
-                    <CardHeader>
-                      <CardTitle>Tes actions prioritaires</CardTitle>
-                      <p className="text-base text-muted-foreground">
-                        À gauche ce qui est sur ton CV — à droite la reformulation et les
-                        mots-clés ATS pour mieux coller à la fiche.
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {actionCards.length === 0 ? (
-                        <p className="text-base text-muted-foreground">
-                          Aucune action prioritaire — ton CV couvre déjà bien cette offre.
-                        </p>
-                      ) : (
-                        actionCards.map((action, index) => (
-                          <div
-                            key={action.id}
-                            className="overflow-hidden rounded-[18px] border border-border bg-card shadow-sm"
-                          >
-                            <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border/70 px-4 py-3">
-                              <div>
-                                <p className="font-medium">
-                                  {index + 1}. {action.title}
-                                </p>
-                                {action.cvSection ? (
-                                  <p className="mt-1 text-sm text-muted-foreground">
-                                    Section CV : {action.cvSection}
-                                  </p>
-                                ) : null}
-                              </div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <ImportanceBadge level={action.importance} />
-                                {typeof action.estimatedImpact === "number" ? (
-                                  <Badge variant="secondary">
-                                    Impact estimé +{action.estimatedImpact}
-                                  </Badge>
-                                ) : null}
-                                {action.kind === "confirm" ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="border-amber-500/40 text-amber-100"
-                                  >
-                                    À confirmer
-                                  </Badge>
-                                ) : null}
-                              </div>
-                            </div>
-
-                            {action.kind === "safe_rewrite" ? (
-                              <div className="grid gap-0 md:grid-cols-2">
-                                <div className="border-border/70 bg-muted/40 p-4 md:border-r">
-                                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    Sur ton CV
-                                  </p>
-                                  <p className="whitespace-pre-wrap text-base font-medium text-foreground">
-                                    {action.fromCv || "Extrait CV non disponible."}
-                                  </p>
-                                </div>
-                                <div className="bg-background/40 p-4">
-                                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    Reformulation + mots-clés ATS
-                                  </p>
-                                  <p className="whitespace-pre-wrap text-base font-medium text-emerald-400">
-                                    {action.rewrite}
-                                  </p>
-                                  {action.keywords.length > 0 ? (
-                                    <div className="mt-3 flex flex-wrap gap-1.5">
-                                      {action.keywords.map((keyword) => (
-                                        <Badge key={keyword} variant="outline">
-                                          {keyword}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  ) : null}
-                                  <div className="mt-3">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => {
-                                        handleApplySuggestion(action.id, action.rewrite)
-                                        setTab("optimize")
-                                      }}
-                                    >
-                                      Voir dans Optimiser
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="space-y-3 p-4">
-                                <p className="text-base text-muted-foreground">
-                                  {action.kind === "confirm"
-                                    ? action.question ||
-                                      "À confirmer avant d’ajouter quoi que ce soit sur ton CV."
-                                    : action.fromCv ||
-                                      "Écart identifié entre ton CV et les attentes de l’offre — pas de reformulation sûre sans inventer."}
-                                </p>
-                                {action.keywords.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {action.keywords.map((keyword) => (
-                                      <Badge key={keyword} variant="outline">
-                                        {keyword}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                ) : null}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setTab("optimize")}
-                                >
-                                  {action.kind === "confirm"
-                                    ? "Voir à confirmer"
-                                    : "Voir Optimiser mon CV"}
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Points forts</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {highlights.strengths.length === 0 ? (
-                          <p className="text-base text-muted-foreground">
-                            Aucun point fort listé pour cette analyse.
-                          </p>
-                        ) : (
-                          highlights.strengths.map((reason) => (
-                            <div
-                              key={reason}
-                              className="flex items-start gap-2 text-base text-emerald-300/90"
-                            >
-                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                              <span>{reason}</span>
-                            </div>
-                          ))
-                        )}
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Points à renforcer</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {highlights.gaps.length === 0 &&
-                        (job.keywords_missing ?? []).length === 0 ? (
-                          <p className="text-base text-muted-foreground">
-                            Pas d’écart prioritaire détecté.
-                          </p>
-                        ) : (
-                          <>
-                            {highlights.gaps.map((gap) => (
-                              <div
-                                key={gap}
-                                className="flex items-start gap-2 text-base text-amber-200/90"
-                              >
-                                <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                                <span>{gap}</span>
-                              </div>
-                            ))}
-                            {criteriaRows.length === 0
-                              ? (job.keywords_missing ?? []).slice(0, 4).map((kw) => (
-                                  <div
-                                    key={kw}
-                                    className="flex items-start gap-2 text-base text-amber-200/90"
-                                  >
-                                    <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                                    <span>{kw}</span>
-                                  </div>
-                                ))
-                              : null}
-                            {highlights.gaps.length > 0 ? (
-                              <Button
-                                size="sm"
-                                variant="link"
-                                className="h-auto px-0"
-                                onClick={() => setTab("optimize")}
-                              >
-                                Voir les actions dans Optimiser mon CV
-                              </Button>
-                            ) : null}
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                </>
-              ) : null}
+              <JobDetailOverview
+                job={job}
+                analyzing={analyzing}
+                analyzeError={analyzeError}
+                cvAnalyzing={cvAnalyzing}
+                onReAnalyze={() => void handleAnalyze()}
+                onReAnalyzeCv={() => void handleRunCvAnalysis()}
+                onGoOptimize={() => setTab("optimize")}
+                confirmingId={confirmingId}
+                confirmDetail={confirmDetail}
+                confirmSaving={confirmSaving}
+                onOpenConfirm={(criterionId) => {
+                  setConfirmingId(criterionId)
+                  setConfirmDetail("")
+                }}
+                onConfirmDetailChange={setConfirmDetail}
+                onCancelConfirm={() => {
+                  setConfirmingId(null)
+                  setConfirmDetail("")
+                }}
+                onConfirmCriterion={(criterionId, answer) =>
+                  void handleConfirmCriterion(criterionId, answer)
+                }
+              />
             </TabsContent>
+
 
             <TabsContent value="offer" className="space-y-4">
               <Card>
@@ -1299,29 +722,65 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       À gauche ta phrase CV — à droite la reformulation pour matcher
                       la fiche et les mots-clés ATS. Sans inventer de faits.
                     </p>
+                    {optimizePhase === "cached" ? (
+                      <p className="mt-1 text-base text-muted-foreground">
+                        Analyse déjà à jour — aucun nouvel appel IA.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => void handleRunCvAnalysis()}
-                      disabled={cvAnalyzing || cvLoading}
-                    >
-                      {cvAnalyzing ? "Analyse…" : "Ré-analyser mon CV"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void handleAnalyze()}
+                      onClick={() => {
+                        autoOptimizeKeyRef.current = null
+                        void handleAnalyze({ force: true })
+                      }}
                       disabled={analyzing}
                     >
-                      {analyzing ? "Analyse offre…" : "Relancer l’analyse offre"}
+                      {analyzing ? "Analyse…" : "Relancer l’analyse"}
                     </Button>
                     <Button size="sm" onClick={handleApplyAllSafe}>
                       Appliquer toutes les suggestions sûres
                     </Button>
                   </div>
                 </CardHeader>
+                {(optimizePhase === "loading" || analyzing) &&
+                !hasJobFitResult(job) ? (
+                  <CardContent className="space-y-4">
+                    <p className="text-base text-muted-foreground">
+                      Analyse de votre CV par rapport à cette offre…
+                    </p>
+                    <AnalyzingProgressPanel
+                      active={analyzing || optimizePhase === "loading"}
+                      title={job.title}
+                    />
+                    <Skeleton className="h-28 w-full rounded-xl" />
+                    <Skeleton className="h-40 w-full rounded-xl" />
+                  </CardContent>
+                ) : null}
+                {optimizePhase === "error" && analyzeError ? (
+                  <CardContent>
+                    <div className="rounded-xl border border-destructive/40 p-4">
+                      <p className="font-medium text-destructive">
+                        Analyse impossible
+                      </p>
+                      <p className="mt-1 text-base text-muted-foreground">
+                        {analyzeError}
+                      </p>
+                      <Button
+                        className="mt-3"
+                        size="sm"
+                        onClick={() => {
+                          autoOptimizeKeyRef.current = null
+                          void handleAnalyze({ force: true })
+                        }}
+                      >
+                        Relancer
+                      </Button>
+                    </div>
+                  </CardContent>
+                ) : null}
                 <CardContent className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-border/70 p-4">
                     <p className="text-base uppercase text-muted-foreground">Score actuel</p>
@@ -1367,9 +826,16 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                           className="rounded-xl border border-border/70 p-4"
                         >
                           <p className="font-medium">{item.action}</p>
+                          {item.type === "confirmation_required" ? (
+                            <p className="mt-1">
+                              <Badge variant="outline" className="border-amber-500/40 text-amber-300">
+                                Requis dans l’offre
+                              </Badge>
+                            </p>
+                          ) : null}
                           <p className="mt-2 text-base text-muted-foreground">
-                            {item.information_to_confirm ||
-                              item.evidence_from_job ||
+                            {questionOf(item) ||
+                              sourceOf(item) ||
                               "Confirmation utilisateur requise."}
                           </p>
                           <div className="mt-3 flex flex-wrap gap-2">
@@ -1412,9 +878,9 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       .map((item, index) => {
                         const applied = appliedIds.has(item.id)
                         const rewrite =
-                          draftRewrites[item.id] ?? item.suggested_rewrite ?? ""
+                          draftRewrites[item.id] ?? reformulationOf(item)
                         const fromCv =
-                          item.evidence_from_cv?.trim() ||
+                          cvOriginalOf(item) ||
                           "Extrait CV non disponible — relance l’analyse."
                         const keywords = keywordsForCvImprovement(job, item)
                         return (
@@ -1425,11 +891,11 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                             <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border/70 px-4 py-3">
                               <div>
                                 <p className="font-medium">
-                                  {index + 1}. {item.action}
+                                  {index + 1}. {reasonOf(item)}
                                 </p>
-                                {item.cv_section?.trim() ? (
+                                {sectionOf(item) ? (
                                   <p className="mt-1 text-sm text-muted-foreground">
-                                    Section CV : {item.cv_section}
+                                    Section CV : {sectionOf(item)}
                                   </p>
                                 ) : null}
                               </div>
@@ -1457,7 +923,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                               </div>
                               <div className="bg-background/40 p-4">
                                 <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                  Reformulation pour matcher l’offre
+                                  Reformulation pour cette offre
                                 </p>
                                 <Textarea
                                   value={rewrite}
@@ -1479,12 +945,20 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                                     ))}
                                   </div>
                                 ) : null}
-                                {item.evidence_from_job?.trim() ? (
+                                {reasonOf(item) ? (
                                   <p className="mt-3 text-sm text-muted-foreground">
                                     <span className="font-medium text-foreground">
                                       Pourquoi ?{" "}
                                     </span>
-                                    {item.evidence_from_job}
+                                    {reasonOf(item)}
+                                  </p>
+                                ) : null}
+                                {sourceOf(item) ? (
+                                  <p className="mt-1.5 text-sm text-muted-foreground">
+                                    <span className="font-medium text-foreground">
+                                      Dans l’offre :{" "}
+                                    </span>
+                                    {sourceOf(item)}
                                   </p>
                                 ) : null}
                                 <div className="mt-3 flex flex-wrap gap-2">

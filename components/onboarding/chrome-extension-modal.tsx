@@ -1,7 +1,7 @@
 "use client";
 
 import { Download, FolderOpen, Puzzle } from "lucide-react";
-import { CHROME_EXTENSION_ZIP_URL } from "@/components/imports/chrome-extension-panel";
+import { CHROME_EXTENSION_ZIP_URL } from "@/lib/imports/chrome-extension";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,

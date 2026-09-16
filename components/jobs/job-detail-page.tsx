@@ -31,6 +31,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
+import { AnalyzingProgressPanel } from "@/components/jobs/job-scoring-progress";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
 import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 import { getMatchScoreColor, getStatusColor } from "@/lib/jobs/utils";
@@ -452,8 +453,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <PageHelpButton pageId="job-detail" />
+              <div className="flex flex-wrap items-center gap-2">
                 <a
                   href={job.url}
                   target="_blank"
@@ -463,6 +463,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                   <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                   Offre source
                 </a>
+                <PageHelpButton pageId="job-detail" />
                 <Select
                   value={job.status}
                   onValueChange={(value) => {
@@ -1011,10 +1012,11 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
               </CardHeader>
               <CardContent className="space-y-6">
                 {analyzing ? (
-                  <div className="flex items-center gap-2 text-base text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Comparaison du CV avec la fiche de poste…
-                  </div>
+                  <AnalyzingProgressPanel
+                    active={analyzing}
+                    title={job.title}
+                    className="rounded-xl border border-border bg-muted/20 p-3"
+                  />
                 ) : null}
 
                 {(() => {

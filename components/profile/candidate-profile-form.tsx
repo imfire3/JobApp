@@ -452,35 +452,58 @@ export function CandidateProfileForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6 lg:flex-row", className)}>
-      <nav
-        aria-label="Sections du profil"
-        className="shrink-0 space-y-1 lg:sticky lg:top-0 lg:w-56 lg:self-start"
-      >
-        {SECTIONS.map((section) => {
-          const Icon = section.icon
-          const active = activeSection === section.id
-          return (
-            <button
-              key={section.id}
-              type="button"
-              onClick={() => setActiveSection(section.id)}
-              className={cn(
-                "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-base transition-colors",
-                active
-                  ? "bg-primary/15 font-medium text-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-              aria-current={active ? "page" : undefined}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span>{section.label}</span>
-            </button>
-          )
-        })}
-      </nav>
+    <div className={cn("flex h-full flex-col", className)}>
+      <div className="shrink-0 space-y-4 pt-4">
+        <div className="flex items-center gap-3">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{
+                width: `${((SECTIONS.findIndex((s) => s.id === activeSection) + 1) / SECTIONS.length) * 100}%`,
+              }}
+            />
+          </div>
+          <span className="shrink-0 text-sm text-muted-foreground">
+            {SECTIONS.findIndex((s) => s.id === activeSection) + 1} sur{" "}
+            {SECTIONS.length}
+          </span>
+        </div>
 
-      <div className="min-w-0 flex-1 space-y-4">
+        <div className="rounded-xl border border-border bg-[#171717] p-2">
+          <nav
+            aria-label="Sections du profil"
+            className="flex items-center gap-1 overflow-x-auto"
+          >
+            {SECTIONS.map((section, index) => {
+              const Icon = section.icon
+              const active = activeSection === section.id
+              const sectionIndex = SECTIONS.findIndex((s) => s.id === activeSection)
+              const isCompleted = index < sectionIndex
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => setActiveSection(section.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors",
+                    active
+                      ? "bg-primary/15 font-medium text-foreground"
+                      : isCompleted
+                        ? "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        : "text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+                  )}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span>{section.label}</span>
+                </button>
+              )
+            })}
+          </nav>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-hidden py-4">
         {extractError ? (
           <div
             role="status"
@@ -492,15 +515,15 @@ export function CandidateProfileForm({
         ) : null}
 
         {activeSection === "personal" ? (
-          <Card className="rounded-2xl">
-            <CardHeader>
+          <Card className="max-h-full flex flex-col rounded-2xl">
+            <CardHeader className="shrink-0">
               <CardTitle>Informations personnelles</CardTitle>
               <CardDescription>
                 Permettez aux entreprises de vous contacter. Les champs absents
                 du CV restent vides.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+            <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="first_name">Prénom</Label>
                 <Input
@@ -580,15 +603,15 @@ export function CandidateProfileForm({
         ) : null}
 
         {activeSection === "job" ? (
-          <Card className="rounded-2xl">
-            <CardHeader>
+          <Card className="max-h-full flex flex-col rounded-2xl">
+            <CardHeader className="shrink-0">
               <CardTitle>Job recherché</CardTitle>
               <CardDescription>
                 Suggestions depuis le CV — ajoute manuellement les métiers
                 recherchés (aucun auto-save).
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-4">
               {suggestedRoles.length > 0 ? (
                 <div className="space-y-2">
                   <Label>Suggestions d’intitulés</Label>
@@ -724,14 +747,14 @@ export function CandidateProfileForm({
         ) : null}
 
         {activeSection === "skills" ? (
-          <Card className="rounded-2xl">
-            <CardHeader>
+          <Card className="max-h-full flex flex-col rounded-2xl">
+            <CardHeader className="shrink-0">
               <CardTitle>Compétences & expertises</CardTitle>
               <CardDescription>
                 Mots-clés ATS détectés depuis ton CV — ajoute ou retire librement.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-4">
               <SearchableMultiSelect
                 id="skills-search"
                 options={listAtsSkillOptions()}
@@ -746,14 +769,14 @@ export function CandidateProfileForm({
         ) : null}
 
         {activeSection === "languages" ? (
-          <Card className="rounded-2xl">
-            <CardHeader>
+          <Card className="max-h-full flex flex-col rounded-2xl">
+            <CardHeader className="shrink-0">
               <CardTitle>Langues</CardTitle>
               <CardDescription>
                 Sélectionne une langue puis son niveau.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <LanguageEntriesField
                 entries={profile.language_entries}
                 onChange={(entries) => updateField("language_entries", entries)}
@@ -770,14 +793,14 @@ export function CandidateProfileForm({
         ) : null}
 
         {activeSection === "resources" ? (
-          <Card className="rounded-2xl">
-            <CardHeader>
+          <Card className="max-h-full flex flex-col rounded-2xl">
+            <CardHeader className="shrink-0">
               <CardTitle>Autres ressources</CardTitle>
               <CardDescription>
                 Ajoutez votre CV et vos liens pour soutenir vos candidatures.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-4">
               <div className="space-y-3 rounded-xl border border-border p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -874,47 +897,54 @@ export function CandidateProfileForm({
             </CardContent>
           </Card>
         ) : null}
-
-        <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-          {mode === "onboarding" ? (
-            <Button
-              type="button"
-              disabled={saving}
-              onClick={() => void handleSave({ continueOnboarding: true })}
-            >
-              {saving ? "Enregistrement…" : "Enregistrer et continuer"}
-            </Button>
-          ) : (
-            <>
-              <Button
-                type="button"
-                disabled={saving}
-                onClick={() => void handleSave()}
-              >
-                {saving ? "Enregistrement…" : "Enregistrer"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={saving || extracting}
-                onClick={() => void handleRerunExtract()}
-              >
-                {extracting ? "Analyse…" : "Relancer l’analyse"}
-              </Button>
-            </>
-          )}
-          {mode === "onboarding" ? (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={saving}
-              onClick={() => void handleSave({ continueOnboarding: true })}
-            >
-              Continuer sans tout remplir
-            </Button>
-          ) : null}
-        </div>
       </div>
+
+      <div className="shrink-0 flex items-center justify-end gap-2 border-t border-border pt-4 pb-4">
+            {mode === "onboarding" ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={saving}
+                  onClick={() => void handleSave({ continueOnboarding: true })}
+                >
+                  Continuer sans tout remplir
+                </Button>
+                <Button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => {
+                    const currentIndex = SECTIONS.findIndex((s) => s.id === activeSection)
+                    if (currentIndex < SECTIONS.length - 1) {
+                      setActiveSection(SECTIONS[currentIndex + 1].id)
+                    } else {
+                      void handleSave({ continueOnboarding: true })
+                    }
+                  }}
+                >
+                  {saving ? "Enregistrement…" : "Suivant"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void handleSave()}
+                >
+                  {saving ? "Enregistrement…" : "Enregistrer"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={saving || extracting}
+                  onClick={() => void handleRerunExtract()}
+                >
+                  {extracting ? "Analyse…" : "Relancer l'analyse"}
+                </Button>
+              </>
+            )}
+        </div>
     </div>
   )
 }

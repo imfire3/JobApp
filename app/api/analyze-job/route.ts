@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { JOB_MATCH_PROMPT_VERSION } from "@/lib/ai/prompts/job-match";
+import { hashCvContent } from "@/lib/cv-analysis/hash";
 import { computeAtsOfferScore } from "@/lib/jobs/ats-offer-score";
+import { hashJobContent } from "@/lib/jobs/job-fit-cache";
 import { toJobViewModel } from "@/lib/jobs/mapper";
 import { analyzeJobMatch } from "@/lib/openai/client";
 
@@ -38,15 +40,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const [{ data: profile, error: profileError }, { data: candidateProfile }] =
-    await Promise.all([
-      supabase.from("cv_contexts").select("cv_text").eq("id", user.id).maybeSingle(),
-      supabase
-        .from("profiles")
-        .select("target_roles,target_locations,skills,tools,years_experience")
-        .eq("id", user.id)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: profile, error: profileError },
+    { data: candidateProfile },
+    { data: settings },
+  ] = await Promise.all([
+    supabase.from("cv_contexts").select("cv_text").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("target_roles,target_locations,skills,tools,years_experience")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("user_settings")
+      .select("job_match_system_prompt,openai_key")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
 
   if (profileError || !profile?.cv_text) {
     return NextResponse.json(
@@ -87,12 +97,6 @@ export async function POST(request: Request) {
 
   try {
     const view = toJobViewModel(job);
-
-    const { data: settings } = await supabase
-      .from("user_settings")
-      .select("job_match_system_prompt,openai_key")
-      .eq("id", user.id)
-      .maybeSingle();
 
     const customJobPrompt =
       typeof settings?.job_match_system_prompt === "string" &&
@@ -183,6 +187,13 @@ export async function POST(request: Request) {
             limitations: analysis.limitations ?? [],
             status: analysis.status ?? "ok",
             prompt_version: JOB_MATCH_PROMPT_VERSION,
+            cv_content_hash: hashCvContent(profile.cv_text),
+            job_content_hash: hashJobContent({
+              title: job.title,
+              company: job.company,
+              description: job.description ?? "",
+              summary: job.summary ?? null,
+            }),
             confirmations: existingConfirmations,
           },
         },

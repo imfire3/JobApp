@@ -28,7 +28,7 @@ export const franceTravailConnector: JobConnector = {
       motsCles: buildMotsCles(options),
       location: options.location ?? criteria.locations?.[0] ?? null,
       contractTypes: criteria?.contract_types,
-      publieeDepuis: 7,
+      publieeDepuis: options.publieeDepuisDays ?? 7,
       maxResults: options.maxResults ?? 50,
     })
     return jobs

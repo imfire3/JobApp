@@ -37,6 +37,8 @@ export interface JobConnectorOptions {
   keywords?: string[];
   excludedKeywords?: string[];
   maxResults?: number;
+  /** France Travail: offres publiées depuis au plus N jours */
+  publieeDepuisDays?: number;
 }
 
 export interface ConnectorFetchResult {

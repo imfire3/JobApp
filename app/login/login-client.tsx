@@ -12,10 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { AuthCardShell } from "@/components/auth/auth-card-shell";
-import {
-  ExtractionProgress,
-  OnboardingProgress,
-} from "@/components/onboarding/onboarding-progress";
+import { ExtractionProgress } from "@/components/onboarding/onboarding-progress";
 import { cn } from "@/lib/utils";
 
 /** Keep in sync with lib/cv-analysis/service.ts MIN_CV_LENGTH */
@@ -519,8 +516,6 @@ export default function LoginPageClient({
           className="flex w-full flex-col gap-8"
           data-ui="figma-cv-import-v2"
         >
-          <OnboardingProgress current="cv" />
-
           <Card className="w-full gap-6 border border-border bg-card p-6 py-6 shadow-lg">
             <form onSubmit={handleCv} className="flex flex-col gap-6">
               <div className="flex flex-col items-center gap-4 text-center">
