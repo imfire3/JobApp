@@ -873,7 +873,7 @@ export function ProfilePage() {
           <div className="space-y-1">
             <h1 className="text-3xl font-bold tracking-tight">Profil</h1>
             <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-              Thème, langue et préférences. L'IA est déjà incluse — expériences,
+              Thème, langue et préférences. L&apos;IA est déjà incluse — expériences,
               formation et préférences.
             </p>
           </div>

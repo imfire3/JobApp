@@ -183,8 +183,8 @@ export function CvAnalysisPanel({
         </div>
         <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <CardDescription className="text-sm leading-6 text-[#A1A1A1]">
-            Évaluation interne de lisibilité et de fit produit. Ce n'est pas une
-            garantie de passage d'un ATS particulier.
+            Évaluation interne de lisibilité et de fit produit. Ce n&apos;est pas une
+            garantie de passage d&apos;un ATS particulier.
           </CardDescription>
           <Button
             type="button"
@@ -201,18 +201,18 @@ export function CvAnalysisPanel({
       <CardContent className="space-y-6 p-6">
         {hasUnsavedCv && (
           <p className="rounded-[10px] border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-6 text-amber-700">
-            Enregistre ton contexte CV avant de lancer l'analyse.
+            Enregistre ton contexte CV avant de lancer l&apos;analyse.
           </p>
         )}
 
         {!hasSavedCv && !hasUnsavedCv && (
           <p className="text-sm leading-6 text-[#A1A1A1]">
-            Ajoute et enregistre ton texte de CV pour activer l'analyse.
+            Ajoute et enregistre ton texte de CV pour activer l&apos;analyse.
           </p>
         )}
 
         {loading ? (
-          <p className="text-sm text-[#A1A1A1]">Chargement de l'analyse précédente…</p>
+          <p className="text-sm text-[#A1A1A1]">Chargement de l&apos;analyse précédente…</p>
         ) : null}
 
         {analysis ? (
@@ -392,7 +392,7 @@ export function CvAnalysisPanel({
             onClick={() => setPromptOpen((open) => !open)}
           >
             <span className="flex items-center gap-2">
-              Prompt d'analyse
+              Prompt d&apos;analyse
               {isCustomPrompt ? (
                 <Badge variant="secondary" className="text-xs">Personnalisé</Badge>
               ) : (
@@ -408,7 +408,7 @@ export function CvAnalysisPanel({
           {promptOpen ? (
             <div className="space-y-4 border-t border-[#383838] px-4 py-4">
               <Label htmlFor="cv-analysis-prompt" className="text-sm text-[#A1A1A1]">
-                Prompt système utilisé pour l'analyse CV
+                Prompt système utilisé pour l&apos;analyse CV
               </Label>
               <Textarea
                 id="cv-analysis-prompt"
