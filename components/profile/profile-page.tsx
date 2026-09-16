@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   Briefcase,
-  ChevronDown,
-  ChevronUp,
   FileText,
   FileUp,
   Globe,
@@ -30,8 +28,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { PageHelpButton } from "@/components/onboarding/page-help-button"
 import { CvAnalysisPanel } from "@/components/settings/cv-analysis-panel"
 import { SearchableMultiSelect, SearchableSelect } from "@/components/jobs/searchable-multi-select"
-import { EducationDialog } from "@/components/profile/education-dialog"
-import { ExperienceDialog } from "@/components/profile/experience-dialog"
+import { EducationCardForm, EducationCardView } from "@/components/profile/education-card-form"
+import { ExperienceCard } from "@/components/profile/experience-card"
+import { ExperienceCardForm } from "@/components/profile/experience-card-form"
 import { LOCATION_TYPE_OPTIONS, MONTH_OPTIONS } from "@/lib/cv/experiences"
 import { FRANCE_CITIES } from "@/lib/onboarding/france-cities"
 import { emptyLanguageEntry } from "@/lib/profile/helpers"
@@ -84,9 +83,11 @@ type ProfileState = {
 }
 
 const NAV_SECTIONS = [
+  { id: "personal", label: "Informations personnelles", icon: Pencil },
   { id: "experiences", label: "Expériences", icon: Briefcase },
   { id: "education", label: "Formation", icon: GraduationCap },
   { id: "prefs", label: "Préférences", icon: Search },
+  { id: "analysis", label: "Analyse du CV", icon: FileText },
 ] as const
 
 type NavSectionId = (typeof NAV_SECTIONS)[number]["id"]
@@ -295,17 +296,16 @@ export function ProfilePage() {
   const [profile, setProfile] = useState<ProfileState>(emptyProfile)
   const [savedSnapshot, setSavedSnapshot] = useState("")
   const [analysis, setAnalysis] = useState<CvAnalysisResponse | null>(null)
-  const [activeSection, setActiveSection] = useState<NavSectionId>("experiences")
+  const [activeSection, setActiveSection] = useState<NavSectionId>("personal")
   const [cvToolsOpen, setCvToolsOpen] = useState(false)
   const [cvTextOpen, setCvTextOpen] = useState(false)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [languageDraft, setLanguageDraft] = useState("")
   const [languageListOpen, setLanguageListOpen] = useState(false)
-  const [experienceDialogOpen, setExperienceDialogOpen] = useState(false)
-  const [educationDialogOpen, setEducationDialogOpen] = useState(false)
-  const [editingExperience, setEditingExperience] =
-    useState<ProfileExperienceEntry | null>(null)
-  const [editingEducation, setEditingEducation] =
+  const [editingExperienceId, setEditingExperienceId] = useState<string | null>(null)
+  const [confirmDeleteExperienceId, setConfirmDeleteExperienceId] = useState<string | null>(null)
+  const [addingEducation, setAddingEducation] = useState(false)
+  const [editingEducationEntry, setEditingEducationEntry] =
     useState<ProfileEducationEntry | null>(null)
   const autoAnalyzeStarted = useRef(false)
   const autoFillStarted = useRef(false)
@@ -854,32 +854,6 @@ export function ProfilePage() {
     setActiveSection(sectionId)
   }
 
-  const handleSaveExperience = (entry: ProfileExperienceEntry) => {
-    const exists = profile.experience_entries.some((item) => item.id === entry.id)
-    updateField(
-      "experience_entries",
-      exists
-        ? profile.experience_entries.map((item) =>
-            item.id === entry.id ? entry : item
-          )
-        : [...profile.experience_entries, entry]
-    )
-    toast.success(exists ? "Expérience mise à jour" : "Expérience ajoutée")
-  }
-
-  const handleSaveEducation = (entry: ProfileEducationEntry) => {
-    const exists = profile.education_entries.some((item) => item.id === entry.id)
-    updateField(
-      "education_entries",
-      exists
-        ? profile.education_entries.map((item) =>
-            item.id === entry.id ? entry : item
-          )
-        : [...profile.education_entries, entry]
-    )
-    toast.success(exists ? "Formation mise à jour" : "Formation ajoutée")
-  }
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -893,27 +867,17 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="mb-6 space-y-4">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
+    <div className="space-y-4">
+      <div className="sticky top-0 z-30 space-y-4 border-b border-border bg-background pb-4 pt-4">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
             <h1 className="text-3xl font-bold tracking-tight">Profil</h1>
             <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-              Ta fiche candidat privée — expériences, formation et préférences,
-              avec le CV en outils secondaires.
+              Thème, langue et préférences. L'IA est déjà incluse — expériences,
+              formation et préférences.
             </p>
           </div>
-          <PageHelpButton pageId="cv" />
-        </header>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={hasSavedCv ? "secondary" : "outline"}>
-            {hasSavedCv ? "CV enregistré" : "CV à compléter"}
-          </Badge>
-          <span className="text-base text-muted-foreground">
-            {hasUnsaved ? "Modifications non enregistrées" : "À jour"}
-          </span>
-          <div className="ml-auto flex flex-wrap gap-2">
+          <div className="flex items-center gap-2">
             <input
               ref={headerPdfInputRef}
               type="file"
@@ -936,17 +900,6 @@ export function ProfilePage() {
               <FileUp className="mr-2 h-4 w-4" />
               {importingPdf ? "Import…" : "Importer un CV"}
             </Button>
-            {hasSavedCv && profile.cv_text.trim().length >= 200 ? (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={importingPdf}
-                onClick={() => void fillProfileFromCv(profile)}
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                {importingPdf ? "Remplissage…" : "Remplir depuis le CV"}
-              </Button>
-            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -956,22 +909,47 @@ export function ProfilePage() {
               <Sparkles className="mr-2 h-4 w-4" />
               {analyzing ? "Analyse…" : "Analyser"}
             </Button>
-            <Button
-              type="button"
-              disabled={saving || !hasUnsaved}
-              onClick={() => void handleSave()}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? "Enregistrement…" : "Enregistrer"}
-            </Button>
+            <PageHelpButton pageId="cv" />
           </div>
-        </div>
+        </header>
+
+        <nav
+          aria-label="Sections du profil"
+          className="inline-flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-[#171717] p-2"
+          role="tablist"
+        >
+          {NAV_SECTIONS.map((section) => {
+            const Icon = section.icon
+            const active = activeSection === section.id
+            return (
+              <button
+                key={section.id}
+                type="button"
+                role="tab"
+                id={`profile-tab-${section.id}`}
+                aria-controls={`profile-panel-${section.id}`}
+                aria-selected={active}
+                tabIndex={active ? 0 : -1}
+                onClick={() => handleNavClick(section.id)}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-base leading-6 transition-colors",
+                  active
+                    ? "bg-primary/15 font-medium text-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {section.label}
+              </button>
+            )
+          })}
+        </nav>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left column (~1/3) */}
-        <aside className="space-y-6 lg:col-span-1">
-          <section className="rounded-2xl border border-border p-6">
+      <div className="space-y-6">
+      {activeSection === "personal" ? (
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-border bg-[#171717] p-6">
             <div className="flex flex-col items-start gap-4">
               <div
                 className="flex h-20 w-20 items-center justify-center rounded-2xl bg-muted text-2xl font-semibold"
@@ -980,7 +958,7 @@ export function ProfilePage() {
                 {initialsFromName(profile.first_name, profile.last_name)}
               </div>
               <div className="w-full space-y-3">
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="profile-first-name">Prénom</Label>
                     <Input
@@ -1002,41 +980,38 @@ export function ProfilePage() {
                     />
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="profile-title">Titre</Label>
-                  <Input
-                    id="profile-title"
-                    value={profile.current_title ?? ""}
-                    onChange={(e) =>
-                      updateField("current_title", e.target.value || null)
-                    }
-                    placeholder={title}
-                  />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="profile-title">Titre</Label>
+                    <Input
+                      id="profile-title"
+                      value={profile.current_title ?? ""}
+                      onChange={(e) =>
+                        updateField("current_title", e.target.value || null)
+                      }
+                      placeholder={title}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="profile-city">Ville</Label>
+                    <SearchableSelect
+                      id="profile-city"
+                      options={
+                        profile.current_city &&
+                        !(FRANCE_CITIES as readonly string[]).includes(
+                          profile.current_city
+                        )
+                          ? [profile.current_city, ...FRANCE_CITIES]
+                          : [...FRANCE_CITIES]
+                      }
+                      value={profile.current_city}
+                      onChange={(city) => updateField("current_city", city)}
+                      placeholder="Rechercher une ville…"
+                      emptyOptionLabel="Aucune ville"
+                      allowCustom
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="profile-city">Ville</Label>
-                  <SearchableSelect
-                    id="profile-city"
-                    options={
-                      profile.current_city &&
-                      !(FRANCE_CITIES as readonly string[]).includes(
-                        profile.current_city
-                      )
-                        ? [profile.current_city, ...FRANCE_CITIES]
-                        : [...FRANCE_CITIES]
-                    }
-                    value={profile.current_city}
-                    onChange={(city) => updateField("current_city", city)}
-                    placeholder="Rechercher une ville…"
-                    emptyOptionLabel="Aucune ville"
-                    allowCustom
-                  />
-                </div>
-                <p className="text-base text-muted-foreground">
-                  Affiché comme <span className="font-medium text-foreground">{fullName}</span>
-                  {" · "}
-                  <span className="font-medium text-foreground">{title}</span>
-                </p>
               </div>
             </div>
 
@@ -1046,14 +1021,14 @@ export function ProfilePage() {
                 id="profile-bio"
                 value={profile.bio ?? ""}
                 onChange={(e) => updateField("bio", e.target.value || null)}
-                rows={5}
+                rows={4}
                 placeholder="Quelques lignes sur ton parcours et ce que tu recherches…"
                 className="resize-y text-base leading-7"
               />
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border p-6">
+          <section className="rounded-2xl border border-border bg-[#171717] p-6">
             <h2 className="text-lg font-semibold">Compétences & expertises</h2>
             <p className="mt-1 text-base text-muted-foreground">
               Cherche dans la liste ou ajoute librement une compétence.
@@ -1066,13 +1041,13 @@ export function ProfilePage() {
                 onChange={(skills) => updateField("skills", skills)}
                 placeholder="Ex. Figma, Product discovery…"
                 addButtonLabel="Ajouter"
-                emptyLabel="Aucune compétence pour l’instant."
+                emptyLabel="Aucune compétence pour l'instant."
                 allowCustom
               />
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border p-6">
+          <section className="rounded-2xl border border-border bg-[#171717] p-6">
             <h2 className="text-lg font-semibold">Langues</h2>
             <p className="mt-1 text-base text-muted-foreground">
               Choisis une langue dans la liste puis le niveau.
@@ -1218,7 +1193,7 @@ export function ProfilePage() {
             </ul>
           </section>
 
-          <section className="rounded-2xl border border-border p-6">
+          <section className="rounded-2xl border border-border bg-[#171717] p-6">
             <h2 className="text-lg font-semibold">Liens</h2>
             <div className="mt-4 space-y-3">
               <div className="space-y-1.5">
@@ -1265,43 +1240,10 @@ export function ProfilePage() {
               </div>
             </div>
           </section>
-        </aside>
+        </div>
+      ) : null}
 
-        {/* Right column (~2/3) */}
-        <div className="min-w-0 space-y-6 lg:col-span-2">
-          <nav
-            aria-label="Sections du profil"
-            className="flex flex-wrap gap-2 rounded-2xl border border-border/70 bg-background p-2"
-            role="tablist"
-          >
-            {NAV_SECTIONS.map((section) => {
-              const Icon = section.icon
-              const active = activeSection === section.id
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  role="tab"
-                  id={`profile-tab-${section.id}`}
-                  aria-controls={`profile-panel-${section.id}`}
-                  aria-selected={active}
-                  tabIndex={active ? 0 : -1}
-                  onClick={() => handleNavClick(section.id)}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-base leading-6 transition-colors",
-                    active
-                      ? "bg-primary/15 font-medium text-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {section.label}
-                </button>
-              )
-            })}
-          </nav>
-
-          {activeSection === "experiences" ? (
+      {activeSection === "experiences" ? (
           <section
             id="profile-panel-experiences"
             role="tabpanel"
@@ -1310,111 +1252,90 @@ export function ProfilePage() {
           >
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-semibold">Expériences</h2>
-              <Button
-                type="button"
-                onClick={() => {
-                  setEditingExperience(null)
-                  setExperienceDialogOpen(true)
-                }}
-              >
-                <Plus className="mr-1 h-4 w-4" />
-                Ajouter
-              </Button>
+              {!editingExperienceId && (
+                <Button
+                  type="button"
+                  onClick={() => setEditingExperienceId("new")}
+                >
+                  <Plus className="mr-1 h-4 w-4" />
+                  Ajouter
+                </Button>
+              )}
             </div>
-            {sortedExperiences.length === 0 ? (
-              <p className="rounded-2xl border border-dashed p-6 text-base text-muted-foreground">
-                Aucune expérience pour l’instant. Importe ton CV pour préremplir
-                les cartes.
-              </p>
+
+            {editingExperienceId === "new" && (
+              <ExperienceCardForm
+                onSave={(entry) => {
+                  updateField("experience_entries", [
+                    ...profile.experience_entries,
+                    entry,
+                  ])
+                  setEditingExperienceId(null)
+                  toast.success("Expérience ajoutée")
+                }}
+                onCancel={() => setEditingExperienceId(null)}
+              />
+            )}
+
+            {sortedExperiences.length === 0 && editingExperienceId !== "new" ? (
+              <div className="rounded-2xl border border-dashed p-6 text-center text-base text-muted-foreground">
+                <p>Aucune expérience pour l&apos;instant.</p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="mt-4"
+                  onClick={() => setEditingExperienceId("new")}
+                >
+                  <Plus className="mr-1 h-4 w-4" />
+                  Ajouter ma première expérience
+                </Button>
+              </div>
             ) : (
               <div className="grid gap-4">
-                {sortedExperiences.map((experience) => (
-                  <article
-                    key={experience.id}
-                    className="rounded-2xl border border-border bg-card p-5 shadow-sm"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-semibold"
-                        aria-hidden
-                      >
-                        {(experience.organization || experience.title || "?")
-                          .trim()
-                          .charAt(0)
-                          .toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h3 className="text-lg font-semibold leading-6">
-                              {experience.title || "Poste"}
-                            </h3>
-                            <p className="font-medium leading-6">
-                              {experience.organization || "Entreprise"}
-                            </p>
-                            <p className="text-base leading-6 text-muted-foreground">
-                              {[
-                                formatPeriod(experience),
-                                experience.employmentType,
-                                experience.location,
-                                LOCATION_TYPE_OPTIONS.find(
-                                  (option) =>
-                                    option.value === experience.locationType
-                                )?.label,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </p>
-                          </div>
-                          <div className="flex shrink-0 gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Modifier ${experience.title}`}
-                              onClick={() => {
-                                setEditingExperience(experience)
-                                setExperienceDialogOpen(true)
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Supprimer ${experience.title}`}
-                              onClick={() =>
-                                updateField(
-                                  "experience_entries",
-                                  profile.experience_entries.filter(
-                                    (item) => item.id !== experience.id
-                                  )
-                                )
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        {experience.highlights.trim() ? (
-                          <p className="mt-3 whitespace-pre-wrap text-base leading-6 text-muted-foreground">
-                            {experience.highlights.trim()}
-                          </p>
-                        ) : null}
-                        {experience.skills.length > 0 ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {experience.skills.map((skill) => (
-                              <Badge key={skill} variant="tag">
-                                {skill}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </article>
-                ))}
+                {sortedExperiences.map((experience) => {
+                  if (editingExperienceId === experience.id) {
+                    return (
+                      <ExperienceCardForm
+                        key={experience.id}
+                        initial={experience}
+                        onSave={(entry) => {
+                          updateField(
+                            "experience_entries",
+                            profile.experience_entries.map((item) =>
+                              item.id === entry.id ? entry : item
+                            )
+                          )
+                          setEditingExperienceId(null)
+                          toast.success("Expérience mise à jour")
+                        }}
+                        onCancel={() => setEditingExperienceId(null)}
+                      />
+                    )
+                  }
+
+                  return (
+                    <ExperienceCard
+                      key={experience.id}
+                      experience={experience}
+                      isConfirmDelete={confirmDeleteExperienceId === experience.id}
+                      onEdit={() => setEditingExperienceId(experience.id)}
+                      onDelete={() => {
+                        setConfirmDeleteExperienceId(experience.id)
+                      }}
+                      onConfirmDelete={() => {
+                        updateField(
+                          "experience_entries",
+                          profile.experience_entries.filter(
+                            (item) => item.id !== experience.id
+                          )
+                        )
+                        setConfirmDeleteExperienceId(null)
+                        toast.success("Expérience supprimée")
+                      }}
+                      onCancelDelete={() => setConfirmDeleteExperienceId(null)}
+                    />
+                  )
+                })}
               </div>
             )}
           </section>
@@ -1429,92 +1350,81 @@ export function ProfilePage() {
           >
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-semibold">Formation</h2>
-              <Button
-                type="button"
-                onClick={() => {
-                  setEditingEducation(null)
-                  setEducationDialogOpen(true)
-                }}
-              >
-                <Plus className="mr-1 h-4 w-4" />
-                Ajouter
-              </Button>
+              {!addingEducation && !editingEducationEntry ? (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setAddingEducation(true)
+                    setEditingEducationEntry(null)
+                  }}
+                >
+                  <Plus className="mr-1 h-4 w-4" />
+                  Ajouter
+                </Button>
+              ) : null}
             </div>
-            {sortedEducation.length === 0 ? (
-              <p className="rounded-2xl border border-dashed p-6 text-base text-muted-foreground">
-                Aucune formation pour l’instant.
-              </p>
+
+            {addingEducation && !editingEducationEntry ? (
+              <EducationCardForm
+                onSave={(entry) => {
+                  updateField("education_entries", [
+                    ...profile.education_entries,
+                    entry,
+                  ])
+                  setAddingEducation(false)
+                }}
+                onCancel={() => setAddingEducation(false)}
+              />
+            ) : null}
+
+            {editingEducationEntry ? (
+              <EducationCardForm
+                initial={editingEducationEntry}
+                onSave={(entry) => {
+                  updateField(
+                    "education_entries",
+                    profile.education_entries.map((item) =>
+                      item.id === entry.id ? entry : item
+                    )
+                  )
+                  setEditingEducationEntry(null)
+                }}
+                onCancel={() => setEditingEducationEntry(null)}
+              />
+            ) : null}
+
+            {sortedEducation.length === 0 && !addingEducation ? (
+              <div className="rounded-2xl border border-dashed p-6 text-center text-base text-muted-foreground">
+                <p>Ajoutez vos diplômes et formations pour compléter votre profil.</p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="mt-4"
+                  onClick={() => setAddingEducation(true)}
+                >
+                  <Plus className="mr-1 h-4 w-4" />
+                  Ajouter ma première formation
+                </Button>
+              </div>
             ) : (
               <div className="grid gap-4">
                 {sortedEducation.map((entry) => (
-                  <article
+                  <EducationCardView
                     key={entry.id}
-                    className="rounded-2xl border border-border bg-card p-5 shadow-sm"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-semibold"
-                        aria-hidden
-                      >
-                        {(entry.school || entry.name || "?")
-                          .trim()
-                          .charAt(0)
-                          .toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 space-y-1">
-                            <h3 className="text-lg font-semibold leading-6">
-                              {entry.name || "Formation"}
-                            </h3>
-                            <p className="font-medium leading-6">
-                              {[entry.school, entry.level]
-                                .filter(Boolean)
-                                .join(" · ") || "Établissement"}
-                            </p>
-                            <p className="text-base leading-6 text-muted-foreground">
-                              {formatPeriod(entry)}
-                            </p>
-                          </div>
-                          <div className="flex shrink-0 gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Modifier ${entry.name}`}
-                              onClick={() => {
-                                setEditingEducation(entry)
-                                setEducationDialogOpen(true)
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Supprimer ${entry.name}`}
-                              onClick={() =>
-                                updateField(
-                                  "education_entries",
-                                  profile.education_entries.filter(
-                                    (item) => item.id !== entry.id
-                                  )
-                                )
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        {entry.description.trim() ? (
-                          <p className="mt-3 whitespace-pre-wrap text-base leading-6 text-muted-foreground">
-                            {entry.description.trim()}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  </article>
+                    entry={entry}
+                    onEdit={(e) => {
+                      setEditingEducationEntry(e)
+                      setAddingEducation(false)
+                    }}
+                    onDelete={(id) =>
+                      updateField(
+                        "education_entries",
+                        profile.education_entries.filter(
+                          (item) => item.id !== id
+                        )
+                      )
+                    }
+                  />
                 ))}
               </div>
             )}
@@ -1526,7 +1436,7 @@ export function ProfilePage() {
             id="profile-panel-prefs"
             role="tabpanel"
             aria-labelledby="profile-tab-prefs"
-            className="space-y-4 rounded-2xl border border-border p-6"
+            className="space-y-4 rounded-2xl border border-border bg-[#171717] p-6"
           >
             <h2 className="text-xl font-semibold">Préférences job</h2>
             <div className="space-y-4">
@@ -1639,133 +1549,61 @@ export function ProfilePage() {
           </section>
           ) : null}
 
-          {/* Secondary CV tools */}
-          <section
-            id="cv-tools"
-            className="scroll-mt-40 rounded-2xl border border-border"
-          >
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
-              onClick={() => setCvToolsOpen((open) => !open)}
-              aria-expanded={cvToolsOpen}
-              aria-controls="cv-tools-panel"
-            >
-              <div className="min-w-0 space-y-1">
-                <p className="flex items-center gap-2 text-base font-semibold">
-                  <FileText className="h-4 w-4" />
-                  Outils CV
-                </p>
-                <p className="text-base text-muted-foreground">
-                  Import PDF, texte brut et analyse ATS (secondaire).
-                </p>
-              </div>
-              {cvToolsOpen ? (
-                <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-              )}
-            </button>
-
-            {cvToolsOpen ? (
-              <div
-                id="cv-tools-panel"
-                className="space-y-6 border-t border-border px-5 pb-5 pt-4"
-              >
-                <div className="space-y-3 rounded-xl border border-border p-4">
-                  <Label className="text-base font-medium">Importer un CV</Label>
-                  {profile.cv_file_name ? (
-                    <p className="text-base text-muted-foreground">
-                      Fichier actuel : {profile.cv_file_name}
-                      {profile.cv_file_updated_at
-                        ? ` · ${new Date(profile.cv_file_updated_at).toLocaleString("fr-FR")}`
-                        : null}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <Input
-                      type="file"
-                      accept=".pdf,application/pdf,image/png,image/jpeg,image/webp"
-                      onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
-                      aria-label="Choisir un fichier CV"
-                      className="sm:flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => void handleImportPdf()}
-                      disabled={importingPdf || !pdfFile}
-                    >
-                      <FileUp className="mr-2 h-4 w-4" />
-                      {importingPdf ? "Import…" : "Importer"}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-border">
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                    onClick={() => setCvTextOpen((open) => !open)}
-                    aria-expanded={cvTextOpen}
-                    aria-controls="cv-text-panel"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium">Texte du CV</p>
-                      <p className="truncate text-base text-muted-foreground">
-                        {profile.cv_text.trim().length > 0
-                          ? `${profile.cv_text.trim().length} caractères`
-                          : "Vide — ouvre pour coller le texte"}
-                      </p>
-                    </div>
-                    {cvTextOpen ? (
-                      <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+          {activeSection === "analysis" ? (
+            <div className="space-y-6">
+              <section className="rounded-[14px] border border-[#383838] bg-[#171717] p-6">
+                <h2 className="text-xl font-semibold text-[#FAFAFA]">Importer un CV</h2>
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 flex-1 items-center gap-3 text-sm text-[#A1A1A1]">
+                    <FileText className="h-4 w-4 shrink-0" />
+                    {profile.cv_file_name ? (
+                      <span className="truncate">
+                        {profile.cv_file_name}
+                        {profile.cv_file_updated_at
+                          ? ` · ${new Date(profile.cv_file_updated_at).toLocaleString("fr-FR")}`
+                          : null}
+                      </span>
                     ) : (
-                      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span>Aucun CV importé</span>
                     )}
-                  </button>
-                  {cvTextOpen ? (
-                    <div
-                      id="cv-text-panel"
-                      className="border-t border-border px-4 pb-4 pt-3"
-                    >
-                      <Textarea
-                        value={profile.cv_text}
-                        onChange={(e) => updateField("cv_text", e.target.value)}
-                        rows={10}
-                        placeholder="Colle ici le texte de ton CV…"
-                        className="max-h-[24rem] resize-y text-base leading-7"
-                      />
-                    </div>
-                  ) : null}
+                  </div>
+                  <input
+                    ref={headerPdfInputRef}
+                    type="file"
+                    accept=".pdf,application/pdf,image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    aria-hidden
+                    tabIndex={-1}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null
+                      e.target.value = ""
+                      if (file) void handleImportPdf(file)
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={importingPdf}
+                    onClick={() => headerPdfInputRef.current?.click()}
+                  >
+                    <FileUp className="mr-2 h-4 w-4" />
+                    {importingPdf ? "Import…" : "Importer un CV"}
+                  </Button>
                 </div>
+              </section>
 
-                <CvAnalysisPanel
-                  analysis={analysis}
-                  analyzing={analyzing}
-                  loading={analysisLoading}
-                  hasUnsavedCv={hasUnsaved}
-                  hasSavedCv={hasSavedCv}
-                  onAnalyze={handleAnalyze}
-                />
-              </div>
-            ) : null}
-          </section>
-        </div>
+              <CvAnalysisPanel
+                analysis={analysis}
+                analyzing={analyzing}
+                loading={analysisLoading}
+                hasUnsavedCv={hasUnsaved}
+                hasSavedCv={hasSavedCv}
+                onAnalyze={handleAnalyze}
+              />
+            </div>
+          ) : null}
       </div>
 
-      <ExperienceDialog
-        open={experienceDialogOpen}
-        onOpenChange={setExperienceDialogOpen}
-        initial={editingExperience}
-        onSave={handleSaveExperience}
-      />
-      <EducationDialog
-        open={educationDialogOpen}
-        onOpenChange={setEducationDialogOpen}
-        initial={editingEducation}
-        onSave={handleSaveEducation}
-      />
     </div>
   )
 }
