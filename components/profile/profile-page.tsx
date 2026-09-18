@@ -1351,20 +1351,22 @@ export function ProfilePage() {
             id="profile-panel-education"
             role="tabpanel"
             aria-labelledby="profile-tab-education"
-            className="space-y-4"
+            className="rounded-[18px] border border-[#2F2F2F] bg-[#171717] p-6 space-y-4"
           >
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold">Formation</h2>
+              <h2 className="text-xl font-semibold text-[#FAFAFA]">Formation</h2>
               {!addingEducation && !editingEducationEntry ? (
                 <Button
                   type="button"
+                  variant="outline"
                   onClick={() => {
                     setAddingEducation(true)
                     setEditingEducationEntry(null)
                   }}
+                  className="h-12 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
                 >
-                  <Plus className="mr-1 h-4 w-4" />
-                  Ajouter
+                  <Plus className="h-4 w-4" />
+                  Ajouter une formation
                 </Button>
               ) : null}
             </div>
@@ -1399,16 +1401,16 @@ export function ProfilePage() {
             ) : null}
 
             {sortedEducation.length === 0 && !addingEducation ? (
-              <div className="rounded-2xl border border-dashed p-6 text-center text-base text-muted-foreground">
-                <p>Ajoutez vos diplômes et formations pour compléter votre profil.</p>
+              <div className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6 text-center">
+                <p className="text-base text-[#A1A1A1]">Aucune formation pour l&apos;instant.</p>
                 <Button
                   type="button"
-                  variant="secondary"
-                  className="mt-4"
+                  variant="outline"
+                  className="mt-4 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
                   onClick={() => setAddingEducation(true)}
                 >
-                  <Plus className="mr-1 h-4 w-4" />
-                  Ajouter ma première formation
+                  <Plus className="h-4 w-4" />
+                  Ajouter une formation
                 </Button>
               </div>
             ) : (
