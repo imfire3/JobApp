@@ -472,7 +472,7 @@ export function CandidateProfileForm({
         <div className="rounded-xl border border-border bg-[#171717] p-2">
           <nav
             aria-label="Sections du profil"
-            className="flex items-center gap-1 overflow-x-auto"
+            className="flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {SECTIONS.map((section, index) => {
               const Icon = section.icon
