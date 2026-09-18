@@ -10,11 +10,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-<<<<<<< Updated upstream
 import { Badge } from "@/components/ui/badge";
-=======
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
->>>>>>> Stashed changes
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-<<<<<<< Updated upstream
 import {
   Sheet,
   SheetContent,
@@ -55,10 +50,6 @@ import {
   type Application,
   type ApplicationStatus,
 } from "@/types";
-=======
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { APPLICATION_STATUSES, type Application, type ApplicationStatus } from "@/types";
->>>>>>> Stashed changes
 import { toast } from "sonner";
 import { formatRelativeDate } from "@/lib/jobs/utils";
 import { cn } from "@/lib/utils";
@@ -103,7 +94,6 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-<<<<<<< Updated upstream
   const [createOpen, setCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [view, setView] = useState<"pipeline" | "table">("pipeline");
@@ -114,17 +104,6 @@ export default function ApplicationsPage() {
   const [draftStatus, setDraftStatus] = useState<ApplicationStatus>("applied");
   const [meetingNote, setMeetingNote] = useState("");
   const [form, setForm] = useState(emptyForm);
-=======
-  const [activeTab, setActiveTab] = useState<ApplicationStatus>("to_apply");
-  const [form, setForm] = useState({
-    company: "",
-    position: "",
-    date_applied: "",
-    status: "to_apply" as ApplicationStatus,
-    interview_date: "",
-    notes: "",
-  });
->>>>>>> Stashed changes
 
   const selected = useMemo(
     () => applications.find((app) => app.id === selectedId) ?? null,
@@ -212,27 +191,11 @@ export default function ApplicationsPage() {
         }),
       });
       const data = await res.json();
-<<<<<<< Updated upstream
       if (!res.ok) throw new Error(data.error ?? "Impossible de créer la candidature");
       setApplications((prev) => [data.application, ...prev]);
       setForm(emptyForm);
       setCreateOpen(false);
       toast.success("Candidature créée");
-=======
-      if (!res.ok) throw new Error(data.error ?? "Failed to create application");
-      const created = data.application as Application;
-      setApplications((prev) => [created, ...prev]);
-      setActiveTab(created.status);
-      setForm({
-        company: "",
-        position: "",
-        date_applied: "",
-        status: "to_apply",
-        interview_date: "",
-        notes: "",
-      });
-      toast.success(`Application créée — onglet ${STATUS_LABEL[created.status]}`);
->>>>>>> Stashed changes
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Impossible de créer la candidature");
     } finally {
@@ -269,7 +232,6 @@ export default function ApplicationsPage() {
       toast.error("Écris une note de réunion");
       return;
     }
-<<<<<<< Updated upstream
     setSaving(true);
     try {
       const updated = await patchApplication(selected.id, {
@@ -282,11 +244,6 @@ export default function ApplicationsPage() {
     } finally {
       setSaving(false);
     }
-=======
-    const updated = data.application as Application;
-    setApplications((prev) => prev.map((app) => (app.id === id ? updated : app)));
-    setActiveTab(updated.status);
->>>>>>> Stashed changes
   }
 
   const historyEntries = useMemo(() => {
@@ -641,7 +598,6 @@ export default function ApplicationsPage() {
         </DialogContent>
       </Dialog>
 
-<<<<<<< Updated upstream
       <Sheet
         open={Boolean(selected)}
         onOpenChange={(open) => {
@@ -788,86 +744,6 @@ export default function ApplicationsPage() {
           ) : null}
         </SheetContent>
       </Sheet>
-=======
-        {loading ? (
-          <Card className="h-56 animate-pulse" />
-        ) : (
-          <Tabs
-            value={activeTab}
-            onValueChange={(value) => setActiveTab(value as ApplicationStatus)}
-            className="space-y-4"
-          >
-            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
-              {APPLICATION_STATUSES.map((status) => {
-                const count = grouped.get(status)?.length ?? 0;
-                return (
-                  <TabsTrigger key={status} value={status} className="gap-1.5">
-                    {STATUS_LABEL[status]}
-                    <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
-                      {count}
-                    </span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-
-            {APPLICATION_STATUSES.map((status) => {
-              const items = grouped.get(status) ?? [];
-              return (
-                <TabsContent key={status} value={status} className="mt-0">
-                  {items.length === 0 ? (
-                    <Card>
-                      <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                        Aucune candidature dans « {STATUS_LABEL[status]} ».
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                      {items.map((application) => (
-                        <div key={application.id} className="rounded-lg border p-4">
-                          <p className="font-medium">{application.position}</p>
-                          <p className="text-sm text-muted-foreground">{application.company}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Applied: {application.date_applied ?? "—"}
-                            {application.interview_date
-                              ? ` · Interview: ${formatRelativeDate(application.interview_date)}`
-                              : ""}
-                          </p>
-                          {application.notes ? (
-                            <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">
-                              {application.notes}
-                            </p>
-                          ) : null}
-                          <div className="mt-3">
-                            <Select
-                              value={application.status}
-                              onValueChange={(value) =>
-                                updateStatus(application.id, value as ApplicationStatus)
-                              }
-                            >
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {APPLICATION_STATUSES.map((nextStatus) => (
-                                  <SelectItem key={nextStatus} value={nextStatus}>
-                                    {STATUS_LABEL[nextStatus]}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-              );
-            })}
-          </Tabs>
-        )}
-      </div>
->>>>>>> Stashed changes
     </AppShell>
   );
 }

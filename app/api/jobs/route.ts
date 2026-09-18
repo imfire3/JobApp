@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth";
-<<<<<<< Updated upstream
 import { upsertApplicationsFromAppliedJobs } from "@/lib/applications/upsert-from-job";
 import { deleteAllUserJobs } from "@/lib/imports/import-wttj-json";
-=======
->>>>>>> Stashed changes
 import { mapJobRows, toJobViewModel } from "@/lib/jobs/mapper";
 import { JOB_STATUSES } from "@/types";
 import { z } from "zod";
@@ -146,12 +143,7 @@ export async function PATCH(request: Request) {
 }
 
 /**
-<<<<<<< Updated upstream
  * DELETE /api/jobs — remove selected jobs (`{ ids }`) or all jobs (`{ all: true }`)
-=======
- * DELETE /api/jobs — delete selected jobs by id (owned by user)
- * Body: { ids: uuid[] }
->>>>>>> Stashed changes
  */
 export async function DELETE(request: Request) {
   const { supabase, user, error: authError } = await getAuthenticatedUser();
@@ -159,7 +151,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: authError }, { status: 401 });
   }
 
-<<<<<<< Updated upstream
   let body: unknown = null;
   try {
     body = await request.json();
@@ -219,32 +210,5 @@ export async function DELETE(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete jobs";
     return NextResponse.json({ error: message }, { status: 500 });
-=======
-  let body: { ids: string[] };
-  try {
-    body = z
-      .object({
-        ids: z.array(z.string().uuid()).min(1).max(100),
-      })
-      .parse(await request.json());
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid request body — ids required" },
-      { status: 400 }
-    );
->>>>>>> Stashed changes
   }
-
-  const { data, error } = await supabase
-    .from("jobs")
-    .delete()
-    .in("id", body.ids)
-    .eq("user_id", user.id)
-    .select("id");
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ deleted: data?.length ?? 0, ids: data?.map((row) => row.id) ?? [] });
 }

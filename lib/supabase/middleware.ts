@@ -74,7 +74,6 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (localUser) {
-<<<<<<< Updated upstream
     if (pathname === "/") {
       const url = request.nextUrl.clone();
       if (onboardingDone) {
@@ -84,19 +83,6 @@ export async function updateSession(request: NextRequest) {
         url.searchParams.set("cv", "1");
       }
       return NextResponse.redirect(url);
-    }
-
-    if (isAuthRoute) {
-=======
-    // Pending users can still see the marketing landing and start signup again
-    if (pathname === "/") {
->>>>>>> Stashed changes
-      if (onboardingDone) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/dashboard";
-        return NextResponse.redirect(url);
-      }
-      return NextResponse.next({ request });
     }
 
     if (isAuthRoute) {

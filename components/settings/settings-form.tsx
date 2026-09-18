@@ -1,6 +1,5 @@
 "use client"
 
-<<<<<<< Updated upstream
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -41,31 +40,8 @@ const SECTIONS = [
   { id: "langues", label: "Langues", icon: Languages },
   { id: "analyse", label: "Analyse ATS", icon: Sparkles },
 ] as const
-=======
-import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { CvAnalysisPanel } from "@/components/settings/cv-analysis-panel";
-import { FileUp, Save } from "lucide-react";
-import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { CvAnalysisResponse } from "@/types";
->>>>>>> Stashed changes
-
-type ParsedCvVisibility = "show" | "hide";
 
 export function SettingsForm() {
-<<<<<<< Updated upstream
   const router = useRouter()
   const [cvText, setCvText] = useState("")
   const [savedCvText, setSavedCvText] = useState("")
@@ -81,20 +57,6 @@ export function SettingsForm() {
   const [activeSection, setActiveSection] = useState<string>("fiche")
   const [cvTextOpen, setCvTextOpen] = useState(false)
   const autoAnalyzeStarted = useRef(false)
-=======
-  const [cvText, setCvText] = useState("");
-  const [savedCvText, setSavedCvText] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [importingPdf, setImportingPdf] = useState(false);
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<CvAnalysisResponse | null>(null);
-  const [analysisLoading, setAnalysisLoading] = useState(true);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [parsedVisibility, setParsedVisibility] =
-    useState<ParsedCvVisibility>("hide");
->>>>>>> Stashed changes
 
   const loadAnalysis = useCallback(async () => {
     setAnalysisLoading(true)
@@ -262,7 +224,6 @@ export function SettingsForm() {
       }
       if (!res.ok) throw new Error(data.error ?? "Import PDF échoué")
 
-<<<<<<< Updated upstream
       const text = data.extracted_text ?? ""
       setCvText(text)
       setSavedCvText(text)
@@ -284,16 +245,6 @@ export function SettingsForm() {
           toast.success("CV enregistré dans Profil & CV.")
         }
       }
-=======
-      const text = data.extracted_text ?? "";
-      setCvText(text);
-      setSavedCvText(text);
-      setLastUpdatedAt(data.profile?.updated_at ?? new Date().toISOString());
-      setPdfFile(null);
-      setParsedVisibility("show");
-      await loadAnalysis();
-      toast.success("CV imported as AI context.");
->>>>>>> Stashed changes
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Import PDF échoué")
     } finally {
@@ -345,7 +296,6 @@ export function SettingsForm() {
             ) : null}
           </div>
 
-<<<<<<< Updated upstream
           <TabsList
             aria-label="Sections du profil CV"
             className="h-auto w-full flex-wrap justify-start sm:w-fit"
@@ -361,59 +311,6 @@ export function SettingsForm() {
             })}
           </TabsList>
         </StickyPageHeader>
-=======
-          <div className="space-y-2">
-            <Label htmlFor="parsed-visibility">Texte du CV</Label>
-            <Select
-              value={parsedVisibility}
-              onValueChange={(value) => {
-                if (value === "show" || value === "hide") {
-                  setParsedVisibility(value);
-                }
-              }}
-            >
-              <SelectTrigger id="parsed-visibility" className="w-full">
-                <SelectValue
-                  placeholder={
-                    parsedVisibility === "hide"
-                      ? "Masquer le CV parsé"
-                      : "Afficher le CV parsé"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="show">Afficher le CV parsé</SelectItem>
-                <SelectItem value="hide">Masquer le CV parsé</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {parsedVisibility === "show" ? (
-            <div className="space-y-2">
-              <Textarea
-                value={cvText}
-                onChange={(e) => setCvText(e.target.value)}
-                rows={16}
-                placeholder="Paste your real CV content here (experience, achievements, tools, context)."
-                className="font-mono text-sm"
-              />
-              {lastUpdatedAt && (
-                <p className="text-xs text-muted-foreground">
-                  Last updated: {new Date(lastUpdatedAt).toLocaleString()}
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
-              CV masqué · {cvText.trim().length} caractères
-              {lastUpdatedAt
-                ? ` · maj. ${new Date(lastUpdatedAt).toLocaleString()}`
-                : ""}
-            </p>
-          )}
-        </CardContent>
-      </Card>
->>>>>>> Stashed changes
 
         <TabsContent value="fiche" className="mt-0">
           <CandidateProfileForm mode="settings" />

@@ -15,15 +15,17 @@ describe("source catalog ingestion modes", () => {
     assert.ok(SOURCE_CATALOG.some((s) => s.slug === "france-travail"))
   })
 
-  it("presents extension sources without server sync", () => {
+  it("presents non-live sources as imported libraries without server sync", () => {
     const linkedin = presentSource("linkedin-jobs")
     assert.equal(linkedin.supportsServerSync, false)
-    assert.equal(linkedin.displayStatus, "extension")
-    assert.equal(linkedin.alternateHref, "/extension")
+    assert.equal(linkedin.displayStatus, "imported_library")
+    assert.equal(linkedin.alternateHref, "/imports")
 
     const wttj = presentSource("welcome-to-the-jungle")
     assert.equal(wttj.supportsServerSync, false)
-    assert.match(wttj.displayStatusLabel, /extension|URL/i)
+    assert.equal(wttj.displayStatus, "imported_library")
+    assert.equal(wttj.alternateHref, "/imports?paste=1")
+    assert.equal(wttj.researchCapability, "imported_only")
   })
 
   it("exposes catalog metadata for france-travail", () => {

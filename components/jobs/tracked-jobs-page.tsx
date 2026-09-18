@@ -1,14 +1,8 @@
 "use client";
 
-<<<<<<< Updated upstream
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-=======
-import { useEffect, useMemo, useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
->>>>>>> Stashed changes
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JobFiltersBar, JobDateFilter, JobFilterMenu } from "@/components/dashboard/job-filters";
 import { JobCard } from "@/components/dashboard/job-card";
@@ -19,20 +13,12 @@ import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
 import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 import { filterJobs } from "@/lib/jobs/utils";
-<<<<<<< Updated upstream
 import type { Job, JobFilters, JobStatus } from "@/types";
 import { ClipboardPaste, Columns3, List, RefreshCw, LayoutGrid, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { JobScoringProgress } from "@/components/jobs/job-scoring-progress";
 import { useRouter } from "next/navigation";
-=======
-import type { Job, JobFilters, JobStatus, TrackedSearch } from "@/types";
-import { Copy, List, Play, Plus, RefreshCw, Trash2, LayoutGrid, Briefcase, Inbox } from "lucide-react";
-import { toast } from "sonner";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
->>>>>>> Stashed changes
 
 const defaultFilters: JobFilters = {};
 
@@ -44,7 +30,6 @@ type ImportedJobRef = {
   was_duplicate: boolean;
 };
 
-<<<<<<< Updated upstream
 type ImportJobsPayload = {
   error?: string;
   message?: string;
@@ -70,31 +55,14 @@ export function TrackedJobsPage({
   const [analysisByJobId, setAnalysisByJobId] = useState<
     Record<string, JobScoringProgress>
   >({});
-=======
-
-
-export function TrackedJobsPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const setupMode = searchParams.get("setup") === "1";
-  const [trackedSearches, setTrackedSearches] = useState<TrackedSearch[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [filters, setFilters] = useState<JobFilters>(defaultFilters);
-  const [mainTab, setMainTab] = useState<"collected" | "jobs">("collected");
-  const [view, setView] = useState<"cards" | "table">("table");
->>>>>>> Stashed changes
   const [loading, setLoading] = useState(true);
   const [coverLetterJob, setCoverLetterJob] = useState<Job | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
-<<<<<<< Updated upstream
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-=======
-  const [deleteLoading, setDeleteLoading] = useState(false);
->>>>>>> Stashed changes
   const [bulkProgress, setBulkProgress] = useState<{
     total: number;
     current: number;
@@ -126,9 +94,6 @@ export function TrackedJobsPage() {
         );
       }
       setJobs((jobsData.jobs as Job[]) ?? []);
-      if (setupMode) {
-        router.replace("/jobs/searches/new");
-      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load jobs");
       setJobs([]);
@@ -201,7 +166,6 @@ export function TrackedJobsPage() {
   const filteredJobs = useMemo(() => filterJobs(jobs, filters), [jobs, filters]);
   const sources = useMemo(() => [...new Set(jobs.map((job) => job.source))].sort(), [jobs]);
 
-<<<<<<< Updated upstream
   async function seedFakeJobs() {
     if (!allowLocalDevTools) return
     setSeedingFakeJobs(true)
@@ -235,8 +199,6 @@ export function TrackedJobsPage() {
       setSeedingFakeJobs(false)
     }
   }
-=======
->>>>>>> Stashed changes
 
   async function ingestImportedJobs(
     data: ImportJobsPayload,
@@ -316,54 +278,6 @@ export function TrackedJobsPage() {
     }
   }
 
-<<<<<<< Updated upstream
-=======
-  async function syncAllEnabled() {
-    setSyncingAll(true);
-    try {
-      const res = await fetch("/api/tracked-searches/run-all", { method: "POST" });
-      const data = await readJsonSafe(res);
-      if (!res.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "Sync failed");
-      }
-      const imported = typeof data.imported === "number" ? data.imported : 0;
-      toast.success(`Sync all complete: ${imported} new jobs imported`);
-      await loadAll();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Sync failed");
-    } finally {
-      setSyncingAll(false);
-    }
-  }
-
-  async function duplicateSearch(search: TrackedSearch) {
-    const payload: TrackedSearchPayload = {
-      ...search,
-      name: `${search.name} (Copy)`,
-      company_size: search.company_size ?? null,
-      company_culture: search.company_culture ?? null,
-      minimum_salary: search.minimum_salary ?? null,
-      minimum_match_score: search.minimum_match_score ?? null,
-    };
-    const res = await fetch("/api/tracked-searches", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await readJsonSafe(res);
-    if (!res.ok) {
-      toast.error(typeof data.error === "string" ? data.error : "Failed to duplicate search");
-      return;
-    }
-    toast.success("Search duplicated");
-    await loadAll();
-  }
-
-  function editSearch(search: TrackedSearch) {
-    router.push(`/jobs/searches/${search.id}`);
-  }
-
->>>>>>> Stashed changes
   async function updateJob(
     id: string,
     updates: Partial<Pick<Job, "status" | "selected" | "cover_letter">>
@@ -430,11 +344,7 @@ export function TrackedJobsPage() {
     }
   }
 
-<<<<<<< Updated upstream
   async function handleSelectAllVisible(selected: boolean) {
-=======
-  async function handleSelectAll(selected: boolean) {
->>>>>>> Stashed changes
     const ids = filteredJobs.map((job) => job.id);
     if (ids.length === 0) return;
 
@@ -443,11 +353,7 @@ export function TrackedJobsPage() {
       const res = await fetch("/api/jobs", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-<<<<<<< Updated upstream
         body: JSON.stringify({ ids, selected, selection_only: true }),
-=======
-        body: JSON.stringify({ ids, selected }),
->>>>>>> Stashed changes
       });
       const data = await readJsonSafe(res);
       if (!res.ok) {
@@ -469,11 +375,7 @@ export function TrackedJobsPage() {
     }
   }
 
-<<<<<<< Updated upstream
   async function handleBulkDelete() {
-=======
-  async function handleDeleteSelected() {
->>>>>>> Stashed changes
     const selected = jobs.filter((job) => job.selected);
     if (selected.length === 0) {
       toast.error("Sélectionne au moins une offre");
@@ -481,37 +383,22 @@ export function TrackedJobsPage() {
     }
     if (
       !window.confirm(
-<<<<<<< Updated upstream
         `Supprimer définitivement ${selected.length} offre${selected.length > 1 ? "s" : ""} ?`
-=======
-        `Supprimer ${selected.length} offre(s) ? Cette action est définitive.`
->>>>>>> Stashed changes
       )
     ) {
       return;
     }
 
-<<<<<<< Updated upstream
     setBulkDeleteLoading(true);
     try {
       const res = await fetch("/api/jobs", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: selected.map((job) => job.id) }),
-=======
-    setDeleteLoading(true);
-    try {
-      const ids = selected.map((job) => job.id);
-      const res = await fetch("/api/jobs", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
->>>>>>> Stashed changes
       });
       const data = await readJsonSafe(res);
       if (!res.ok) {
         throw new Error(
-<<<<<<< Updated upstream
           typeof data.error === "string" ? data.error : "Suppression groupée échouée"
         );
       }
@@ -546,27 +433,6 @@ export function TrackedJobsPage() {
     jobId: string,
     options?: { silent?: boolean }
   ): Promise<"ok" | "error" | "missing_cv"> {
-=======
-          typeof data.error === "string" ? data.error : "Suppression échouée"
-        );
-      }
-      const deletedIds = new Set(
-        Array.isArray(data.ids) ? (data.ids as string[]) : ids
-      );
-      setJobs((prev) => prev.filter((job) => !deletedIds.has(job.id)));
-      if (coverLetterJob && deletedIds.has(coverLetterJob.id)) {
-        setCoverLetterJob(null);
-      }
-      toast.success(`${deletedIds.size} offre(s) supprimée(s)`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Suppression échouée");
-    } finally {
-      setDeleteLoading(false);
-    }
-  }
-
-  async function handleAnalyze(jobId: string) {
->>>>>>> Stashed changes
     setAnalyzingId(jobId);
     setAnalysisByJobId((prev) => ({
       ...prev,
@@ -795,7 +661,6 @@ export function TrackedJobsPage() {
     }
   }
 
-<<<<<<< Updated upstream
   const emptyJobsCta = (
     <div className="space-y-6 rounded-lg border border-dashed p-8 text-center">
       <p className="text-base text-muted-foreground">
@@ -1020,248 +885,6 @@ export function TrackedJobsPage() {
               onJobsChange={setJobs}
             />
           )}
-=======
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Jobs</h1>
-          <p className="text-sm text-muted-foreground">
-            Define tracked searches once, automatic collection runs every day at 08:00.
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Last sync: {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Never"} · Next sync:{" "}
-            {nextSyncAt ? new Date(nextSyncAt).toLocaleString() : "Not scheduled"}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {mainTab === "jobs" ? (
-            <>
-              <Button variant="outline" onClick={syncAllEnabled} disabled={syncingAll}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${syncingAll ? "animate-spin" : ""}`} />
-                {syncingAll ? "Syncing..." : "Sync all enabled searches"}
-              </Button>
-              <Link href="/jobs/searches/new" className={buttonVariants()}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Search
-              </Link>
-            </>
-          ) : (
-            <Button variant="outline" onClick={loadAll}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <Tabs
-        value={mainTab}
-        onValueChange={(value) => setMainTab(value as "collected" | "jobs")}
-        className="space-y-4"
-      >
-        <TabsList className="w-full justify-start sm:w-auto">
-          <TabsTrigger value="collected" className="gap-1.5">
-            <Inbox className="h-3.5 w-3.5" />
-            Collected jobs
-            <span className="ml-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
-              {filteredJobs.length}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="jobs" className="gap-1.5">
-            <Briefcase className="h-3.5 w-3.5" />
-            Jobs
-            <span className="ml-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
-              {trackedSearches.length}
-            </span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="jobs" className="mt-0 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tracked Searches</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <Card key={index} className="h-44 animate-pulse" />
-                  ))}
-                </div>
-              ) : trackedSearches.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-8 text-center">
-                  <p className="text-sm font-medium text-foreground">
-                    Define tracked searches once
-                  </p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Automatic collection runs every day at 08:00. Create your first search to start, or
-                    import jobs manually from the Imports page.
-                  </p>
-                  <Link href="/jobs/searches/new" className={buttonVariants({ className: "mt-4" })}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Search
-                  </Link>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {trackedSearches.map((search) => (
-                    <Card key={search.id}>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base">{search.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2 text-sm text-muted-foreground">
-                        <p>{search.job_titles.join(", ") || "No job title"}</p>
-                        <p>{search.locations.join(", ") || "Any location"}</p>
-                        <p>
-                          {search.minimum_salary
-                            ? `${search.minimum_salary.toLocaleString()}${search.currency}`
-                            : "No salary floor"}{" "}
-                          · {search.remote_preference.replace(/_/g, " ")}
-                        </p>
-                        <p>
-                          Last run:{" "}
-                          {search.last_run ? new Date(search.last_run).toLocaleString() : "Never"}
-                        </p>
-                        <p>
-                          Next sync:{" "}
-                          {search.next_run
-                            ? new Date(search.next_run).toLocaleString()
-                            : "Not scheduled"}
-                        </p>
-                        <p>Jobs found: {search.jobs_found_today}</p>
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => runNow(search.id)}
-                            disabled={runningSearchId === search.id}
-                          >
-                            <Play className="mr-2 h-4 w-4" />
-                            {runningSearchId === search.id ? "Running..." : "Run now"}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => editSearch(search)}>
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => duplicateSearch(search)}
-                          >
-                            <Copy className="mr-2 h-4 w-4" />
-                            Duplicate
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              fetch(`/api/tracked-searches/${search.id}`, {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ enabled: !search.enabled }),
-                              }).then(loadAll)
-                            }
-                          >
-                            {search.enabled ? "Disable" : "Enable"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => deleteSearch(search.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="collected" className="mt-0 space-y-4">
-          <JobBulkActions
-            selectedCount={jobs.filter((job) => job.selected).length}
-            loading={bulkStatusLoading}
-            coverLetterLoading={bulkLoading}
-            deleteLoading={deleteLoading}
-            onBulkUpdate={handleBulkStatusUpdate}
-            onGenerateCoverLetters={handleBulkGenerateCoverLetters}
-            onDeleteSelected={handleDeleteSelected}
-          />
-
-          {bulkProgress && (
-            <Card>
-              <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
-                <span>
-                  Selected: {bulkProgress.total} · Current: {bulkProgress.current} · Success:{" "}
-                  {bulkProgress.success} · Failed: {bulkProgress.failed}
-                </span>
-                <span className="text-muted-foreground">
-                  {bulkProgress.currentJob ? `Generating: ${bulkProgress.currentJob}` : "Idle"}
-                </span>
-              </CardContent>
-            </Card>
-          )}
-
-          <JobFiltersBar filters={filters} onChange={setFilters} sources={sources} />
-
-          <Tabs value={view} onValueChange={(value) => setView(value as "cards" | "table")}>
-            <TabsList>
-              <TabsTrigger value="cards">
-                <LayoutGrid className="mr-2 h-4 w-4" />
-                Cards
-              </TabsTrigger>
-              <TabsTrigger value="table">
-                <List className="mr-2 h-4 w-4" />
-                Table
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="cards" className="mt-4">
-              {filteredJobs.length === 0 ? (
-                <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  No collected jobs yet. Use &quot;Run now&quot; on a tracked search or import a CSV
-                  from Imports.
-                </p>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {filteredJobs.map((job) => (
-                    <JobCard
-                      key={job.id}
-                      job={job}
-                      onSelect={(id, selected) => updateJob(id, { selected })}
-                      onStatusChange={(id, status: JobStatus) => updateJob(id, { status })}
-                      onAnalyze={handleAnalyze}
-                      onGenerateCoverLetter={handleGenerateCoverLetter}
-                      onViewCoverLetter={setCoverLetterJob}
-                      onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
-                      isAnalyzing={analyzingId === job.id}
-                      isGenerating={generatingId === job.id}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="table" className="mt-4">
-              <JobTable
-                jobs={filteredJobs}
-                onSelect={(id, selected) => updateJob(id, { selected })}
-                onSelectAll={handleSelectAll}
-                onDeleteSelected={handleDeleteSelected}
-                deleteLoading={deleteLoading}
-                onStatusChange={(id, status) => updateJob(id, { status })}
-                onAnalyze={handleAnalyze}
-                onViewCoverLetter={setCoverLetterJob}
-                onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
-              />
-            </TabsContent>
-          </Tabs>
->>>>>>> Stashed changes
         </TabsContent>
       </Tabs>
 
@@ -1275,10 +898,6 @@ export function TrackedJobsPage() {
         onRegenerate={handleGenerateCoverLetter}
         isRegenerating={generatingId === coverLetterJob?.id}
       />
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
     </div>
   );
 }

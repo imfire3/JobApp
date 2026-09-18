@@ -1,6 +1,8 @@
 -- Company prospection CRM: spontaneous application pipeline
 
-create type public.company_pipeline_status as enum (
+do $$
+begin
+  create type public.company_pipeline_status as enum (
   'to_contact',
   'contact_found',
   'message_prepared',
@@ -11,13 +13,23 @@ create type public.company_pipeline_status as enum (
   'refused',
   'opportunity'
 );
+exception
+  when duplicate_object then null;
+end $$;
 
-create type public.company_discovery_type as enum (
+do $$
+begin
+  create type public.company_discovery_type as enum (
   'offer_detected',
   'spontaneous'
 );
+exception
+  when duplicate_object then null;
+end $$;
 
-create type public.company_role_type as enum (
+do $$
+begin
+  create type public.company_role_type as enum (
   'recruiter',
   'head_of_product',
   'cpo',
@@ -25,17 +37,30 @@ create type public.company_role_type as enum (
   'founder',
   'other'
 );
+exception
+  when duplicate_object then null;
+end $$;
 
-create type public.outreach_kind as enum (
+do $$
+begin
+  create type public.outreach_kind as enum (
   'email',
   'linkedin'
 );
+exception
+  when duplicate_object then null;
+end $$;
 
-create type public.outreach_status as enum (
+do $$
+begin
+  create type public.outreach_status as enum (
   'draft',
   'ready',
   'sent'
 );
+exception
+  when duplicate_object then null;
+end $$;
 
 create table if not exists public.company_searches (
   id uuid primary key default gen_random_uuid(),
@@ -125,18 +150,22 @@ create index if not exists outreach_messages_company_id_idx on public.outreach_m
 create index if not exists outreach_messages_user_id_idx on public.outreach_messages (user_id);
 create index if not exists company_searches_user_id_idx on public.company_searches (user_id);
 
+drop trigger if exists companies_updated_at on public.companies;
 create trigger companies_updated_at
   before update on public.companies
   for each row execute function public.set_updated_at();
 
+drop trigger if exists company_contacts_updated_at on public.company_contacts;
 create trigger company_contacts_updated_at
   before update on public.company_contacts
   for each row execute function public.set_updated_at();
 
+drop trigger if exists outreach_messages_updated_at on public.outreach_messages;
 create trigger outreach_messages_updated_at
   before update on public.outreach_messages
   for each row execute function public.set_updated_at();
 
+drop trigger if exists company_searches_updated_at on public.company_searches;
 create trigger company_searches_updated_at
   before update on public.company_searches
   for each row execute function public.set_updated_at();
@@ -146,21 +175,25 @@ alter table public.company_contacts enable row level security;
 alter table public.outreach_messages enable row level security;
 alter table public.company_searches enable row level security;
 
+drop policy if exists "Users can manage own companies" on public.companies;
 create policy "Users can manage own companies"
   on public.companies for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can manage own company contacts" on public.company_contacts;
 create policy "Users can manage own company contacts"
   on public.company_contacts for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can manage own outreach messages" on public.outreach_messages;
 create policy "Users can manage own outreach messages"
   on public.outreach_messages for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can manage own company searches" on public.company_searches;
 create policy "Users can manage own company searches"
   on public.company_searches for all
   using (auth.uid() = user_id)
