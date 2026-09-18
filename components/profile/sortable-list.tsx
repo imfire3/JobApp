@@ -100,42 +100,46 @@ export function SortableList<T extends { id: string }>({
             itemClassName
           )}
         >
-          <div
-            role="button"
-            className={cn(
-              "mt-1 shrink-0 touch-manipulation rounded-md p-1.5 text-[#A1A1A1] transition-opacity",
-              "cursor-grab active:cursor-grabbing",
-              "opacity-40 hover:bg-[rgba(255,255,255,0.08)] hover:text-[#FAFAFA] hover:opacity-100",
-              "md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100",
-              armedIndex === index && "opacity-100 bg-[rgba(255,255,255,0.08)] text-[#FAFAFA]"
-            )}
-            aria-label="Glisser pour réorganiser"
-            title="Glisser pour réorganiser"
-            tabIndex={0}
-            onMouseDown={() => armHandle(index, item.id)}
-            onTouchStart={() => armHandle(index, item.id)}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowUp" && index > 0) {
-                event.preventDefault()
-                const next = [...items]
-                const [moved] = next.splice(index, 1)
-                if (!moved) return
-                next.splice(index - 1, 0, moved)
-                onReorder(next)
-              }
-              if (event.key === "ArrowDown" && index < items.length - 1) {
-                event.preventDefault()
-                const next = [...items]
-                const [moved] = next.splice(index, 1)
-                if (!moved) return
-                next.splice(index + 1, 0, moved)
-                onReorder(next)
-              }
-            }}
-          >
-            <GripVertical className="h-4 w-4" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-2">
+              <div
+                role="button"
+                className={cn(
+                  "mt-2 shrink-0 touch-manipulation rounded-md p-1 text-[#A1A1A1] transition-opacity",
+                  "cursor-grab active:cursor-grabbing",
+                  "opacity-40 hover:bg-[rgba(255,255,255,0.08)] hover:text-[#FAFAFA] hover:opacity-100",
+                  "md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100",
+                  armedIndex === index && "opacity-100 bg-[rgba(255,255,255,0.08)] text-[#FAFAFA]"
+                )}
+                aria-label="Glisser pour réorganiser"
+                title="Glisser pour réorganiser"
+                tabIndex={0}
+                onMouseDown={() => armHandle(index, item.id)}
+                onTouchStart={() => armHandle(index, item.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowUp" && index > 0) {
+                    event.preventDefault()
+                    const next = [...items]
+                    const [moved] = next.splice(index, 1)
+                    if (!moved) return
+                    next.splice(index - 1, 0, moved)
+                    onReorder(next)
+                  }
+                  if (event.key === "ArrowDown" && index < items.length - 1) {
+                    event.preventDefault()
+                    const next = [...items]
+                    const [moved] = next.splice(index, 1)
+                    if (!moved) return
+                    next.splice(index + 1, 0, moved)
+                    onReorder(next)
+                  }
+                }}
+              >
+                <GripVertical className="h-4 w-4" aria-hidden />
+              </div>
+              {renderItem(item, index)}
+            </div>
           </div>
-          <div className="min-w-0 flex-1">{renderItem(item, index)}</div>
         </li>
       ))}
     </ul>
