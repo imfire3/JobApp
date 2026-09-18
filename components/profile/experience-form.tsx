@@ -196,7 +196,7 @@ export function ExperienceForm({
           <div className="flex items-center justify-between border-b border-[#383838] px-6 py-4">
             <div>
               <DialogTitle className="text-lg font-semibold text-[#FAFAFA]">
-                Modifier l&apos;expérience
+                Modifier l'expérience
               </DialogTitle>
               {(draft.organization || draft.title) && (
                 <p className="mt-0.5 text-sm text-[#A1A1A1]">

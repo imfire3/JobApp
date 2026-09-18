@@ -1,32 +1,30 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { Plus, X } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { X } from "lucide-react"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  EMPLOYMENT_TYPE_OPTIONS,
-  LOCATION_TYPE_OPTIONS,
-  MAX_HIGHLIGHTS,
-  MONTH_OPTIONS,
-  clampHighlights,
-  type CvEmploymentType,
-  type CvLocationType,
-} from "@/lib/cv/experiences"
-import type { ProfileExperienceEntry } from "@/lib/profile/types"
+import { Badge } from "@/components/ui/badge"
+import { SearchableSelect } from "@/components/jobs/searchable-multi-select"
+import { FRANCE_CITIES } from "@/lib/onboarding/france-cities"
 import { PROFILE_SKILL_SUGGESTIONS } from "@/lib/profile/suggestion-catalogs"
+import { clampHighlights, MONTH_OPTIONS } from "@/lib/cv/experiences"
+import { emptyExperienceEntry } from "@/lib/profile/helpers"
+import type { ProfileExperienceEntry } from "@/lib/profile/types"
+import {
+  normalizeSelectValue,
+  LOCATION_TYPE_OPTIONS,
+  EMPLOYMENT_TYPE_OPTIONS,
+  yearOptions,
+} from "@/lib/profile/experience-utils"
+
+const MAX_HIGHLIGHTS = 2000
+
+const yearOpts = yearOptions()
 
 type ExperienceCardFormProps = {
   initial?: ProfileExperienceEntry | null
@@ -34,451 +32,342 @@ type ExperienceCardFormProps = {
   onCancel: () => void
 }
 
-const yearOptions = (() => {
-  const current = new Date().getFullYear()
-  const years: string[] = []
-  for (let year = current + 1; year >= current - 40; year -= 1) {
-    years.push(String(year))
-  }
-  return years
-})()
-
-function toDraft(initial?: ProfileExperienceEntry | null): ProfileExperienceEntry {
-  if (initial) return { ...initial, skills: [...initial.skills] }
-  return {
-    id: crypto.randomUUID(),
-    title: "",
-    organization: "",
-    location: "",
-    locationType: "",
-    employmentType: "",
-    isCurrent: false,
-    startMonth: String(new Date().getMonth() + 1).padStart(2, "0"),
-    startYear: String(new Date().getFullYear()),
-    endMonth: "",
-    endYear: "",
-    highlights: "",
-    skills: [],
-  }
-}
-
 export function ExperienceCardForm({
   initial,
   onSave,
   onCancel,
 }: ExperienceCardFormProps) {
-  const [draft, setDraft] = useState<ProfileExperienceEntry>(() => toDraft(initial))
-  const [skillInput, setSkillInput] = useState("")
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [saving, setSaving] = useState(false)
-  const titleRef = useRef<HTMLInputElement>(null)
-
   const isEdit = Boolean(initial)
+  const [draft, setDraft] = useState<ProfileExperienceEntry>(() =>
+    initial ? { ...initial, skills: [...initial.skills] } : emptyExperienceEntry()
+  )
+  const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [skillInput, setSkillInput] = useState("")
+  const [skillSuggestionsOpen, setSkillSuggestionsOpen] = useState(false)
+  const titleRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     window.requestAnimationFrame(() => titleRef.current?.focus())
   }, [])
 
-  const canSave = useMemo(() => {
-    return (
-      draft.title.trim().length > 0 &&
-      draft.organization.trim().length > 0 &&
-      draft.startYear.trim().length > 0
-    )
-  }, [draft])
-
-  const skillOptions = useMemo(
-    () =>
-      [
-        ...new Set([...PROFILE_SKILL_SUGGESTIONS, ...draft.skills]),
-      ] as string[],
-    [draft.skills]
-  )
-
-  function updateDraft<K extends keyof ProfileExperienceEntry>(
-    key: K,
-    value: ProfileExperienceEntry[K]
-  ) {
-    setDraft((prev) => ({ ...prev, [key]: value }))
-    if (errors[key]) {
-      setErrors((prev) => {
+  const updateField = useCallback(
+    <K extends keyof ProfileExperienceEntry>(key: K, value: ProfileExperienceEntry[K]) => {
+      setDraft((prev) => ({ ...prev, [key]: value }))
+      if (errors[key]) setErrors((prev) => {
         const next = { ...prev }
         delete next[key]
         return next
       })
-    }
-  }
+    },
+    [errors]
+  )
 
-  function validate(): boolean {
+  const validate = useMemo(() => (): boolean => {
     const newErrors: Record<string, string> = {}
-
-    if (!draft.title.trim()) {
-      newErrors.title = "L'intitulé du poste est requis"
+    if (!draft.title.trim()) newErrors.title = "L'intitulé du poste est obligatoire."
+    if (!draft.organization.trim()) newErrors.organization = "L'organisation est obligatoire."
+    if (!draft.startYear.trim()) newErrors.startYear = "L'année de début est requise."
+    if (!draft.isCurrent && !draft.endYear.trim() && draft.endMonth.trim()) {
+      newErrors.endYear = "L'année de fin est requise."
     }
-    if (!draft.organization.trim()) {
-      newErrors.organization = "L'entreprise est requise"
-    }
-    if (!draft.startYear.trim()) {
-      newErrors.startYear = "L'année de début est requise"
-    }
-
-    if (!draft.isCurrent && draft.startYear && draft.endYear) {
-      const startDate = new Date(
-        Number(draft.startYear),
-        draft.startMonth ? Number(draft.startMonth) - 1 : 0
-      )
-      const endDate = new Date(
-        Number(draft.endYear),
-        draft.endMonth ? Number(draft.endMonth) - 1 : 0
-      )
-      if (endDate < startDate) {
-        newErrors.endDate = "La date de fin ne peut pas être antérieure à la date de début"
-      }
-    }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }
+  }, [draft])
 
-  async function handleSave() {
+  const handleSave = async () => {
     if (!validate()) return
     setSaving(true)
     try {
-      onSave({
+      const entry: ProfileExperienceEntry = {
         ...draft,
         title: draft.title.trim(),
         organization: draft.organization.trim(),
         location: draft.location.trim(),
-        highlights: draft.highlights.trim(),
-      })
+        highlights: clampHighlights(draft.highlights.trim()),
+        endMonth: draft.isCurrent ? "" : draft.endMonth,
+        endYear: draft.isCurrent ? "" : draft.endYear,
+      }
+      onSave(entry)
+      toast.success(isEdit ? "Expérience mise à jour" : "Expérience ajoutée")
     } catch {
-      toast.error("Erreur lors de l'enregistrement. Veuillez réessayer.")
+      toast.error("Une erreur est survenue. Veuillez réessayer.")
     } finally {
       setSaving(false)
     }
   }
 
-  function handleAddSkill() {
-    const skill = skillInput.trim()
-    if (!skill) return
-    if (draft.skills.some((item) => item.toLowerCase() === skill.toLowerCase())) {
-      toast.error("Cette compétence est déjà ajoutée")
+  const handleSkillAdd = (skill: string) => {
+    const trimmed = skill.trim()
+    if (!trimmed) return
+    if (draft.skills.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
+      setSkillInput("")
       return
     }
-    updateDraft("skills", [...draft.skills, skill])
+    updateField("skills", [...draft.skills, trimmed])
     setSkillInput("")
   }
 
-  function handleRemoveSkill(skill: string) {
-    updateDraft(
+  const handleSkillRemove = (skill: string) => {
+    updateField(
       "skills",
-      draft.skills.filter((item) => item !== skill)
+      draft.skills.filter((s) => s !== skill)
     )
   }
 
+  const skillSuggestions = useMemo(() => {
+    const q = skillInput.toLowerCase()
+    return PROFILE_SKILL_SUGGESTIONS.filter(
+      (s) =>
+        s.toLowerCase().includes(q) &&
+        !draft.skills.some((existing) => existing.toLowerCase() === s.toLowerCase())
+    ).slice(0, 8)
+  }, [skillInput, draft.skills])
+
   return (
-    <div className="rounded-2xl border border-border bg-[#171717] p-5 shadow-sm">
-      <h3 className="mb-4 text-lg font-semibold">
+    <div className="rounded-[18px] border border-[rgba(255,255,255,0.07)] bg-[#171717] p-6 shadow-sm">
+      <h3 className="mb-4 text-lg font-semibold text-[#FAFAFA]">
         {isEdit ? "Modifier l'expérience" : "Nouvelle expérience"}
       </h3>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Intitulé du poste */}
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="exp-card-title">
-            Intitulé du poste <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            ref={titleRef}
-            id="exp-card-title"
-            value={draft.title}
-            onChange={(e) => updateDraft("title", e.target.value)}
-            placeholder="Product Manager"
-            aria-invalid={Boolean(errors.title)}
-            className={errors.title ? "border-destructive" : ""}
-          />
-          {errors.title && (
-            <p className="text-sm text-destructive">{errors.title}</p>
-          )}
-        </div>
+      <div className="space-y-4">
+        {/* Section 1 — Informations principales */}
+        <section className="space-y-4">
+          <h4 className="text-xs font-medium uppercase tracking-wider text-[#A1A1A1]">
+            Informations principales
+          </h4>
 
-        {/* Entreprise */}
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="exp-card-org">
-            Entreprise <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="exp-card-org"
-            value={draft.organization}
-            onChange={(e) => updateDraft("organization", e.target.value)}
-            placeholder="Welcome to the Jungle"
-            aria-invalid={Boolean(errors.organization)}
-            className={errors.organization ? "border-destructive" : ""}
-          />
-          {errors.organization && (
-            <p className="text-sm text-destructive">{errors.organization}</p>
-          )}
-        </div>
-
-        {/* Type d'emploi */}
-        <div className="space-y-2">
-          <Label>Type d&apos;emploi</Label>
-          <Select
-            value={draft.employmentType || "__none__"}
-            onValueChange={(value) =>
-              updateDraft(
-                "employmentType",
-                (!value || value === "__none__" ? "" : value) as CvEmploymentType
-              )
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Sélectionner" />
-            </SelectTrigger>
-            <SelectContent>
-              {EMPLOYMENT_TYPE_OPTIONS.map((option) => (
-                <SelectItem
-                  key={option.value || "none"}
-                  value={option.value || "__none__"}
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Mode de travail */}
-        <div className="space-y-2">
-          <Label>Mode de travail</Label>
-          <Select
-            value={draft.locationType || "__none__"}
-            onValueChange={(value) =>
-              updateDraft(
-                "locationType",
-                (!value || value === "__none__" ? "" : value) as CvLocationType
-              )
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Sélectionner" />
-            </SelectTrigger>
-            <SelectContent>
-              {LOCATION_TYPE_OPTIONS.map((option) => (
-                <SelectItem
-                  key={option.value || "none"}
-                  value={option.value || "__none__"}
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Localisation */}
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="exp-card-location">Ville / pays</Label>
-          <Input
-            id="exp-card-location"
-            value={draft.location}
-            onChange={(e) => updateDraft("location", e.target.value)}
-            placeholder="Paris, France"
-          />
-        </div>
-
-        {/* Période */}
-        <div className="space-y-3 sm:col-span-2">
-          <Label>Période</Label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <Label htmlFor="exp-card-start-month" className="text-sm text-muted-foreground">
-                  Mois
-                </Label>
-                <Select
-                  value={draft.startMonth}
-                  onValueChange={(value) => updateDraft("startMonth", value ?? "")}
-                >
-                  <SelectTrigger id="exp-card-start-month" className="w-full">
-                    <SelectValue placeholder="Mois" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTH_OPTIONS.map((month) => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="exp-card-start-year" className="text-sm text-muted-foreground">
-                  Année <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={draft.startYear}
-                  onValueChange={(value) => updateDraft("startYear", value ?? "")}
-                >
-                  <SelectTrigger
-                    id="exp-card-start-year"
-                    className="w-full"
-                    aria-invalid={Boolean(errors.startYear)}
-                  >
-                    <SelectValue placeholder="Année" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {yearOptions.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.startYear && (
-                  <p className="text-sm text-destructive">{errors.startYear}</p>
-                )}
-              </div>
-            </div>
-
-            {!draft.isCurrent ? (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="exp-card-end-month" className="text-sm text-muted-foreground">
-                    Mois
-                  </Label>
-                  <Select
-                    value={draft.endMonth || "__none__"}
-                    onValueChange={(value) =>
-                      updateDraft("endMonth", !value || value === "__none__" ? "" : value)
-                    }
-                  >
-                    <SelectTrigger id="exp-card-end-month" className="w-full">
-                      <SelectValue placeholder="Mois" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">—</SelectItem>
-                      {MONTH_OPTIONS.map((month) => (
-                        <SelectItem key={month.value} value={month.value}>
-                          {month.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="exp-card-end-year" className="text-sm text-muted-foreground">
-                    Année
-                  </Label>
-                  <Select
-                    value={draft.endYear || "__none__"}
-                    onValueChange={(value) =>
-                      updateDraft("endYear", !value || value === "__none__" ? "" : value)
-                    }
-                  >
-                    <SelectTrigger
-                      id="exp-card-end-year"
-                      className="w-full"
-                      aria-invalid={Boolean(errors.endDate)}
-                    >
-                      <SelectValue placeholder="Année" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">—</SelectItem>
-                      {yearOptions.map((year) => (
-                        <SelectItem key={year} value={year}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.endDate && (
-                    <p className="text-sm text-destructive">{errors.endDate}</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 self-end pb-2">
-                <Checkbox id="exp-card-current-check" checked disabled />
-                <Label htmlFor="exp-card-current-check" className="mb-0 text-muted-foreground">
-                  Aujourd&apos;hui
-                </Label>
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="exp-card-title" className="text-sm font-medium text-[#FAFAFA]">
+              Intitulé du poste *
+            </Label>
+            <Input
+              ref={titleRef}
+              id="exp-card-title"
+              value={draft.title}
+              onChange={(e) => updateField("title", e.target.value)}
+              placeholder="Product Owner, Chef de projet..."
+              aria-invalid={!!errors.title}
+              aria-describedby={errors.title ? "exp-card-title-error" : undefined}
+              className="border-[#383838] bg-[#212121] text-[#FAFAFA] placeholder:text-[#A1A1A1] focus-visible:border-[#00D492]"
+            />
+            {errors.title && (
+              <p id="exp-card-title-error" className="text-xs text-[#FFB900]">{errors.title}</p>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="exp-card-current"
+          <div className="space-y-1.5">
+            <Label htmlFor="exp-card-organization" className="text-sm font-medium text-[#FAFAFA]">
+              Organisation *
+            </Label>
+            <Input
+              id="exp-card-organization"
+              value={draft.organization}
+              onChange={(e) => updateField("organization", e.target.value)}
+              placeholder="Fortuneo, Alan, Qonto..."
+              aria-invalid={!!errors.organization}
+              aria-describedby={errors.organization ? "exp-card-organization-error" : undefined}
+              className="border-[#383838] bg-[#212121] text-[#FAFAFA] placeholder:text-[#A1A1A1] focus-visible:border-[#00D492]"
+            />
+            {errors.organization && (
+              <p id="exp-card-organization-error" className="text-xs text-[#FFB900]">{errors.organization}</p>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="exp-card-location" className="text-sm font-medium text-[#FAFAFA]">
+                Localisation
+              </Label>
+              <SearchableSelect
+                id="exp-card-location"
+                options={
+                  draft.location && !(FRANCE_CITIES as readonly string[]).includes(draft.location)
+                    ? [draft.location, ...FRANCE_CITIES]
+                    : [...FRANCE_CITIES]
+                }
+                value={draft.location}
+                onChange={(city) => updateField("location", city ?? "")}
+                placeholder="Paris, Marseille, Remote..."
+                emptyOptionLabel="Aucune ville"
+                allowCustom
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="exp-card-location-type" className="text-sm font-medium text-[#FAFAFA]">
+                Type de lieu
+              </Label>
+              <select
+                id="exp-card-location-type"
+                value={normalizeSelectValue(draft.locationType)}
+                onChange={(e) => updateField("locationType", e.target.value as ProfileExperienceEntry["locationType"])}
+                className="h-11 w-full rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#FAFAFA] focus-visible:border-[#00D492] focus-visible:outline-none"
+              >
+                <option value="">Sélectionner...</option>
+                {LOCATION_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="exp-card-employment-type" className="text-sm font-medium text-[#FAFAFA]">
+              Type d&apos;emploi
+            </Label>
+            <select
+              id="exp-card-employment-type"
+              value={normalizeSelectValue(draft.employmentType)}
+              onChange={(e) => updateField("employmentType", e.target.value as ProfileExperienceEntry["employmentType"])}
+              className="h-11 w-full rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#FAFAFA] focus-visible:border-[#00D492] focus-visible:outline-none"
+            >
+              <option value="">Sélectionner...</option>
+              {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        </section>
+
+        {/* Section 2 — Période */}
+        <section className="space-y-4">
+          <h4 className="text-xs font-medium uppercase tracking-wider text-[#A1A1A1]">
+            Période
+          </h4>
+
+          <label className="flex cursor-pointer items-center gap-3">
+            <Switch
               checked={draft.isCurrent}
               onCheckedChange={(checked) => {
-                const isCurrent = checked === true
-                setDraft((prev) => ({
-                  ...prev,
-                  isCurrent,
-                  endMonth: isCurrent ? "" : prev.endMonth,
-                  endYear: isCurrent ? "" : prev.endYear,
-                }))
+                updateField("isCurrent", checked)
               }}
             />
-            <Label htmlFor="exp-card-current" className="mb-0 cursor-pointer text-sm">
-              J&apos;occupe actuellement ce poste
-            </Label>
+            <span className="text-sm text-[#FAFAFA]">J&apos;occupe actuellement ce poste</span>
+          </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-[#FAFAFA]">Début *</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={normalizeSelectValue(draft.startMonth)}
+                  onChange={(e) => updateField("startMonth", e.target.value)}
+                  className="h-11 rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#FAFAFA] focus-visible:border-[#00D492] focus-visible:outline-none"
+                >
+                  <option value="">Mois</option>
+                  {MONTH_OPTIONS.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={normalizeSelectValue(draft.startYear)}
+                  onChange={(e) => updateField("startYear", e.target.value)}
+                  aria-invalid={!!errors.startYear}
+                  className="h-11 rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#FAFAFA] focus-visible:border-[#00D492] focus-visible:outline-none"
+                >
+                  <option value="">Année</option>
+                  {yearOpts.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              {errors.startYear && (
+                <p className="text-xs text-[#FFB900]">{errors.startYear}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-[#FAFAFA]">Fin</Label>
+              {draft.isCurrent ? (
+                <div className="flex h-11 items-center rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#A1A1A1]">
+                  Aujourd&apos;hui
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={normalizeSelectValue(draft.endMonth)}
+                    onChange={(e) => updateField("endMonth", e.target.value)}
+                    className="h-11 rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#FAFAFA] focus-visible:border-[#00D492] focus-visible:outline-none"
+                  >
+                    <option value="">Mois</option>
+                    {MONTH_OPTIONS.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={normalizeSelectValue(draft.endYear)}
+                    onChange={(e) => updateField("endYear", e.target.value)}
+                    aria-invalid={!!errors.endYear}
+                    className="h-11 rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#FAFAFA] focus-visible:border-[#00D492] focus-visible:outline-none"
+                  >
+                    <option value="">Année</option>
+                    {yearOpts.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {errors.endYear && (
+                <p className="text-xs text-[#FFB900]">{errors.endYear}</p>
+              )}
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Description */}
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="exp-card-highlights">Description</Label>
-          <Textarea
-            id="exp-card-highlights"
-            value={draft.highlights}
-            onChange={(e) =>
-              updateDraft("highlights", clampHighlights(e.target.value))
-            }
-            rows={5}
-            placeholder="Décrivez vos missions, vos réalisations et leurs résultats"
-            className="min-h-[120px] text-base leading-relaxed"
-          />
-          <p className="text-sm text-muted-foreground">
-            {draft.highlights.length}/{MAX_HIGHLIGHTS}
-          </p>
-        </div>
+        {/* Section 3 — Impact & réalisations */}
+        <section className="space-y-4">
+          <div>
+            <h4 className="text-xs font-medium uppercase tracking-wider text-[#A1A1A1]">
+              Impact &amp; réalisations
+            </h4>
+            <p className="mt-1 text-sm text-[#A1A1A1]">
+              Décris ce que tu as construit, amélioré ou mesuré dans ce poste.
+            </p>
+          </div>
 
-        {/* Compétences */}
-        <div className="space-y-2 sm:col-span-2">
-          <Label>Compétences associées</Label>
-          <div className="flex gap-2">
-            <Input
-              value={skillInput}
-              onChange={(e) => setSkillInput(e.target.value)}
-              placeholder="Ajouter une compétence"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  handleAddSkill()
-                }
-              }}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="exp-card-highlights" className="text-sm font-medium text-[#FAFAFA]">
+                Description
+              </Label>
+              <span className="text-xs text-[#A1A1A1]">
+                {draft.highlights.length}/{MAX_HIGHLIGHTS}
+              </span>
+            </div>
+            <Textarea
+              id="exp-card-highlights"
+              value={draft.highlights}
+              onChange={(e) => updateField("highlights", clampHighlights(e.target.value))}
+              rows={4}
+              placeholder="Ex. Refonte du parcours de souscription ayant permis de réduire les abandons de 30%..."
+              className="min-h-[120px] resize-y border-[#383838] bg-[#212121] text-[#FAFAFA] placeholder:text-[#A1A1A1] focus-visible:border-[#00D492]"
             />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAddSkill}
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              Ajouter
-            </Button>
+            <p className="text-xs text-[#A1A1A1]">
+              Conseil : privilégie des actions concrètes et des résultats mesurables.
+            </p>
           </div>
+        </section>
+
+        {/* Section 4 — Compétences */}
+        <section className="space-y-4">
+          <h4 className="text-xs font-medium uppercase tracking-wider text-[#A1A1A1]">
+            Compétences
+          </h4>
+
           {draft.skills.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="flex flex-wrap gap-2">
               {draft.skills.map((skill) => (
-                <Badge key={skill} variant="chip" className="gap-1.5">
+                <Badge
+                  key={skill}
+                  variant="tag"
+                  className="gap-1 pr-1"
+                >
                   {skill}
                   <button
                     type="button"
+                    onClick={() => handleSkillRemove(skill)}
+                    className="ml-0.5 rounded-full p-0.5 hover:bg-[#00D492]/20"
                     aria-label={`Retirer ${skill}`}
-                    onClick={() => handleRemoveSkill(skill)}
-                    className="ml-0.5 rounded-full p-0.5 hover:bg-muted"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -486,23 +375,87 @@ export function ExperienceCardForm({
               ))}
             </div>
           )}
-        </div>
+
+          <div className="relative">
+            <Input
+              value={skillInput}
+              onChange={(e) => {
+                setSkillInput(e.target.value)
+                setSkillSuggestionsOpen(true)
+              }}
+              onFocus={() => setSkillSuggestionsOpen(true)}
+              onBlur={() => setTimeout(() => setSkillSuggestionsOpen(false), 150)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  if (skillSuggestions.length > 0 && skillInput.trim()) {
+                    handleSkillAdd(skillSuggestions[0])
+                  } else {
+                    handleSkillAdd(skillInput)
+                  }
+                }
+                if (e.key === "Backspace" && !skillInput && draft.skills.length > 0) {
+                  handleSkillRemove(draft.skills[draft.skills.length - 1])
+                }
+                if (e.key === "Escape") setSkillSuggestionsOpen(false)
+              }}
+              placeholder="Rechercher une compétence..."
+              className="border-[#383838] bg-[#212121] text-[#FAFAFA] placeholder:text-[#A1A1A1] focus-visible:border-[#00D492]"
+            />
+            {skillSuggestionsOpen && skillInput.trim() && skillSuggestions.length > 0 && (
+              <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-[10px] border border-[#383838] bg-[#212121] p-1 text-sm shadow-lg">
+                {skillSuggestions.map((skill) => (
+                  <li key={skill}>
+                    <button
+                      type="button"
+                      className="flex w-full rounded-lg px-3 py-2 text-left text-[#FAFAFA] hover:bg-[#171717]"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSkillAdd(skill)}
+                    >
+                      {skill}
+                    </button>
+                  </li>
+                ))}
+                {skillInput.trim() &&
+                  !PROFILE_SKILL_SUGGESTIONS.some(
+                    (s) => s.toLowerCase() === skillInput.trim().toLowerCase()
+                  ) &&
+                  !draft.skills.some(
+                    (s) => s.toLowerCase() === skillInput.trim().toLowerCase()
+                  ) && (
+                    <li>
+                      <button
+                        type="button"
+                        className="flex w-full rounded-lg px-3 py-2 text-left text-[#FAFAFA] hover:bg-[#171717]"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleSkillAdd(skillInput)}
+                      >
+                        Ajouter &laquo;&nbsp;{skillInput.trim()}&nbsp;&raquo;
+                      </button>
+                    </li>
+                  )}
+              </ul>
+            )}
+          </div>
+        </section>
       </div>
 
       {/* Actions */}
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap gap-2">
         <Button
           type="button"
           onClick={handleSave}
-          disabled={!canSave || saving}
+          disabled={saving}
+          className="bg-[#00D492] text-[#0A0A0A] hover:bg-[#00D492]/90"
         >
-          {saving ? "Enregistrement…" : isEdit ? "Enregistrer les modifications" : "Enregistrer l'expérience"}
+          {saving ? "Enregistrement..." : isEdit ? "Enregistrer les modifications" : "Enregistrer l'expérience"}
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
           disabled={saving}
+          className="border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
         >
           Annuler
         </Button>
