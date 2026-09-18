@@ -30,7 +30,7 @@ import { CvAnalysisPanel } from "@/components/settings/cv-analysis-panel"
 import { SearchableMultiSelect, SearchableSelect } from "@/components/jobs/searchable-multi-select"
 import { EducationCardForm, EducationCardView } from "@/components/profile/education-card-form"
 import { ExperienceCard } from "@/components/profile/experience-card"
-import { ExperienceCardForm } from "@/components/profile/experience-card-form"
+import { ExperienceForm } from "@/components/profile/experience-form"
 import { LOCATION_TYPE_OPTIONS, MONTH_OPTIONS } from "@/lib/cv/experiences"
 import { FRANCE_CITIES } from "@/lib/onboarding/france-cities"
 import { emptyLanguageEntry } from "@/lib/profile/helpers"
@@ -1264,16 +1264,16 @@ export function ProfilePage() {
             </div>
 
             {editingExperienceId === "new" && (
-              <ExperienceCardForm
+              <ExperienceForm
+                open={editingExperienceId === "new"}
+                onOpenChange={(open) => { if (!open) setEditingExperienceId(null) }}
                 onSave={(entry) => {
                   updateField("experience_entries", [
                     ...profile.experience_entries,
                     entry,
                   ])
                   setEditingExperienceId(null)
-                  toast.success("Expérience ajoutée")
                 }}
-                onCancel={() => setEditingExperienceId(null)}
               />
             )}
 
@@ -1293,26 +1293,6 @@ export function ProfilePage() {
             ) : (
               <div className="grid gap-4">
                 {sortedExperiences.map((experience) => {
-                  if (editingExperienceId === experience.id) {
-                    return (
-                      <ExperienceCardForm
-                        key={experience.id}
-                        initial={experience}
-                        onSave={(entry) => {
-                          updateField(
-                            "experience_entries",
-                            profile.experience_entries.map((item) =>
-                              item.id === entry.id ? entry : item
-                            )
-                          )
-                          setEditingExperienceId(null)
-                          toast.success("Expérience mise à jour")
-                        }}
-                        onCancel={() => setEditingExperienceId(null)}
-                      />
-                    )
-                  }
-
                   return (
                     <ExperienceCard
                       key={experience.id}
@@ -1604,6 +1584,23 @@ export function ProfilePage() {
           ) : null}
       </div>
 
+      {/* Edit existing experience dialog */}
+      {editingExperienceId && editingExperienceId !== "new" && (
+        <ExperienceForm
+          open={!!editingExperienceId && editingExperienceId !== "new"}
+          onOpenChange={(open) => { if (!open) setEditingExperienceId(null) }}
+          initial={profile.experience_entries.find((e) => e.id === editingExperienceId) ?? null}
+          onSave={(entry) => {
+            updateField(
+              "experience_entries",
+              profile.experience_entries.map((item) =>
+                item.id === entry.id ? entry : item
+              )
+            )
+            setEditingExperienceId(null)
+          }}
+        />
+      )}
     </div>
   )
 }
