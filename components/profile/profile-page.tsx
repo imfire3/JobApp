@@ -1251,14 +1251,16 @@ export function ProfilePage() {
             className="space-y-4"
           >
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold">Expériences</h2>
+              <h2 className="text-xl font-semibold text-[#FAFAFA]">Expériences</h2>
               {!editingExperienceId && (
                 <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setEditingExperienceId("new")}
+                  className="h-12 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
                 >
-                  <Plus className="mr-1 h-4 w-4" />
-                  Ajouter
+                  <Plus className="h-4 w-4" />
+                  Ajouter une expérience
                 </Button>
               )}
             </div>
@@ -1278,16 +1280,16 @@ export function ProfilePage() {
             )}
 
             {sortedExperiences.length === 0 && editingExperienceId !== "new" ? (
-              <div className="rounded-2xl border border-dashed p-6 text-center text-base text-muted-foreground">
-                <p>Aucune expérience pour l&apos;instant.</p>
+              <div className="rounded-[18px] border border-[rgba(255,255,255,0.07)] bg-[#171717] p-6 text-center">
+                <p className="text-base text-[#A1A1A1]">Aucune expérience pour l&apos;instant.</p>
                 <Button
                   type="button"
-                  variant="secondary"
-                  className="mt-4"
+                  variant="outline"
+                  className="mt-4 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
                   onClick={() => setEditingExperienceId("new")}
                 >
-                  <Plus className="mr-1 h-4 w-4" />
-                  Ajouter ma première expérience
+                  <Plus className="h-4 w-4" />
+                  Ajouter une expérience
                 </Button>
               </div>
             ) : (
