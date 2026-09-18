@@ -71,7 +71,7 @@ export function EducationEntriesCard({
   }
 
   return (
-    <div className="flex flex-col gap-6 rounded-[18px] border border-[rgba(255,255,255,0.07)] bg-[#171717] p-6">
+    <div className="flex flex-col gap-6 rounded-[18px] border border-[#2F2F2F] bg-[#171717] p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold text-[#FAFAFA]">Diplômes & formations</h2>
@@ -91,7 +91,7 @@ export function EducationEntriesCard({
       </div>
       <div className="min-h-0 flex-1 space-y-4">
         {entries.length === 0 ? (
-          <div className="rounded-[18px] border border-[rgba(255,255,255,0.07)] bg-[#171717] p-6 text-center">
+          <div className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6 text-center">
             <p className="text-base text-[#A1A1A1]">Aucun diplôme pour l&apos;instant.</p>
             <Button
               type="button"

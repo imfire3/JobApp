@@ -30,7 +30,7 @@ import { CvAnalysisPanel } from "@/components/settings/cv-analysis-panel"
 import { SearchableMultiSelect, SearchableSelect } from "@/components/jobs/searchable-multi-select"
 import { EducationCardForm, EducationCardView } from "@/components/profile/education-card-form"
 import { ExperienceCard } from "@/components/profile/experience-card"
-import { ExperienceForm } from "@/components/profile/experience-form"
+import { ExperienceCardForm } from "@/components/profile/experience-card-form"
 import { LOCATION_TYPE_OPTIONS, MONTH_OPTIONS } from "@/lib/cv/experiences"
 import { FRANCE_CITIES } from "@/lib/onboarding/france-cities"
 import { emptyLanguageEntry } from "@/lib/profile/helpers"
@@ -302,7 +302,9 @@ export function ProfilePage() {
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [languageDraft, setLanguageDraft] = useState("")
   const [languageListOpen, setLanguageListOpen] = useState(false)
-  const [editingExperienceId, setEditingExperienceId] = useState<string | null>(null)
+  const [addingExperience, setAddingExperience] = useState(false)
+  const [editingExperienceEntry, setEditingExperienceEntry] =
+    useState<ProfileExperienceEntry | null>(null)
   const [confirmDeleteExperienceId, setConfirmDeleteExperienceId] = useState<string | null>(null)
   const [addingEducation, setAddingEducation] = useState(false)
   const [editingEducationEntry, setEditingEducationEntry] =
@@ -1248,45 +1250,63 @@ export function ProfilePage() {
             id="profile-panel-experiences"
             role="tabpanel"
             aria-labelledby="profile-tab-experiences"
-            className="space-y-4"
+            className="rounded-[18px] border border-[#2F2F2F] bg-[#171717] p-6 space-y-4"
           >
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-semibold text-[#FAFAFA]">Expériences</h2>
-              {!editingExperienceId && (
+              {!addingExperience && !editingExperienceEntry ? (
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setEditingExperienceId("new")}
+                  onClick={() => {
+                    setAddingExperience(true)
+                    setEditingExperienceEntry(null)
+                  }}
                   className="h-12 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
                 >
                   <Plus className="h-4 w-4" />
                   Ajouter une expérience
                 </Button>
-              )}
+              ) : null}
             </div>
 
-            {editingExperienceId === "new" && (
-              <ExperienceForm
-                open={editingExperienceId === "new"}
-                onOpenChange={(open) => { if (!open) setEditingExperienceId(null) }}
+            {addingExperience && !editingExperienceEntry ? (
+              <ExperienceCardForm
                 onSave={(entry) => {
                   updateField("experience_entries", [
                     ...profile.experience_entries,
                     entry,
                   ])
-                  setEditingExperienceId(null)
+                  setAddingExperience(false)
                 }}
+                onCancel={() => setAddingExperience(false)}
               />
-            )}
+            ) : null}
 
-            {sortedExperiences.length === 0 && editingExperienceId !== "new" ? (
-              <div className="rounded-[18px] border border-[rgba(255,255,255,0.07)] bg-[#171717] p-6 text-center">
+            {editingExperienceEntry ? (
+              <ExperienceCardForm
+                initial={editingExperienceEntry}
+                onSave={(entry) => {
+                  updateField(
+                    "experience_entries",
+                    profile.experience_entries.map((item) =>
+                      item.id === entry.id ? entry : item
+                    )
+                  )
+                  setEditingExperienceEntry(null)
+                }}
+                onCancel={() => setEditingExperienceEntry(null)}
+              />
+            ) : null}
+
+            {sortedExperiences.length === 0 && !addingExperience ? (
+              <div className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6 text-center">
                 <p className="text-base text-[#A1A1A1]">Aucune expérience pour l&apos;instant.</p>
                 <Button
                   type="button"
                   variant="outline"
                   className="mt-4 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
-                  onClick={() => setEditingExperienceId("new")}
+                  onClick={() => setAddingExperience(true)}
                 >
                   <Plus className="h-4 w-4" />
                   Ajouter une expérience
@@ -1300,7 +1320,10 @@ export function ProfilePage() {
                       key={experience.id}
                       experience={experience}
                       isConfirmDelete={confirmDeleteExperienceId === experience.id}
-                      onEdit={() => setEditingExperienceId(experience.id)}
+                      onEdit={() => {
+                        setEditingExperienceEntry(experience)
+                        setAddingExperience(false)
+                      }}
                       onDelete={() => {
                         setConfirmDeleteExperienceId(experience.id)
                       }}
@@ -1585,24 +1608,6 @@ export function ProfilePage() {
             </div>
           ) : null}
       </div>
-
-      {/* Edit existing experience dialog */}
-      {editingExperienceId && editingExperienceId !== "new" && (
-        <ExperienceForm
-          open={!!editingExperienceId && editingExperienceId !== "new"}
-          onOpenChange={(open) => { if (!open) setEditingExperienceId(null) }}
-          initial={profile.experience_entries.find((e) => e.id === editingExperienceId) ?? null}
-          onSave={(entry) => {
-            updateField(
-              "experience_entries",
-              profile.experience_entries.map((item) =>
-                item.id === entry.id ? entry : item
-              )
-            )
-            setEditingExperienceId(null)
-          }}
-        />
-      )}
     </div>
   )
 }
