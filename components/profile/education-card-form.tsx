@@ -347,9 +347,9 @@ export function EducationCardView({
 
   if (confirmDelete) {
     return (
-      <div className="rounded-2xl border border-destructive/50 bg-[#171717] p-5 shadow-sm">
-        <p className="text-base font-medium">Supprimer cette formation ?</p>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6">
+        <p className="text-base font-medium text-[#FAFAFA]">Supprimer cette formation ?</p>
+        <p className="mt-1 text-sm text-[#A1A1A1]">
           {entry.name || "Cette formation"} sera définitivement supprimée.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -377,87 +377,66 @@ export function EducationCardView({
   }
 
   return (
-    <article className="rounded-2xl border border-border bg-[#171717] p-5 shadow-sm">
-      <div className="flex items-start gap-4">
-        <div
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-semibold"
-          aria-hidden
-        >
-          {(entry.school || entry.name || "?")
-            .trim()
-            .charAt(0)
-            .toUpperCase()}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-1">
-              <h3 className="text-lg font-semibold leading-6">
-                {entry.name || "Formation"}
-              </h3>
-              {entry.school ? (
-                <p className="font-medium leading-6">{entry.school}</p>
-              ) : null}
-              <div className="flex flex-wrap items-center gap-2 text-base leading-6 text-muted-foreground">
-                <span>{formatPeriodDisplay(entry)}</span>
-                {entry.level ? (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span>{entry.level}</span>
-                  </>
-                ) : null}
-                {entry.isCurrent ? (
-                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                    En cours
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex shrink-0 gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Modifier cette formation"
-                title="Modifier cette formation"
-                onClick={() => onEdit(entry)}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Supprimer cette formation"
-                title="Supprimer cette formation"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          {description ? (
-            <div className="mt-3">
-              <p
-                className={cn(
-                  "whitespace-pre-wrap text-base leading-6 text-muted-foreground",
-                  !expanded && needsClamp && "line-clamp-3"
-                )}
-              >
-                {description}
-              </p>
-              {needsClamp ? (
-                <button
-                  type="button"
-                  className="mt-1 text-sm font-medium text-primary hover:underline"
-                  onClick={() => setExpanded(!expanded)}
-                >
-                  {expanded ? "Voir moins" : "Voir plus"}
-                </button>
-              ) : null}
-            </div>
+    <article className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1 space-y-1">
+          <h3 className="text-lg font-semibold text-[#FAFAFA]">
+            {entry.name || "Formation"}
+          </h3>
+          {entry.school ? (
+            <p className="text-base font-medium text-[#FAFAFA]">{entry.school}</p>
           ) : null}
+          <div className="flex flex-wrap items-center gap-2 text-base text-[#A1A1A1]">
+            <span>{formatPeriodDisplay(entry)}</span>
+            {entry.level ? (
+              <>
+                <span aria-hidden>·</span>
+                <span>{entry.level}</span>
+              </>
+            ) : null}
+            {entry.isCurrent ? (
+              <span className="inline-flex items-center rounded-full bg-[#142B24] px-2 py-0.5 text-xs font-medium text-[#00D492]">
+                En cours
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit(entry)}
+            className="h-12 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+          >
+            Modifier
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label={`Supprimer ${entry.name}`}
+            onClick={() => setConfirmDelete(true)}
+            className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
+      {description ? (
+        <p className="mt-4 whitespace-pre-wrap text-base leading-7 text-[#A1A1A1]">
+          {description}
+        </p>
+      ) : null}
+      {needsClamp ? (
+        <button
+          type="button"
+          className="mt-1 text-sm font-medium text-[#00D492] hover:underline"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? "Voir moins" : "Voir plus"}
+        </button>
+      ) : null}
     </article>
   )
 }
