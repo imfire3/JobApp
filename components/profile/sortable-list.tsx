@@ -91,23 +91,23 @@ export function SortableList<T extends { id: string }>({
             disarmAll()
           }}
           className={cn(
-            "group relative flex items-start gap-2 rounded-2xl border border-border bg-[#171717] p-3 transition-colors md:p-4",
+            "group relative flex items-start gap-2 rounded-[18px] border border-transparent p-0 transition-colors",
             dragIndex === index && "opacity-60",
             overIndex === index &&
               dragIndex !== null &&
               dragIndex !== index &&
-              "border-primary bg-primary/5",
+              "border-[#00D492]",
             itemClassName
           )}
         >
           <div
             role="button"
             className={cn(
-              "mt-1 shrink-0 touch-manipulation rounded-md p-1.5 text-muted-foreground transition-opacity",
+              "mt-1 shrink-0 touch-manipulation rounded-md p-1.5 text-[#A1A1A1] transition-opacity",
               "cursor-grab active:cursor-grabbing",
-              "opacity-40 hover:bg-muted hover:text-foreground hover:opacity-100",
+              "opacity-40 hover:bg-[rgba(255,255,255,0.08)] hover:text-[#FAFAFA] hover:opacity-100",
               "md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100",
-              armedIndex === index && "opacity-100 bg-muted text-foreground"
+              armedIndex === index && "opacity-100 bg-[rgba(255,255,255,0.08)] text-[#FAFAFA]"
             )}
             aria-label="Glisser pour réorganiser"
             title="Glisser pour réorganiser"
