@@ -5,7 +5,6 @@ import { Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -138,24 +137,38 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
   }
 
   return (
-    <Card className="max-h-full flex flex-col rounded-2xl">
-      <CardHeader className="shrink-0 flex flex-row flex-wrap items-start justify-between gap-4 space-y-0 p-6 md:p-8">
+    <div className="flex flex-col gap-6 rounded-[18px] border border-[rgba(255,255,255,0.07)] bg-[#171717] p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
-          <CardTitle className="text-xl font-semibold">Expériences</CardTitle>
-          <CardDescription className="text-base leading-7">
-            Ajoute tes postes — glisse pour réorganiser l’ordre.
-          </CardDescription>
+          <h2 className="text-xl font-semibold text-[#FAFAFA]">Expériences</h2>
+          <p className="text-base leading-7 text-[#A1A1A1]">
+            Ajoute tes postes — glisse pour réorganiser l&apos;ordre.
+          </p>
         </div>
-        <Button type="button" size="lg" onClick={handleAddExperience}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button
+          type="button"
+          onClick={handleAddExperience}
+          className="h-12 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+          variant="outline"
+        >
+          <Plus className="h-4 w-4" />
           Ajouter une expérience
         </Button>
-      </CardHeader>
-      <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-6 px-6 pb-6 md:px-8 md:pb-8">
+      </div>
+      <div className="min-h-0 flex-1 space-y-4">
         {experiences.length === 0 ? (
-          <p className="rounded-2xl border border-dashed p-6 text-base leading-7 text-muted-foreground">
-            Aucune expérience ajoutée pour l’instant.
-          </p>
+          <div className="rounded-[18px] border border-[rgba(255,255,255,0.07)] bg-[#171717] p-6 text-center">
+            <p className="text-base text-[#A1A1A1]">Aucune expérience ajoutée pour l&apos;instant.</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+              onClick={handleAddExperience}
+            >
+              <Plus className="h-4 w-4" />
+              Ajouter une expérience
+            </Button>
+          </div>
         ) : (
           <SortableList
             items={experiences}
@@ -463,83 +476,88 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
               }
 
               return (
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 space-y-2">
-                    <p className="text-lg font-semibold leading-6 text-foreground">
-                      {experience.title || "Nouvelle expérience"}
-                    </p>
-                    <p className="text-base font-medium text-foreground">
-                      {experience.organization || "Organisation à compléter"}
-                    </p>
-                    <p className="text-base leading-6 text-muted-foreground">
-                      {[
-                        experience.startMonth
-                          ? MONTH_OPTIONS.find(
-                              (m) => m.value === experience.startMonth
-                            )?.label
-                          : null,
-                        experience.startYear,
-                        "→",
-                        experience.isCurrent
-                          ? "présent"
-                          : [
-                              MONTH_OPTIONS.find(
-                                (m) => m.value === experience.endMonth
-                              )?.label,
-                              experience.endYear,
-                            ]
-                              .filter(Boolean)
-                              .join(" "),
-                        experience.employmentType,
-                        experience.location,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                    {experience.highlights.trim() ? (
-                      <p className="whitespace-pre-wrap text-base leading-7 text-muted-foreground">
-                        {experience.highlights.trim()}
+                <div className="rounded-[18px] border border-[rgba(255,255,255,0.07)] bg-[#171717] p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="text-lg font-semibold text-[#FAFAFA]">
+                        {experience.title || "Nouvelle expérience"}
                       </p>
-                    ) : null}
-                    {experience.skills.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {experience.skills.map((skill) => (
-                          <Badge key={skill} variant="chip">
-                            {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : null}
+                      <p className="text-base font-medium text-[#FAFAFA]">
+                        {experience.organization || "Organisation à compléter"}
+                      </p>
+                      <p className="text-base text-[#A1A1A1]">
+                        {[
+                          experience.startMonth
+                            ? MONTH_OPTIONS.find(
+                                (m) => m.value === experience.startMonth
+                              )?.label
+                            : null,
+                          experience.startYear,
+                          "→",
+                          experience.isCurrent
+                            ? "présent"
+                            : [
+                                MONTH_OPTIONS.find(
+                                  (m) => m.value === experience.endMonth
+                                )?.label,
+                                experience.endYear,
+                              ]
+                                .filter(Boolean)
+                                .join(" "),
+                          experience.location,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDraft(experience)
+                          setEditingId(experience.id)
+                          setSkillInput("")
+                        }}
+                        className="h-12 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+                      >
+                        Modifier
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleRemoveExperience(experience.id)}
+                        aria-label={`Supprimer ${experience.title}`}
+                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setDraft(experience)
-                        setEditingId(experience.id)
-                        setSkillInput("")
-                      }}
-                    >
-                      Modifier
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveExperience(experience.id)}
-                      aria-label={`Supprimer ${experience.title}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+
+                  {experience.highlights.trim() ? (
+                    <p className="mt-4 whitespace-pre-wrap text-base leading-7 text-[#A1A1A1]">
+                      {experience.highlights.trim()}
+                    </p>
+                  ) : null}
+
+                  {experience.skills.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {experience.skills.map((skill) => (
+                        <Badge key={skill} variant="tag">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               )
             }}
           />
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
