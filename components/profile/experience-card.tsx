@@ -74,7 +74,7 @@ export function ExperienceCard({
     : description
 
   return (
-    <article className="rounded-[18px] border border-[rgba(255,255,255,0.07)] bg-[#171717] p-6">
+    <article className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-1">
           <h3 className="text-lg font-semibold text-[#FAFAFA]">
