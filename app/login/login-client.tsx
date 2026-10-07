@@ -304,7 +304,7 @@ export default function LoginPageClient({
       if (fetchError || !res) {
         throw new Error(
           fetchError instanceof TypeError && fetchError.message === "Failed to fetch"
-            ? "L’envoi du CV a été interrompu deux fois. Réessaie ou choisis un fichier de moins de 8 Mo."
+            ? "L’envoi du CV a été interrompu deux fois. Réessaie ou choisis un fichier de moins de 25 Mo."
             : fetchError instanceof Error
               ? fetchError.message
               : "Erreur réseau inattendue"
