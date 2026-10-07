@@ -33,6 +33,7 @@ import { ExperienceCard } from "@/components/profile/experience-card"
 import { ExperienceCardForm } from "@/components/profile/experience-card-form"
 import { LOCATION_TYPE_OPTIONS, MONTH_OPTIONS } from "@/lib/cv/experiences"
 import { FRANCE_CITIES } from "@/lib/onboarding/france-cities"
+import { MIN_CV_LENGTH } from "@/lib/cv-analysis/service"
 import { emptyLanguageEntry } from "@/lib/profile/helpers"
 import {
   PROFILE_LANGUAGE_SUGGESTIONS,
@@ -415,9 +416,9 @@ export function ProfilePage() {
       base: ProfileState,
       options?: { silent?: boolean }
     ): Promise<ProfileState | null> => {
-      if (base.cv_text.trim().length < 200) {
+      if (base.cv_text.trim().length < MIN_CV_LENGTH) {
         if (!options?.silent) {
-          toast.error("CV trop court pour l’extraction (200 caractères min.)")
+          toast.error(`CV trop court pour l’extraction (${MIN_CV_LENGTH} caractères min.)`)
         }
         return null
       }

@@ -47,6 +47,7 @@ import {
   type ProfileLanguageEntry,
 } from "@/lib/profile/types"
 import { cn } from "@/lib/utils"
+import { MIN_CV_LENGTH } from "@/lib/cv-analysis/service"
 
 export type CandidateProfileData = {
   id: string
@@ -185,8 +186,8 @@ export function CandidateProfileForm({
 
   const runExtract = useCallback(
     async (loaded: CandidateProfileData, force: boolean) => {
-      if (loaded.cv_text.trim().length < 200) {
-        setExtractError("CV trop court pour l’analyse (minimum 200 caractères)")
+      if (loaded.cv_text.trim().length < MIN_CV_LENGTH) {
+        setExtractError(`CV trop court pour l\u2019analyse (minimum ${MIN_CV_LENGTH} caractères)`)
         return
       }
       setExtracting(true)
@@ -284,7 +285,7 @@ export function CandidateProfileForm({
         mode === "onboarding" &&
         !loaded.profile_reviewed_at &&
         !extractAppliedRef.current &&
-        loaded.cv_text.trim().length >= 200 &&
+        loaded.cv_text.trim().length >= MIN_CV_LENGTH &&
         !loaded.first_name?.trim() &&
         !loaded.last_name?.trim() &&
         loaded.experience_entries.length === 0 &&

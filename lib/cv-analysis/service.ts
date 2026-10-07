@@ -6,7 +6,7 @@ import { hashCvContent } from "@/lib/cv-analysis/hash";
 import type { CvAnalysisResponse } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export const MIN_CV_LENGTH = 200;
+export const MIN_CV_LENGTH = 10;
 export const MAX_CV_LENGTH = 10_000;
 
 export class CvAnalysisError extends Error {

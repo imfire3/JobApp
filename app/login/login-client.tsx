@@ -16,7 +16,7 @@ import { CvImportProgress } from "@/components/cv/CvImportProgress";
 import { cn } from "@/lib/utils";
 
 /** Keep in sync with lib/cv-analysis/service.ts MIN_CV_LENGTH */
-const MIN_CV_LENGTH = 200;
+const MIN_CV_LENGTH = 10;
 const MIN_PASSWORD_LENGTH = 8;
 
 const MAX_CV_FILE_SIZE_BYTES = 25 * 1024 * 1024;
