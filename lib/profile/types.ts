@@ -120,3 +120,10 @@ export const CONTRACT_TYPE_OPTIONS = [
   "Stage",
   "Alternance",
 ] as const
+
+export const PROFILE_REMOTE_OPTIONS = [
+  "Remote",
+  "Full remote",
+  "Hybride",
+  "Hybrid",
+] as const

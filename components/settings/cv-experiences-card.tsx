@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Plus, Trash2, X } from "lucide-react"
+import { Plus, Trash2, X, ChevronUp, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { SortableList } from "@/components/profile/sortable-list"
 import {
   EMPLOYMENT_TYPE_OPTIONS,
   LOCATION_TYPE_OPTIONS,
@@ -137,12 +136,12 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
   }
 
   return (
-    <div className="flex flex-col gap-6 rounded-[18px] border border-[#2F2F2F] bg-[#171717] p-6">
+    <div className="flex w-full flex-col gap-6 rounded-[18px] border border-[#2F2F2F] bg-[#171717] p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-[#FAFAFA]">Expériences</h2>
           <p className="text-base leading-7 text-[#A1A1A1]">
-            Ajoute tes postes — glisse pour réorganiser l&apos;ordre.
+            Ajoute tes postes — utilise les flèches pour réorganiser l&apos;ordre.
           </p>
         </div>
         <Button
@@ -155,7 +154,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
           Ajouter une expérience
         </Button>
       </div>
-      <div className="min-h-0 flex-1 space-y-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
         {experiences.length === 0 ? (
           <div className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6 text-center">
             <p className="text-base text-[#A1A1A1]">Aucune expérience ajoutée pour l&apos;instant.</p>
@@ -169,16 +168,14 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
               Ajouter une expérience
             </Button>
           </div>
-        ) : (
-          <SortableList
-            items={experiences}
-            onReorder={onChange}
-            renderItem={(experience) => {
+) : (
+          <ul className="space-y-4">
+            {experiences.map((experience, index) => {
               const isEditing = draft?.id === experience.id
               if (isEditing && draft) {
                 return (
-                  <div className="space-y-5">
-                    <h3 className="text-lg font-semibold">Édition de l’expérience</h3>
+                  <li key={experience.id} className="space-y-5">
+                    <h3 className="text-lg font-semibold">Édition de l'expérience</h3>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Field className="sm:col-span-2">
                         <Label htmlFor={`exp-title-${draft.id}`} className="mb-0 text-base">
@@ -470,15 +467,16 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                       >
                         Annuler
                       </Button>
-                    </div>
-                  </div>
-                )
-              }
+</div>
+                </li>
+              )
+            }
 
-              return (
-                <div className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1 space-y-1">
+            return (
+                <li key={experience.id}>
+                  <div className="w-full rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-lg font-semibold text-[#FAFAFA]">
                         {experience.title || "Nouvelle expérience"}
                       </p>
@@ -528,6 +526,42 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                         type="button"
                         variant="outline"
                         size="icon"
+                        onClick={() => {
+                          if (index > 0) {
+                            const next = [...experiences]
+                            const [moved] = next.splice(index, 1)
+                            next.splice(index - 1, 0, moved)
+                            onChange(next)
+                          }
+                        }}
+                        disabled={index === 0}
+                        aria-label="Monter"
+                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)] disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          if (index < experiences.length - 1) {
+                            const next = [...experiences]
+                            const [moved] = next.splice(index, 1)
+                            next.splice(index + 1, 0, moved)
+                            onChange(next)
+                          }
+                        }}
+                        disabled={index === experiences.length - 1}
+                        aria-label="Descendre"
+                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)] disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
                         onClick={() => handleRemoveExperience(experience.id)}
                         aria-label={`Supprimer ${experience.title}`}
                         className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
@@ -553,9 +587,10 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                     </div>
                   ) : null}
                 </div>
+                </li>
               )
-            }}
-          />
+            })}
+          </ul>
         )}
       </div>
     </div>

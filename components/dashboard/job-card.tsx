@@ -75,7 +75,7 @@ export function JobCard({
 
   return (
     <Card
-      className={`flex h-fit flex-col self-start shadow-sm transition-shadow hover:shadow-md ${
+      className={`flex h-[450px] flex-col self-start shadow-sm transition-shadow hover:shadow-md overflow-hidden ${
         onOpen ? "cursor-pointer" : ""
       }`}
       role={onOpen ? "link" : undefined}
@@ -93,7 +93,7 @@ export function JobCard({
           : undefined
       }
     >
-      <CardHeader className="space-y-3 pb-3">
+      <CardHeader className="space-y-3 pb-3 flex-shrink-0">
         <div className="flex items-start gap-3">
           <Checkbox
             checked={job.selected}
@@ -156,9 +156,9 @@ export function JobCard({
         </div>
       </CardHeader>
 
-      <CardContent className="pb-3">
+      <CardContent className="pb-3 flex-1 min-h-0 overflow-hidden">
         {showScoringBar && scoring ? (
-          <div className="mb-3">
+          <div className="mb-3 flex-shrink-0">
             <JobScoringProgressBar
               progress={scoring.progress}
               status={scoring.status}
@@ -172,20 +172,22 @@ export function JobCard({
             />
           </div>
         ) : null}
-        <p className="line-clamp-3 text-base leading-relaxed text-muted-foreground">
-          {job.summary ?? job.ai_summary ?? job.description}
-        </p>
+        <div className="overflow-hidden">
+          <p className="line-clamp-3 text-base leading-relaxed text-muted-foreground">
+            {job.summary ?? job.ai_summary ?? job.description}
+          </p>
 
-        {job.match_reasons && job.match_reasons.length > 0 && (
-          <div className="mt-3 space-y-1">
-            <p className="text-base font-medium text-foreground">Top matches</p>
-            <ul className="space-y-0.5 text-base text-muted-foreground">
-              {job.match_reasons.slice(0, 2).map((reason, i) => (
-                <li key={i}>• {reason}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+          {job.match_reasons && job.match_reasons.length > 0 && (
+            <div className="mt-3 space-y-1 overflow-hidden">
+              <p className="text-base font-medium text-foreground">Top matches</p>
+              <ul className="space-y-0.5 text-base text-muted-foreground">
+                {job.match_reasons.slice(0, 2).map((reason, i) => (
+                  <li key={i} className="truncate">• {reason}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </CardContent>
 
       <CardFooter

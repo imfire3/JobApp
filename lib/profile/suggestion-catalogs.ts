@@ -79,10 +79,6 @@ export const PROFILE_LANGUAGE_SUGGESTIONS = [
 ] as const
 
 export const PROFILE_LOCATION_EXTRAS = [
-  "Remote",
-  "Full remote",
-  "Hybride",
-  "Hybrid",
   "Île-de-France",
   "Paris",
   "Lyon",
@@ -95,4 +91,11 @@ export const PROFILE_LOCATION_EXTRAS = [
   "Strasbourg",
   "Rennes",
   "Montpellier",
+] as const
+
+export const PROFILE_REMOTE_OPTIONS = [
+  "Remote",
+  "Full remote",
+  "Hybride",
+  "Hybrid",
 ] as const

@@ -1,14 +1,13 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { SortableList } from "@/components/profile/sortable-list"
 import { MONTH_OPTIONS } from "@/lib/cv/experiences"
 import { emptyEducationEntry } from "@/lib/profile/helpers"
 import type { ProfileEducationEntry } from "@/lib/profile/types"
@@ -71,12 +70,12 @@ export function EducationEntriesCard({
   }
 
   return (
-    <div className="flex flex-col gap-6 rounded-[18px] border border-[#2F2F2F] bg-[#171717] p-6">
+    <div className="flex w-full flex-col gap-6 rounded-[18px] border border-[#2F2F2F] bg-[#171717] p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold text-[#FAFAFA]">Diplômes & formations</h2>
           <p className="text-base text-[#A1A1A1]">
-            Ajoute tes diplômes — glisse pour réorganiser.
+            Ajoute tes diplômes — utilise les flèches pour réorganiser.
           </p>
         </div>
         <Button
@@ -89,7 +88,7 @@ export function EducationEntriesCard({
           Ajouter un diplôme
         </Button>
       </div>
-      <div className="min-h-0 flex-1 space-y-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
         {entries.length === 0 ? (
           <div className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6 text-center">
             <p className="text-base text-[#A1A1A1]">Aucun diplôme pour l&apos;instant.</p>
@@ -104,14 +103,12 @@ export function EducationEntriesCard({
             </Button>
           </div>
         ) : (
-          <SortableList
-            items={entries}
-            onReorder={onChange}
-            renderItem={(entry) => {
+          <ul className="space-y-4">
+            {entries.map((entry, index) => {
               const isEditing = draft?.id === entry.id
               if (isEditing && draft) {
                 return (
-                  <div className="space-y-3">
+                  <li key={entry.id} className="space-y-3">
                     <div className="space-y-2">
                       <Label htmlFor={`edu-name-${draft.id}`}>Nom *</Label>
                       <Input
@@ -256,15 +253,16 @@ export function EducationEntriesCard({
                       >
                         Annuler
                       </Button>
-                    </div>
-                  </div>
-                )
-              }
+</div>
+                </li>
+              )
+            }
 
-              return (
-                <div className="rounded-[18px] border border-[rgba(255,255,255,0.07)] bg-[#171717] p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1 space-y-1">
+            return (
+                <li key={entry.id}>
+                  <div className="w-full rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-lg font-semibold text-[#FAFAFA]">
                         {entry.name || "Nouveau diplôme"}
                       </p>
@@ -311,6 +309,42 @@ export function EducationEntriesCard({
                         type="button"
                         variant="outline"
                         size="icon"
+                        onClick={() => {
+                          if (index > 0) {
+                            const next = [...entries]
+                            const [moved] = next.splice(index, 1)
+                            next.splice(index - 1, 0, moved)
+                            onChange(next)
+                          }
+                        }}
+                        disabled={index === 0}
+                        aria-label="Monter"
+                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)] disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          if (index < entries.length - 1) {
+                            const next = [...entries]
+                            const [moved] = next.splice(index, 1)
+                            next.splice(index + 1, 0, moved)
+                            onChange(next)
+                          }
+                        }}
+                        disabled={index === entries.length - 1}
+                        aria-label="Descendre"
+                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)] disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
                         aria-label={`Supprimer ${entry.name}`}
                         onClick={() => handleRemove(entry.id)}
                         className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
@@ -318,11 +352,12 @@ export function EducationEntriesCard({
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                   </div>
+                  </div>
                 </div>
+                </li>
               )
-            }}
-          />
+            })}
+          </ul>
         )}
       </div>
     </div>

@@ -57,6 +57,7 @@ export type CandidateProfileData = {
   phone: string | null
   date_of_birth: string | null
   current_city: string | null
+  current_cities: string[]
   current_title: string | null
   bio: string | null
   linkedin_url: string | null
@@ -105,6 +106,7 @@ function emptyProfile(): CandidateProfileData {
     phone: null,
     date_of_birth: null,
     current_city: null,
+    current_cities: [],
     current_title: null,
     bio: null,
     linkedin_url: null,
@@ -578,13 +580,14 @@ export function CandidateProfileForm({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="city">Lieu de résidence</Label>
-                <SearchableSelect
+                <SearchableMultiSelect
                   id="city"
                   options={[...FRANCE_CITIES]}
-                  value={profile.current_city}
-                  onChange={(value) => updateField("current_city", value)}
+                  values={profile.current_cities || []}
+                  onChange={(values) => updateField("current_cities", values)}
                   placeholder="Rechercher une ville…"
                   allowCustom
+                  emptyLabel="Aucune ville sélectionnée"
                 />
               </div>
               <div className="space-y-2">

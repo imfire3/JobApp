@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { AuthCardShell } from "@/components/auth/auth-card-shell";
-import { ExtractionProgress } from "@/components/onboarding/onboarding-progress";
+import { CvImportProgress } from "@/components/cv/CvImportProgress";
 import { cn } from "@/lib/utils";
 
 /** Keep in sync with lib/cv-analysis/service.ts MIN_CV_LENGTH */
@@ -128,6 +128,8 @@ export default function LoginPageClient({
   const [parsingCv, setParsingCv] = useState(false);
   const [cvReady, setCvReady] = useState(false);
   const [cvTab, setCvTab] = useState<"upload" | "paste">("upload");
+  const [importStep, setImportStep] = useState<"idle" | "upload" | "extract" | "analyze" | "save" | "done" | "error">("idle");
+  const [importMessage, setImportMessage] = useState("");
   const pasteParseTimerRef = useRef<number | null>(null);
   const lastParsedPasteRef = useRef("");
 
@@ -137,6 +139,7 @@ export default function LoginPageClient({
 
   useEffect(() => {
     let cancelled = false;
+    let retried = false;
 
     async function resumeOnboarding() {
       try {
@@ -145,6 +148,15 @@ export default function LoginPageClient({
 
         // Not logged in: CV import needs a session → signup first when allowed.
         if (statusRes.status === 401) {
+          // If we're on cv=1 (just signed up), retry once after a short delay
+          // to allow session cookie to be ready
+          if (wantsCv && !retried) {
+            retried = true;
+            await new Promise((r) => setTimeout(r, 300));
+            if (!cancelled) {
+              return resumeOnboarding();
+            }
+          }
           if (wantsCv && allowSelfSignup) {
             setMode("signup");
           }
@@ -197,6 +209,7 @@ export default function LoginPageClient({
     if (!file) {
       setPdfFile(null);
       setCvReady(false);
+      setImportStep("idle");
       return;
     }
     const isPdf =
@@ -214,7 +227,10 @@ export default function LoginPageClient({
 
     setPdfFile(file);
     setCvReady(false);
+    setImportStep("upload");
+    setImportMessage("Réception de ton fichier…");
     setParsingCv(true);
+
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -231,36 +247,49 @@ export default function LoginPageClient({
         error?: string;
       }>(res);
       if (!res.ok) {
-        throw new Error(data.error ?? "Impossible d’extraire le texte du CV");
+        throw new Error(data.error ?? "Impossible d'extraire le texte du CV");
       }
+
+      setImportStep("extract");
+      setImportMessage("Lecture et extraction du texte…");
+
       const text = (data.extracted_text ?? "").trim();
       setCvText(text);
+
+      setImportStep("analyze");
+      setImportMessage("Analyse de tes expériences et compétences…");
+
       const ready =
         Boolean(data.profile_filled) || text.length >= MIN_CV_LENGTH;
       if (!ready) {
         throw new Error(
-          `CV trop court après extraction (min. ${MIN_CV_LENGTH} caractères)`
+          "CV trop court après extraction (min. " + MIN_CV_LENGTH + " caractères)"
         );
       }
+
+      setImportStep("save");
+      setImportMessage("Création de ton profil…");
+
+      await saveCvOnly();
+
+      setImportStep("done");
+      setImportMessage("Profil prêt ! Redirection…");
+
       setCvReady(true);
-      if (data.profile_filled) {
-        toast.success("CV analysé — tu peux continuer");
-      } else if (data.profile_extract_error) {
-        toast.success(
-          `CV extrait · ${text.length} caractères${data.ocr_used ? " (OCR)" : ""}`
-        );
-        toast.message("Profil à compléter ensuite");
-      } else {
-        toast.success(
-          `CV extrait · ${text.length} caractères${data.ocr_used ? " (OCR)" : ""}`
-        );
-      }
+      toast.success("CV importé — redirection vers ton dashboard");
+
+      setTimeout(() => {
+        router.push("/onboarding/profile");
+        router.refresh();
+      }, 800);
     } catch (error) {
+      setImportStep("error");
+      setImportMessage(error instanceof Error ? error.message : "Erreur lors de l'import");
       setPdfFile(null);
       setCvReady(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast.error(
-        error instanceof Error ? error.message : "Échec de l’extraction PDF"
+        error instanceof Error ? error.message : "Échec de l'extraction PDF"
       );
     } finally {
       setParsingCv(false);
@@ -386,7 +415,10 @@ export default function LoginPageClient({
       setPassword("");
       setPasswordConfirm("");
       setMode("cv");
-      router.replace("/login?cv=1");
+      // Small delay to ensure session cookie is set before navigation
+      setTimeout(() => {
+        router.replace("/login?cv=1");
+      }, 150);
       toast.message("Importe ton CV pour continuer");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Inscription échouée");
@@ -594,10 +626,11 @@ export default function LoginPageClient({
                     )}
                   >
                     {parsingCv && cvTab === "upload" ? (
-                      <div className="w-full max-w-md px-2">
-                        <ExtractionProgress
+                      <div className="w-full max-w-md px-2 flex items-center justify-center">
+                        <CvImportProgress
                           active
-                          label="Analyse du CV…"
+                          step={importStep}
+                          message={importMessage}
                           className="border-0 bg-transparent p-0"
                         />
                       </div>
@@ -642,13 +675,23 @@ export default function LoginPageClient({
                   <div className="relative flex h-[220px] min-h-[220px] flex-col rounded-2xl border border-dashed border-border bg-muted/20 p-3">
                     {parsingCv && cvTab === "paste" ? (
                       <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/80 p-4 backdrop-blur-[1px]">
-                        <ExtractionProgress
+                        <CvImportProgress
                           active
-                          label="Analyse du CV…"
+                          step={importStep}
+                          message={importMessage}
                           className="w-full max-w-md border-0 bg-transparent"
                         />
                       </div>
-                    ) : null}
+                    ) : (cvText.trim().length > 0 && !cvReady && cvTab === "paste" ? (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/80 p-4 backdrop-blur-[1px]">
+                        <CvImportProgress
+                          active
+                          step="analyze"
+                          message="Analyse du texte collé…"
+                          className="w-full max-w-md border-0 bg-transparent"
+                        />
+                      </div>
+                    ) : null)}
                     <Label htmlFor="cv-text" className="sr-only">
                       Coller mon CV
                     </Label>

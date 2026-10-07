@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useId, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import {
   addMonths,
@@ -90,6 +90,19 @@ export function DateOfBirthField({
     }
     return startOfMonth(new Date(1995, 0, 1))
   })
+
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (anchorRef.current && !anchorRef.current.contains(event.target as Node)) {
+      setOpen(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [open, handleClickOutside])
 
   useEffect(() => {
     const next = formatDisplayDate(value)

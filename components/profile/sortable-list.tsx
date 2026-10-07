@@ -59,7 +59,7 @@ export function SortableList<T extends { id: string }>({
   }
 
   return (
-    <ul className={cn("space-y-3", className)}>
+    <ul className={cn("w-full space-y-3", className)}>
       {items.map((item, index) => (
         <li
           key={item.id}
