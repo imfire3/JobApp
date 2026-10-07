@@ -8,3 +8,5 @@ out
 *.tsbuildinfo
 .vercel
 .superpowers/
+.env*
+supabase_full_export.sql

@@ -57,7 +57,10 @@ export async function POST(request: Request) {
   }
 
   // Do not set a session cookie — admin stays logged in.
-  await ensureLocalAuthUserInSupabase(result.user)
+  await ensureLocalAuthUserInSupabase(result.user, undefined, {
+      first_name: body.first_name,
+      last_name: body.last_name,
+    })
 
   if (hasServiceRoleKey()) {
     const supabase = createServiceClient()

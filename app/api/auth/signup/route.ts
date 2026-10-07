@@ -21,6 +21,9 @@ const signupSchema = z.object({
   identifier: z.string().optional(),
   email: z.string().optional(),
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  date_of_birth: z.string().optional(),
 })
 
 /** Local self-signup only — closed on Vercel (demo request flow). */
@@ -54,7 +57,11 @@ export async function POST(request: Request) {
     )
   }
 
-  await ensureLocalAuthUserInSupabase(result.user)
+  await ensureLocalAuthUserInSupabase(result.user, undefined, {
+    first_name: body.first_name,
+    last_name: body.last_name,
+    date_of_birth: body.date_of_birth,
+  })
 
   const response = NextResponse.json({ user: result.user })
   response.cookies.set(

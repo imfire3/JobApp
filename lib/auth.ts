@@ -43,7 +43,7 @@ export async function getAuthenticatedUser() {
       // Local-auth has no Supabase JWT → service role bypasses RLS on the server.
       if (hasServiceRoleKey()) {
         const supabase = createServiceClient() as never;
-        const ensured = await ensureLocalAuthUserInSupabase(localUser);
+        const ensured = await ensureLocalAuthUserInSupabase(localUser, supabase, {});
         if (!ensured.ok) {
           return {
             supabase,

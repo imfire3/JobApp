@@ -52,7 +52,7 @@ export function CvImportProgress({
     }, 250)
 
     return () => window.clearInterval(timer)
-  }, [active])
+  }, [active, step])
 
   useEffect(() => {
     if (step === "done" && onComplete) {

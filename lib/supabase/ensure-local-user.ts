@@ -120,7 +120,8 @@ async function createAuthUserForLocalSession(
  */
 export async function ensureLocalAuthUserInSupabase(
   user: LocalUser,
-  client?: SupabaseClient
+  client?: SupabaseClient,
+  profileData?: { first_name?: string; last_name?: string; date_of_birth?: string }
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (ensuredUserIds.has(user.id)) {
     return { ok: true };
@@ -149,6 +150,9 @@ export async function ensureLocalAuthUserInSupabase(
         id: user.id,
         target_roles: ["Product Owner", "Product Manager"],
         target_locations: ["Paris", "remote", "hybrid"],
+        first_name: profileData?.first_name ?? null,
+        last_name: profileData?.last_name ?? null,
+        date_of_birth: profileData?.date_of_birth ?? null,
       },
       { onConflict: "id" }
     );

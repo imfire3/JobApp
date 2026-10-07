@@ -741,12 +741,14 @@ export function CandidateProfileForm({
         ) : null}
 
         {activeSection === "experiences" ? (
-          <CvExperiencesCard
-            experiences={profile.experience_entries}
-            onChange={(experiences) =>
-              updateField("experience_entries", experiences)
-            }
-          />
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <CvExperiencesCard
+              experiences={profile.experience_entries}
+              onChange={(experiences) =>
+                updateField("experience_entries", experiences)
+              }
+            />
+          </div>
         ) : null}
 
         {activeSection === "skills" ? (

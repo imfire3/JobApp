@@ -122,6 +122,9 @@ export default function LoginPageClient({
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
 
   const [cvText, setCvText] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -402,7 +405,7 @@ export default function LoginPageClient({
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ identifier, password, first_name: firstName, last_name: lastName, date_of_birth: dateOfBirth }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
         error?: string;
@@ -763,6 +766,47 @@ export default function LoginPageClient({
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-first-name">Prénom</Label>
+                  <Input
+                    id="signup-first-name"
+                    type="text"
+                    autoComplete="given-name"
+                    enterKeyHint="next"
+                    placeholder="Prénom"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-last-name">Nom</Label>
+                  <Input
+                    id="signup-last-name"
+                    type="text"
+                    autoComplete="family-name"
+                    enterKeyHint="next"
+                    placeholder="Nom"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-date-of-birth">Date de naissance</Label>
+                <Input
+                  id="signup-date-of-birth"
+                  type="date"
+                  autoComplete="bday"
+                  enterKeyHint="next"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  required
+                  max={new Date().toISOString().split("T")[0]}
                 />
               </div>
               <PasswordField

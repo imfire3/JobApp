@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   // Best-effort: seed auth.users so cv_contexts / jobs FK succeed after login
-  await ensureLocalAuthUserInSupabase(result.user);
+  await ensureLocalAuthUserInSupabase(result.user, undefined, {});
 
   let onboardingCookieValue: "pending" | "done" = "pending";
   try {
