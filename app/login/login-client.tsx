@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 const MIN_CV_LENGTH = 200;
 const MIN_PASSWORD_LENGTH = 8;
 
+const MAX_CV_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 async function readApiJson<T extends Record<string, unknown>>(res: Response): Promise<T> {
   const text = await res.text();
   try {
@@ -228,6 +229,14 @@ export default function LoginPageClient({
       return;
     }
 
+    if (file.size > MAX_CV_FILE_SIZE_BYTES) {
+      toast.error("Ce fichier dépasse 25 Mo. Choisis une version plus légère.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setPdfFile(null);
+      setCvReady(false);
+      return;
+    }
+
     setPdfFile(file);
     setCvReady(false);
     setImportStep("upload");
@@ -235,18 +244,67 @@ export default function LoginPageClient({
     setParsingCv(true);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      let res: Response;
-      try {
-        res = await fetch("/api/profile/import-cv", {
-          method: "POST",
-          body: formData,
-        });
-      } catch (fetchError) {
+      let res: Response | undefined;
+      let fetchError: unknown;
+      let importConfirmedWithoutResponse = false;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
+          res = await fetch("/api/profile/import-cv", {
+            method: "POST",
+            body: formData,
+          });
+          fetchError = undefined;
+          break;
+        } catch (error) {
+          fetchError = error;
+
+          // The upload may have completed even if the browser lost the response.
+          // Confirm persisted server state before sending the same CV again.
+          try {
+            const statusRes = await fetch("/api/onboarding", {
+              cache: "no-store",
+            });
+            const status = await readApiJson<{
+              has_cv?: boolean;
+              has_profile_reviewed?: boolean;
+              step?: string;
+            }>(statusRes);
+            if (
+              statusRes.ok &&
+              (status.has_cv ||
+                status.has_profile_reviewed ||
+                status.step === "profile" ||
+                status.step === "done")
+            ) {
+              importConfirmedWithoutResponse = true;
+              fetchError = undefined;
+              break;
+            }
+          } catch {
+            // The status check is best-effort; retry the upload once below.
+          }
+
+          if (attempt === 0) {
+            setImportMessage("Connexion interrompue, nouvelle tentative…");
+            await new Promise((resolve) => window.setTimeout(resolve, 500));
+          }
+        }
+      }
+      if (importConfirmedWithoutResponse) {
+        setImportStep("done");
+        setImportMessage("CV enregistré ! Redirection…");
+        setCvReady(true);
+        toast.success("CV importé — profil enregistré");
+        router.push("/onboarding/profile");
+        router.refresh();
+        return;
+      }
+      if (fetchError || !res) {
         throw new Error(
           fetchError instanceof TypeError && fetchError.message === "Failed to fetch"
-            ? "Échec de la connexion au serveur (vérifie ta connexion / VPN / pare-feu)."
+            ? "L’envoi du CV a été interrompu deux fois. Réessaie ou choisis un fichier de moins de 8 Mo."
             : fetchError instanceof Error
               ? fetchError.message
               : "Erreur réseau inattendue"

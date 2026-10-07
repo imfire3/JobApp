@@ -6,7 +6,7 @@ import { loadUserOpenAIKey } from "@/lib/openai/api-key"
 import { extractResumeText } from "@/lib/resume/extract-text"
 import { resumeDevLog } from "@/lib/resume/normalize-text"
 
-const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024
+const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 const CV_BUCKET = "cv-files"
 
 function isAllowedFile(mimeType: string, fileName: string): boolean {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
       return NextResponse.json(
-        { error: "File is too large. Max size is 8MB." },
+        { error: "File is too large. Max size is 25MB." },
         { status: 400 }
       )
     }
