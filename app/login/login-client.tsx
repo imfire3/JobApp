@@ -237,10 +237,21 @@ export default function LoginPageClient({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/profile/import-cv", {
-        method: "POST",
-        body: formData,
-      });
+      let res: Response;
+      try {
+        res = await fetch("/api/profile/import-cv", {
+          method: "POST",
+          body: formData,
+        });
+      } catch (fetchError) {
+        throw new Error(
+          fetchError instanceof TypeError && fetchError.message === "Failed to fetch"
+            ? "Échec de la connexion au serveur (vérifie ta connexion / VPN / pare-feu)."
+            : fetchError instanceof Error
+              ? fetchError.message
+              : "Erreur réseau inattendue"
+        );
+      }
       const data = await readApiJson<{
         extracted_text?: string;
         text_length?: number;
