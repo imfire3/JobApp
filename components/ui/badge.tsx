@@ -23,6 +23,12 @@ const badgeVariants = cva(
         tag: "h-auto rounded-[8px] border border-brand/50 bg-brand-foreground px-3 py-1.5 text-brand shadow-none [a]:hover:bg-brand/10",
         /** Selected filter chip (Figma FilterChip 58:84) */
         chip: "h-auto gap-1.5 rounded-[8px] border border-input bg-accent px-3 py-2 text-xs font-medium leading-none text-accent-foreground shadow-none hover:bg-accent/90",
+        /** Job status pill — colors come from className, e.g. getStatusColor(status) */
+        status:
+          "h-auto rounded-full border border-transparent px-2.5 py-0.5 text-xs font-medium",
+        /** Match-score pill — colors come from className, e.g. matchScoreMeta(score).textColor */
+        score:
+          "h-auto rounded-full border border-transparent px-2.5 py-0.5 text-xs font-semibold tabular-nums",
       },
     },
     defaultVariants: {
