@@ -872,7 +872,7 @@ export function ProfilePage() {
   return (
     <div className="space-y-4">
       <div className="sticky top-0 z-30 space-y-4 border-b border-border bg-background pb-4 pt-4">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold tracking-tight">Profil</h1>
             <p className="max-w-2xl text-base leading-7 text-muted-foreground">
@@ -914,7 +914,7 @@ export function ProfilePage() {
             </Button>
             <PageHelpButton pageId="cv" />
           </div>
-        </header>
+        </div>
 
         <nav
           aria-label="Sections du profil"
