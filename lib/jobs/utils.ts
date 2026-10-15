@@ -95,20 +95,20 @@ export function formatRelativeDate(dateStr: string): string {
 
 export function getStatusColor(status: Job["status"]): string {
   const colors: Record<Job["status"], string> = {
-    new: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-    selected: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
-    cover_generated: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-    applied: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-    interview: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
-    offer: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
-    rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-    archived: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+    new: "bg-status-new text-status-new-foreground",
+    selected: "bg-status-selected text-status-selected-foreground",
+    cover_generated: "bg-status-cover-generated text-status-cover-generated-foreground",
+    applied: "bg-status-applied text-status-applied-foreground",
+    interview: "bg-status-interview text-status-interview-foreground",
+    offer: "bg-status-offer text-status-offer-foreground",
+    rejected: "bg-status-rejected text-status-rejected-foreground",
+    archived: "bg-status-archived text-status-archived-foreground",
   };
   return colors[status];
 }
 
 export function getMatchScoreColor(score: number): string {
-  if (score >= 75) return "text-emerald-600 dark:text-emerald-400";
-  if (score >= 40) return "text-amber-600 dark:text-amber-400";
-  return "text-red-600 dark:text-red-400";
+  if (score >= 75) return "text-success";
+  if (score >= 40) return "text-warning";
+  return "text-destructive";
 }

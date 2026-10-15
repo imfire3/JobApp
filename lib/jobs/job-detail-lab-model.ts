@@ -370,8 +370,8 @@ export function matchScoreMeta(score: number | null): MatchScoreMeta {
       summary:
         "Ton profil est en très forte adéquation avec l’offre. Peu de choses à améliorer.",
       tone: "good",
-      textColor: "text-emerald-500",
-      barColor: "bg-emerald-500",
+      textColor: "text-score-good",
+      barColor: "bg-score-good",
     }
   }
   if (score >= 75) {
@@ -380,8 +380,8 @@ export function matchScoreMeta(score: number | null): MatchScoreMeta {
       summary:
         "Ton profil correspond très bien au poste, avec quelques finitions possibles.",
       tone: "good",
-      textColor: "text-emerald-500",
-      barColor: "bg-emerald-500",
+      textColor: "text-score-good",
+      barColor: "bg-score-good",
     }
   }
   if (score >= 60) {
@@ -390,8 +390,8 @@ export function matchScoreMeta(score: number | null): MatchScoreMeta {
       summary:
         "Ton profil correspond bien au poste, mais quelques éléments peuvent encore améliorer ta candidature.",
       tone: "partial",
-      textColor: "text-amber-500",
-      barColor: "bg-amber-500",
+      textColor: "text-score-warn",
+      barColor: "bg-score-warn",
     }
   }
   if (score >= 40) {
@@ -400,8 +400,8 @@ export function matchScoreMeta(score: number | null): MatchScoreMeta {
       summary:
         "Des points forts existent, mais des écarts ou mots-clés ATS manquent encore.",
       tone: "weak",
-      textColor: "text-orange-500",
-      barColor: "bg-orange-500",
+      textColor: "text-score-partial",
+      barColor: "bg-score-partial",
     }
   }
   return {
@@ -409,8 +409,8 @@ export function matchScoreMeta(score: number | null): MatchScoreMeta {
     summary:
       "Ton CV ne couvre pas assez les exigences visibles de l’offre pour l’instant.",
     tone: "weak",
-    textColor: "text-red-500",
-    barColor: "bg-red-500",
+    textColor: "text-score-bad",
+    barColor: "bg-score-bad",
   }
 }
 
