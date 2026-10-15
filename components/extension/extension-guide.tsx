@@ -58,7 +58,7 @@ export function ExtensionGuide() {
             </a>
             <p className="text-base text-muted-foreground">
               {CHROME_EXTENSION_DOWNLOAD_NAME}{" "}
-              <span className="text-muted-foreground/70">
+              <span className="text-muted-foreground">
                 ({CHROME_EXTENSION_DOWNLOAD_APPROX_SIZE})
               </span>
             </p>

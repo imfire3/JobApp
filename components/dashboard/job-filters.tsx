@@ -97,7 +97,7 @@ export function JobFilterMenu({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         className={cn(
-          "relative flex h-12 w-fit items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 dark:bg-input/30 dark:hover:bg-input/50",
+          "relative flex h-12 w-fit items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50",
           open && "bg-accent/40"
         )}
       >
@@ -203,7 +203,7 @@ export function JobDateFilter({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          "relative flex h-12 w-[9.5rem] items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 dark:bg-input/30 dark:hover:bg-input/50",
+          "relative flex h-12 w-[9.5rem] items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50",
           open && "bg-accent/40"
         )}
       >
@@ -297,7 +297,7 @@ function FilterSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          "relative flex h-12 w-full items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 dark:bg-input/30 dark:hover:bg-input/50",
+          "relative flex h-12 w-full items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50",
           !selectedLabel && "text-muted-foreground",
           open && "bg-accent/40"
         )}

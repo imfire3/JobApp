@@ -62,9 +62,10 @@ function MultiValueInput({
             <button
               type="button"
               onClick={() => onChange(values.filter((v) => v !== value))}
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-background/50"
+              aria-label={`Retirer ${value}`}
+              className="inline-flex h-6 w-6 -my-1 -mr-1 items-center justify-center rounded-full hover:bg-background/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3 w-3" aria-hidden />
             </button>
           </Badge>
         ))}

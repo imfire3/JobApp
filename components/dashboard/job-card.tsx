@@ -99,6 +99,7 @@ export function JobCard({
             checked={job.selected}
             onCheckedChange={(checked) => onSelect(job.id, checked === true)}
             onClick={(event) => event.stopPropagation()}
+            aria-label={`Sélectionner ${job.title}`}
             className="mt-1"
           />
           <div className="min-w-0 flex-1">

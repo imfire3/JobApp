@@ -11,6 +11,7 @@ import { JobKanban } from "@/components/dashboard/job-kanban";
 import { JobBulkActions } from "@/components/dashboard/job-bulk-actions";
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
+import { PasteJobDialog } from "@/components/jobs/paste-job-dialog";
 import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 import { filterJobs } from "@/lib/jobs/utils";
 import type { Job, JobFilters, JobStatus } from "@/types";
@@ -52,6 +53,7 @@ export function TrackedJobsPage({
   const [view, setView] = useState<"cards" | "table" | "kanban">("table");
   const [seedingFakeJobs, setSeedingFakeJobs] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
   const [analysisByJobId, setAnalysisByJobId] = useState<
     Record<string, JobScoringProgress>
   >({});
@@ -683,7 +685,7 @@ export function TrackedJobsPage({
           size="lg"
           variant="secondary"
           className="h-12 min-w-[14rem] px-8 text-base"
-          onClick={() => router.push("/imports?paste=1")}
+          onClick={() => setPasteOpen(true)}
           aria-label="Copier-coller l’offre"
         >
           <ClipboardPaste className="mr-2 h-5 w-5" aria-hidden />
@@ -739,7 +741,7 @@ export function TrackedJobsPage({
               type="button"
               size="sm"
               variant="secondary"
-          onClick={() => router.push("/jobs")}
+          onClick={() => setPasteOpen(true)}
               aria-label="Copier-coller l’offre"
             >
               <ClipboardPaste className="mr-2 h-4 w-4" aria-hidden />
@@ -897,6 +899,17 @@ export function TrackedJobsPage({
         }}
         onRegenerate={handleGenerateCoverLetter}
         isRegenerating={generatingId === coverLetterJob?.id}
+      />
+
+      <PasteJobDialog
+        open={pasteOpen}
+        onOpenChange={setPasteOpen}
+        onImported={(data) =>
+          ingestImportedJobs(data, {
+            successSingular: "1 offre importée — analyse du match…",
+            successPlural: (n) => `${n} offres importées — analyse du match…`,
+          })
+        }
       />
     </div>
   );

@@ -10,7 +10,7 @@ import type { DashboardKpis, Job } from "@/types";
 import { computeKpis } from "@/lib/jobs/utils";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
 import { StickyPageHeader } from "@/components/layout/sticky-page-header";
-import { Bot, Cable, Clock3, Sparkles } from "lucide-react";
+import { Bot, Clock3, Sparkles } from "lucide-react";
 
 type DashboardSummaryResponse = {
   jobs: Job[];
@@ -88,10 +88,6 @@ export function DashboardOverview() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/jobs" className={buttonVariants({ variant: "outline" })}>
-              <Cable className="mr-2 h-4 w-4" />
-              Voir mes offres
-            </Link>
             <Link href="/jobs" className={buttonVariants({})}>
               Voir mes offres
             </Link>

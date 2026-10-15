@@ -773,7 +773,7 @@ export default function LoginPageClient({
                       onChange={(e) => handlePasteTextChange(e.target.value)}
                       disabled={loading || parsingCv}
                       placeholder="Colle ici le contenu de ton CV…"
-                      className="h-full min-h-0 flex-1 resize-none overflow-y-auto border-0 bg-transparent font-mono text-base leading-6 shadow-none focus-visible:ring-0"
+                      className="h-full min-h-0 flex-1 resize-none overflow-y-auto border-0 bg-transparent font-mono text-base leading-6 shadow-none focus-visible:border-2 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
                     />
                   </div>
                   {cvText.trim().length > 0 && !parsingCv ? (

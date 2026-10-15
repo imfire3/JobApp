@@ -493,7 +493,7 @@ export function CandidateProfileForm({
                       ? "bg-primary/15 font-medium text-foreground"
                       : isCompleted
                         ? "text-muted-foreground hover:bg-muted hover:text-foreground"
-                        : "text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                   aria-current={active ? "page" : undefined}
                 >

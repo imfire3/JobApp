@@ -241,7 +241,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 ready ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
               )}
             >
-              <p className="mb-4 font-[family-name:var(--font-landing-display)] text-base font-medium uppercase tracking-[0.18em] text-[#111]/55">
+              <p className="mb-4 font-[family-name:var(--font-landing-display)] text-base font-medium uppercase tracking-[0.18em] text-[#111]/70">
                 Pour les Product Owners et Product Managers
               </p>
               <h1 className="font-[family-name:var(--font-landing-display)] text-[clamp(2.4rem,6.5vw,4.4rem)] leading-[0.98] font-semibold tracking-[-0.03em]">
@@ -258,7 +258,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                   Voir comment ça marche
                 </a>
               </div>
-              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-base text-[#111]/55">
+              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-base text-[#111]/70">
                 {HERO_PROOFS.map((proof) => (
                   <li key={proof} className="flex items-center gap-2">
                     <span
@@ -282,7 +282,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                   <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
                   <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
                   <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
-                  <span className="ml-3 text-base text-white/40">jobtracker — Offres</span>
+                  <span className="ml-3 text-base text-white/60">jobtracker — Offres</span>
                 </div>
                 <div className="relative aspect-[16/10] w-full bg-[#0a0a0a]">
                   <Image
@@ -317,7 +317,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                   )}
                   style={{ animationDelay: `${0.12 + index * 0.08}s` }}
                 >
-                  <span className="font-[family-name:var(--font-landing-display)] text-base text-[#111]/45">
+                  <span className="font-[family-name:var(--font-landing-display)] text-base text-[#111]/70">
                     {step.n}
                   </span>
                   <h3 className="mt-3 font-[family-name:var(--font-landing-display)] text-xl font-semibold">
@@ -445,7 +445,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                     Des conseils pour rendre tes missions et tes résultats plus concrets.
                   </li>
                 </ul>
-                <p className="mt-5 text-base italic text-[#111]/55">
+                <p className="mt-5 text-base italic text-[#111]/70">
                   L’analyse fournit des repères d’amélioration. Elle ne garantit pas le
                   passage d’un logiciel de recrutement.
                 </p>
@@ -584,7 +584,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
         >
           <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-14">
             <div>
-              <p className="mb-3 text-base font-medium uppercase tracking-[0.16em] text-[#111]/5">
+              <p className="mb-3 text-base font-medium uppercase tracking-[0.16em] text-[#111]/70">
                 Extension Chrome — optionnelle
               </p>
               <h2 className="font-[family-name:var(--font-landing-display)] text-3xl font-semibold tracking-tight md:text-4xl">
@@ -599,7 +599,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
                 Tu peux aussi commencer directement en collant une offre ou en important
                 un CSV / Excel dans JobTracker.
               </p>
-              <p className="mt-8 text-base italic text-[#111]/55">
+              <p className="mt-8 text-base italic text-[#111]/70">
                 L’installation actuelle se fait en mode développeur sur Chrome ou Arc.
               </p>
             </div>
@@ -703,12 +703,12 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
             <p className="font-[family-name:var(--font-landing-display)] text-base font-semibold text-[#111]">
               JobTracker
             </p>
-            <p className="text-base leading-relaxed text-[#111]/55">
+            <p className="text-base leading-relaxed text-[#111]/70">
               Prépare et suis tes candidatures Product Owner et Product Manager.
             </p>
           </div>
           <nav
-            className="flex flex-wrap gap-x-5 gap-y-2 text-base text-[#111]/55"
+            className="flex flex-wrap gap-x-5 gap-y-2 text-base text-[#111]/70"
             aria-label="Pied de page"
           >
             {allowSelfSignup ? (
@@ -753,7 +753,7 @@ export function LandingPage({ allowSelfSignup = false }: LandingPageProps) {
             </a>
           </nav>
         </div>
-        <div className="mx-auto mt-8 max-w-6xl space-y-4 border-t border-[#111]/10 pt-6 text-base leading-relaxed text-[#111]/45">
+        <div className="mx-auto mt-8 max-w-6xl space-y-4 border-t border-[#111]/10 pt-6 text-base leading-relaxed text-[#111]/70">
           <p id="confidentialite" className="scroll-mt-8">
             <strong className="font-medium text-[#111]/60">Confidentialité —</strong>{" "}
             Tes CV, offres et candidatures restent dans ton compte. Les analyses IA

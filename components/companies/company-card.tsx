@@ -66,6 +66,7 @@ export function CompanyCard({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                aria-label={`Supprimer ${company.name}`}
                 onClick={(e) => {
                   e.preventDefault()
                   if (window.confirm(`Supprimer « ${company.name} » ?`)) {
