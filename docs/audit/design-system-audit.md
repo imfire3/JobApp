@@ -105,10 +105,10 @@
 |---|---|---|---|---|
 | DS-017a | `--success` / `--warning` / `--info` (+ foreground) | **148 classes `emerald/amber/red/orange`** dans les tsx + **53 dans `lib/`** | Créer les 6 tokens sémantiques | M |
 | DS-017b | `--color-brand` (accent vert **#00D492**) | **37 hex** + `badge.tsx:38` variant `tag` | `--color-brand` + `--color-brand-foreground: #142B24` | S |
-| DS-017c | `--shadow-*` | 8 `shadow-[0_30px_60px_-36px…]` (7× même valeur) vs 38 `shadow-*` standard | `--shadow-card/popover/overlay` | S |
+| DS-017c | `--shadow-*` | 8 shadows arbitraires (7× même valeur 0 30px 60px -36px) vs 38 `shadow-*` standard | `--shadow-card/popover/overlay` | S |
 | DS-017d | Échelle z-index | `z-[60]` ×1, `z-[100]` ×1, `z-10` ×20, `z-50` ×12 — 0 token | `--z-popover/sticky/drawer/modal/onboarding` | S |
 | DS-017e | Motion (`--duration-*`) | 7 durées 100→1000 ms | Tokens `--duration-fast/base/slow` | S |
-| DS-017f | `--font-landing-display` non monté dans `@theme` | 18 usages en syntaxe lourde `font-[family-name:var(…)]` | Monter dans `@theme inline` → `font-landing-display` | S |
+| DS-017f | `--font-landing-display` non monté dans `@theme` | 18 usages en syntaxe arbitraire lourde (family-name + var CSS) | Monter dans `@theme inline` → `font-landing-display` | S |
 | DS-017g | `--font-marketing-sans` référencé mais **jamais défini** (`marketing/landing-page.tsx:59`) | Fallback silencieux `system-ui` | Supprimer avec DS-013 | S |
 | DS-017h | `--destructive-foreground` déclaré shadcn, **0 référence** | — | Supprimer ou utiliser | S |
 | DS-017i | `--chart-1..5` tous neutres gray alors que 8 statuts sont colorés | `lib/jobs/utils.ts:96-117` | Colorer les charts | S |
@@ -157,9 +157,9 @@ Familles : `text-emerald-*` 34 · `text-amber-*` 33 · `border-amber-*` 23 · `b
 | `*-[Npx]` en px | **117**, dont **80 hors multiple de 4 (68 %)** | `rounded-[10px]` ×33, `text-[11px]` ×8, `rounded-[18px]` ×21, `text-[13px]` ×2, `text-[15px]` ×1, `text-[30px]` ×3, `rounded-[14px]` ×2, `gap-[3px]` ×2, `p-[3px]` ×1, `rounded-[2px]` ×3, `h-[18.4px]` ×1 |
 | `text-[Npx]` | **23** | `text-[10px]` ×9 (illustrations), `text-[11px]` ×8, `text-[30px]` ×3, `text-[13px]` ×2, `text-[15px]` ×1 — **hors échelle typographique** |
 | `rounded-[Npx]` | **57** | dont **49 redondent exactement** avec `rounded-lg|md|xl|2xl` (10 = lg, 18 = 2xl, 8 = md, 14 = xl — `--radius: 0.625rem`) |
-| `w/h/min/max-[Npx]` | 40 | `min-w-[220px]` ×4, `min-h-[220px]` ×4, `max-w-[…]` ×8, `min-h-[44px]` (cible tactile OK) |
+| `w/h/min/max-[Npx]` | 40 | `min-w-[220px]` ×4, `min-h-[220px]` ×4, 8 max-w arbitraires, `min-h-[44px]` (cible tactile OK) |
 | z-index | 7 valeurs + `z-[60]`, `z-[100]` | voir DS-017d |
-| `shadow-[…]` | 8 | voir DS-017c |
+| shadows arbitraires | 8 | voir DS-017c |
 | `duration-*` | 100×5, 300×4, 200×4, 500×2, 700/150/1000 ×1 | voir DS-017e |
 
 **ID DS-023 — Échelle d'espacement retenue (à valider) :** 4 · 8 · 16 · 24 · 32 · 40 · 48 · 64 · 80 px. Les valeurs à examiner du projet : `10, 11, 13, 14, 15, 18, 19, 27` px. Les incohérences de gap/padding inter-pages sont détaillées dans `product-design-audit.md` § 6 (UX-026 → UX-031).

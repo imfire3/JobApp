@@ -149,7 +149,7 @@ Voir les fichiers d'audit respectifs.
 |---|---|
 | **Objectif** | Échelle typographique et grille 8 px cohérentes, responsive vérifié |
 | **Problèmes** | DS-023, DS-025, UX-021 → UX-031, A11Y-041 (cibles 24 px) |
-| **Fichiers** | transversal : 23 `text-[Npx]`, 49 `rounded-[…]` redondants, gaps `space-y-5`/`gap-5`, cibles 14-20 px |
+| **Fichiers** | transversal : 23 `text-[Npx]`, 49 rounded arbitraires redondants, gaps `space-y-5`/`gap-5`, cibles 14-20 px |
 | **Dépendances** | Lot 6 (migrer avant d'harmoniser, sinon double travail) |
 | **Risques** | Dérive visuelle — **appliquer l'échelle sans toucher à la charte** ; exceptions documentées (`min-h-[44px]`, sr-only, switch) |
 | **Critères d'acceptation** | 0 `text-[11px|13px|15px|30px]` résiduels ; 0 `rounded-[10px|18px|14px]` redondants ; gaps conformes à l'échelle sauf exceptions documentées ; cibles ≥ 24 px partout |
