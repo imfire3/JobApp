@@ -178,9 +178,10 @@ export function SourceDetailPage({ sourceSlug }: { sourceSlug: string }) {
           {isApi ? (
             <>
               <div className="flex items-center justify-between rounded-lg border p-3">
-                <Label>Activée</Label>
+                <Label id="source-enabled-label">Activée</Label>
                 <Switch
                   checked={source.enabled}
+                  aria-labelledby="source-enabled-label"
                   onCheckedChange={(checked) =>
                     updateSource({ enabled: checked }).catch((e) =>
                       toast.error(e.message)
@@ -189,8 +190,9 @@ export function SourceDetailPage({ sourceSlug }: { sourceSlug: string }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Planning sync</Label>
+                <Label htmlFor="source-sync-schedule">Planning sync</Label>
                 <Input
+                  id="source-sync-schedule"
                   value={source.sync_schedule}
                   onChange={(e) =>
                     setSource({ ...source, sync_schedule: e.target.value })
@@ -203,8 +205,9 @@ export function SourceDetailPage({ sourceSlug }: { sourceSlug: string }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Heure sync</Label>
+                <Label htmlFor="source-sync-time">Heure sync</Label>
                 <Input
+                  id="source-sync-time"
                   type="time"
                   value={source.sync_time}
                   onChange={(e) =>

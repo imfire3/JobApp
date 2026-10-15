@@ -1478,8 +1478,14 @@ export function ProfilePage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Type de contrat</Label>
+              <div
+                role="group"
+                aria-labelledby="preferred-contract-types-label"
+                className="space-y-2"
+              >
+                <Label id="preferred-contract-types-label">
+                  Type de contrat
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   {CONTRACT_TYPE_OPTIONS.map((contract) => {
                     const selected =
@@ -1513,16 +1519,21 @@ export function ProfilePage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Télétravail</Label>
+              <div
+                role="group"
+                aria-labelledby="remote-preference-label"
+                className="space-y-2"
+              >
+                <Label id="remote-preference-label">Télétravail</Label>
                 <div className="grid gap-2">
                   {REMOTE_PREFERENCE_OPTIONS.map((option) => (
-                    <label
+                    <div
                       key={option.value}
                       className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-base"
                     >
                       <Checkbox
                         checked={profile.remote_preference === option.value}
+                        aria-labelledby={`remote-preference-${option.value}-label`}
                         onCheckedChange={(checked) =>
                           updateField(
                             "remote_preference",
@@ -1530,8 +1541,10 @@ export function ProfilePage() {
                           )
                         }
                       />
-                      {option.label}
-                    </label>
+                      <span id={`remote-preference-${option.value}-label`}>
+                        {option.label}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>

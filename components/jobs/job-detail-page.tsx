@@ -1288,6 +1288,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                 ) : null}
                 {job.cover_letter ? (
                   <Textarea
+                    aria-label="Lettre de motivation"
                     value={job.cover_letter}
                     onChange={(e) =>
                       setJob((prev) =>

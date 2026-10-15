@@ -330,6 +330,7 @@ export function MetiersPageClient() {
                 <div className="flex gap-2">
                   <Input
                     id="other-role"
+                    aria-label="Autre poste"
                     value={otherRole}
                     onChange={(e) => setOtherRole(e.target.value)}
                     placeholder="Ex. Scrum Master"

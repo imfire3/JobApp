@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,12 +57,14 @@ function PromptEditor({
   const [open, setOpen] = useState(false);
   const [showUserMessage, setShowUserMessage] = useState(false);
   const unsaved = value !== savedValue;
+  const promptTextareaId = useId();
 
   return (
     <div className="rounded-lg border">
       <button
         type="button"
         className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-base font-medium"
+        aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
       >
         <span className="flex flex-wrap items-center gap-2">
@@ -101,8 +103,11 @@ function PromptEditor({
               ))}
             </div>
           ) : null}
-          <Label>{editable ? "System prompt" : "System prompt (non modifiable)"}</Label>
+          <Label htmlFor={promptTextareaId}>
+            {editable ? "System prompt" : "System prompt (non modifiable)"}
+          </Label>
           <Textarea
+            id={promptTextareaId}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             rows={14}

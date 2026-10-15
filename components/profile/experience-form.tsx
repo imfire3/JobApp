@@ -332,10 +332,20 @@ export function ExperienceForm({
               </label>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium text-[#FAFAFA]">Début *</Label>
+                <div
+                  role="group"
+                  aria-labelledby="exp-form-start-label"
+                  className="space-y-1.5"
+                >
+                  <Label
+                    id="exp-form-start-label"
+                    className="text-sm font-medium text-[#FAFAFA]"
+                  >
+                    Début *
+                  </Label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
+                      aria-label="Mois de début"
                       value={normalizeSelectValue(draft.startMonth)}
                       onChange={(e) => updateField("startMonth", e.target.value)}
                       className="h-11 rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#FAFAFA] focus-visible:border-[#00D492] focus-visible:outline-none"
@@ -346,6 +356,7 @@ export function ExperienceForm({
                       ))}
                     </select>
                     <select
+                      aria-label="Année de début"
                       value={normalizeSelectValue(draft.startYear)}
                       onChange={(e) => updateField("startYear", e.target.value)}
                       aria-invalid={!!errors.startYear}
@@ -362,8 +373,17 @@ export function ExperienceForm({
                   )}
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium text-[#FAFAFA]">Fin</Label>
+                <div
+                  role="group"
+                  aria-labelledby="exp-form-end-label"
+                  className="space-y-1.5"
+                >
+                  <Label
+                    id="exp-form-end-label"
+                    className="text-sm font-medium text-[#FAFAFA]"
+                  >
+                    Fin
+                  </Label>
                   {draft.isCurrent ? (
                     <div className="flex h-11 items-center rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#A1A1A1]">
                       Aujourd&apos;hui
@@ -371,6 +391,7 @@ export function ExperienceForm({
                   ) : (
                     <div className="grid grid-cols-2 gap-2">
                       <select
+                        aria-label="Mois de fin"
                         value={normalizeSelectValue(draft.endMonth)}
                         onChange={(e) => updateField("endMonth", e.target.value)}
                         className="h-11 rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#FAFAFA] focus-visible:border-[#00D492] focus-visible:outline-none"
@@ -381,6 +402,7 @@ export function ExperienceForm({
                         ))}
                       </select>
                       <select
+                        aria-label="Année de fin"
                         value={normalizeSelectValue(draft.endYear)}
                         onChange={(e) => updateField("endYear", e.target.value)}
                         aria-invalid={!!errors.endYear}

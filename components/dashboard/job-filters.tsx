@@ -90,18 +90,21 @@ export function JobFilterMenu({
 
   return (
     <div className="flex items-center gap-2">
-      <Label className="mb-0 shrink-0">Filtre</Label>
+      <Label id="job-filter-menu-label" className="mb-0 shrink-0">
+        Filtre
+      </Label>
       <button
         ref={anchorRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-labelledby="job-filter-menu-label job-filter-menu-value"
         className={cn(
           "relative flex h-12 w-fit items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50",
           open && "bg-accent/40"
         )}
       >
-        <span>
+        <span id="job-filter-menu-value">
           {selected === 0 ? "Tous" : `${selected} actif${selected > 1 ? "s" : ""}`}
         </span>
         <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2" />
@@ -192,22 +195,24 @@ export function JobDateFilter({
 
   return (
     <div className="flex items-center gap-2">
-      <Label htmlFor="posted-within-days" className="mb-0 shrink-0">
+      <Label id="job-date-filter-label" className="mb-0 shrink-0">
         Date
       </Label>
       <button
         ref={anchorRef}
-        id="posted-within-days"
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-labelledby="job-date-filter-label job-date-filter-value"
         className={cn(
           "relative flex h-12 w-[9.5rem] items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50",
           open && "bg-accent/40"
         )}
       >
-        <span className="truncate">{selectedLabel}</span>
+        <span id="job-date-filter-value" className="truncate">
+          {selectedLabel}
+        </span>
         <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2" />
       </button>
       {typeof document !== "undefined" && open
@@ -246,12 +251,14 @@ export function JobDateFilter({
 
 function FilterSelect({
   id,
+  labelledById,
   value,
   placeholder,
   options,
   onChange,
 }: {
   id?: string;
+  labelledById?: string;
   value: string;
   placeholder: string;
   options: { value: string; label: string }[];
@@ -296,13 +303,18 @@ function FilterSelect({
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-labelledby={
+          labelledById && id ? `${labelledById} ${id}-value` : undefined
+        }
         className={cn(
           "relative flex h-12 w-full items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50",
           !selectedLabel && "text-muted-foreground",
           open && "bg-accent/40"
         )}
       >
-        <span className="truncate">{display}</span>
+        <span id={id ? `${id}-value` : undefined} className="truncate">
+          {display}
+        </span>
         <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2" />
       </button>
       {typeof document !== "undefined" && open
@@ -357,9 +369,12 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
           </Field>
 
           <Field>
-            <Label className="mb-0">Source</Label>
+            <Label id="filter-source-label" className="mb-0">
+              Source
+            </Label>
             <FilterSelect
               id="filter-source"
+              labelledById="filter-source-label"
               value={filters.source ?? "all"}
               placeholder="All sources"
               options={[
@@ -373,8 +388,11 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
           </Field>
 
           <Field>
-            <Label className="mb-0">Location</Label>
+            <Label htmlFor="filter-location" className="mb-0">
+              Location
+            </Label>
             <Input
+              id="filter-location"
               placeholder="Paris..."
               value={filters.location ?? ""}
               onChange={(e) =>
@@ -384,9 +402,12 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
           </Field>
 
           <Field>
-            <Label className="mb-0">Status</Label>
+            <Label id="filter-status-label" className="mb-0">
+              Status
+            </Label>
             <FilterSelect
               id="filter-status"
+              labelledById="filter-status-label"
               value={filters.status ?? "all"}
               placeholder="All statuses"
               options={[
@@ -406,8 +427,11 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
           </Field>
 
           <Field>
-            <Label className="mb-0">Contract</Label>
+            <Label htmlFor="filter-contract" className="mb-0">
+              Contract
+            </Label>
             <Input
+              id="filter-contract"
               placeholder="CDI, CDD..."
               value={filters.contractType ?? ""}
               onChange={(e) => onChange({ ...filters, contractType: e.target.value || undefined })}
@@ -415,8 +439,11 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
           </Field>
 
           <Field>
-            <Label className="mb-0">Min salary</Label>
+            <Label htmlFor="filter-min-salary" className="mb-0">
+              Min salary
+            </Label>
             <Input
+              id="filter-min-salary"
               type="number"
               placeholder="55000"
               value={filters.minSalary ?? ""}
@@ -430,9 +457,12 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
           </Field>
 
           <Field>
-            <Label className="mb-0">Min. match score</Label>
+            <Label id="filter-min-match-score-label" className="mb-0">
+              Min. match score
+            </Label>
             <FilterSelect
               id="filter-min-match-score"
+              labelledById="filter-min-match-score-label"
               value={filters.minMatchScore?.toString() ?? "0"}
               placeholder="Any"
               options={[

@@ -371,7 +371,7 @@ export function SettingsForm() {
                     accept=".pdf,application/pdf"
                     onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
                     className="h-12 text-base sm:flex-1"
-                    aria-label="Choisir un fichier PDF de CV"
+                    aria-label="Import PDF (optionnel)"
                   />
                   <Button
                     type="button"

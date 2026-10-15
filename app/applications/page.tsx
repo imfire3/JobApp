@@ -522,7 +522,7 @@ export default function ApplicationsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Statut</Label>
+              <Label id="app-status-label">Statut</Label>
               <Select
                 value={form.status}
                 onValueChange={(value) =>
@@ -532,7 +532,7 @@ export default function ApplicationsPage() {
                   }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger aria-labelledby="app-status-label">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -630,14 +630,14 @@ export default function ApplicationsPage() {
 
               <div className="flex flex-col gap-6 px-4 pb-4">
                 <div className="space-y-2">
-                  <Label>Statut</Label>
+                  <Label id="detail-status-label">Statut</Label>
                   <Select
                     value={draftStatus}
                     onValueChange={(value) =>
                       setDraftStatus(value as ApplicationStatus)
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-labelledby="detail-status-label">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

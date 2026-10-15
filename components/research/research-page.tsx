@@ -304,7 +304,7 @@ export function ResearchPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle id="research-consigne-title" className="flex items-center gap-2">
             <WandSparkles className="h-5 w-5" />
             Consigne
           </CardTitle>
@@ -314,6 +314,7 @@ export function ResearchPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
+            aria-labelledby="research-consigne-title"
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
             rows={4}
@@ -434,8 +435,12 @@ export function ResearchPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Sources</Label>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <Label id="research-sources-label">Sources</Label>
+              <div
+                role="group"
+                aria-labelledby="research-sources-label"
+                className="grid gap-2 sm:grid-cols-2"
+              >
                 {[
                   {
                     slug: MY_IMPORTED_SOURCE.slug,
@@ -448,7 +453,7 @@ export function ResearchPage() {
                   const cap = capabilities[source.slug]
                   const isMyLibrary = source.slug === MY_IMPORTED_SOURCE.slug
                   return (
-                    <label
+                    <div
                       key={source.slug}
                       className={cn(
                         "flex cursor-pointer items-start gap-3 rounded-xl border p-3",
@@ -457,13 +462,19 @@ export function ResearchPage() {
                     >
                       <Checkbox
                         checked={checked}
+                        aria-labelledby={`research-source-${source.slug}-name`}
                         onCheckedChange={(value) =>
                           toggleSource(source.slug, value === true)
                         }
                       />
                       <span className="min-w-0">
                         <span className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium">{source.name}</span>
+                          <span
+                            id={`research-source-${source.slug}-name`}
+                            className="font-medium"
+                          >
+                            {source.name}
+                          </span>
                           <Badge variant="outline" className="text-xs">
                             {cap?.research_label ??
                               (isMyLibrary
@@ -482,7 +493,7 @@ export function ResearchPage() {
                                 : "Filtre tes offres déjà importées")}
                         </span>
                       </span>
-                    </label>
+                    </div>
                   )
                 })}
               </div>

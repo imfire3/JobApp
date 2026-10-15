@@ -451,12 +451,12 @@ export function CompanyDetailPage({ companyId }: { companyId: string }) {
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Statut</Label>
+                <Label id="company-status-label">Statut</Label>
                 <Select
                   value={status}
                   onValueChange={(value) => setStatus(value as CompanyPipelineStatus)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-labelledby="company-status-label">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

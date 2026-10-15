@@ -168,15 +168,23 @@ export function EducationCardForm({
         </div>
 
         <div className="space-y-3 sm:col-span-2">
-          <Label>Période</Label>
-          <div className="rounded-xl border border-border p-3 space-y-3">
+          <Label id="edu-form-period-label">Période</Label>
+          <div
+            role="group"
+            aria-labelledby="edu-form-period-label"
+            className="rounded-xl border border-border p-3 space-y-3"
+          >
             <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="edu-form-current" className="mb-0 cursor-pointer text-sm">
+              <Label
+                id="edu-form-current-label"
+                className="mb-0 cursor-pointer text-sm"
+              >
                 Formation en cours
               </Label>
               <Switch
                 id="edu-form-current"
                 checked={draft.isCurrent}
+                aria-labelledby="edu-form-current-label"
                 onCheckedChange={(checked) => {
                   const isCurrent = checked === true
                   setDraft((prev) => ({
@@ -190,8 +198,12 @@ export function EducationCardForm({
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Début</Label>
+              <div
+                role="group"
+                aria-labelledby="edu-form-start-label"
+                className="space-y-2"
+              >
+                <Label id="edu-form-start-label">Début</Label>
                 <div className="flex gap-2">
                   <Select
                     value={draft.startMonth || undefined}
@@ -231,8 +243,12 @@ export function EducationCardForm({
               </div>
 
               {!draft.isCurrent ? (
-                <div className="space-y-2">
-                  <Label>Fin</Label>
+                <div
+                  role="group"
+                  aria-labelledby="edu-form-end-label"
+                  className="space-y-2"
+                >
+                  <Label id="edu-form-end-label">Fin</Label>
                   <div className="flex gap-2">
                     <Select
                       value={draft.endMonth || undefined}
