@@ -1,0 +1,97 @@
+{
+ "n": 20,
+ "seed": 428,
+ "customer": {
+  "business": "JobTracker — assistant de candidature (score ATS expliqué, lettre ancrée dans le CV réel, suivi des candidatures)",
+  "target": "Cadres de 28 à 42 ans en recherche d'emploi active sur le marché français, qui visent ou occupent un rôle produit (Product Owner, Product Manager, chef de produit) et candidatent depuis au moins huit semaines",
+  "where": "France, en ligne (LinkedIn, Welcome to the Jungle, APEC, communautés produit, écoles)",
+  "age": [
+   27,
+   44
+  ],
+  "segments": [
+   {
+    "name": "Cadre en transition vers un rôle produit",
+    "share": 0.35,
+    "income": [
+     42000,
+     62000
+    ]
+   },
+   {
+    "name": "Product Owner / PM en poste qui cherche à changer",
+    "share": 0.25,
+    "income": [
+     45000,
+     70000
+    ]
+   },
+   {
+    "name": "Reconversion junior vers le produit (bootcamp, moins de 2 ans)",
+    "share": 0.25,
+    "income": [
+     26000,
+     40000
+    ]
+   },
+   {
+    "name": "En recherche longue, indemnisation qui se termine",
+    "share": 0.15,
+    "income": [
+     20000,
+     32000
+    ]
+   }
+  ],
+  "behaviours": [
+   {
+    "name": "Colle chaque offre dans ChatGPT",
+    "share": 0.25,
+    "how": "Ouvre un onglet ChatGPT, colle l'annonce et son CV, demande une lettre, recommence à chaque offre."
+   },
+   {
+    "name": "Gère tout dans un tableur",
+    "share": 0.2,
+    "how": "Un Google Sheet avec les offres, les dates et des statuts qu'il ne met plus à jour depuis trois semaines."
+   },
+   {
+    "name": "Utilise déjà un outil de suivi",
+    "share": 0.15,
+    "how": "A un compte gratuit sur Teal, Huntr ou Notion, utilise surtout le tracker et jamais l'analyse ATS payante."
+   },
+   {
+    "name": "Compte chaque euro",
+    "share": 0.15,
+    "how": "Compare les prix, attend les promos, annule systématiquement après le premier mois."
+   },
+   {
+    "name": "Lit les avis avant de payer",
+    "share": 0.15,
+    "how": "Cherche « arnaque », « remboursement », « résiliation » avant de laisser une carte bancaire."
+   },
+   {
+    "name": "Protecteur de ses données",
+    "share": 0.1,
+    "how": "Refuse de créer un compte avec son vrai CV sur un site qu'il ne connaît pas, ou utilise un vieux CV anonymisé."
+   }
+  ],
+  "objections": [
+   "Encore un abonnement alors que je n'ai plus de salaire",
+   "ChatGPT me fait déjà ça gratuitement",
+   "Le score ATS est faux : chaque outil me donne un chiffre différent",
+   "Je ne veux pas donner mon CV et mes données perso à un inconnu",
+   "Une lettre générée par IA, un recruteur le repère tout de suite",
+   "Je n'ai pas le temps d'apprendre un nouvel outil pendant ma recherche",
+   "J'ai déjà un tableur qui marche très bien",
+   "Et si ça me fait postuler à côté de ce que je veux vraiment"
+  ],
+  "habits": [
+   "Tu as six candidatures en cours et tu as oublié de relancer deux d'entre elles",
+   "Tu passes quarante minutes par candidature à retoucher ton CV et à réécrire la même lettre",
+   "Tu regardes les offres le soir sur LinkedIn et Welcome to the Jungle",
+   "Ton tableur a quarante lignes et la dernière colonne de statut date d'il y a trois semaines",
+   "Tu as déjà payé un mois d'un outil de CV puis annulé avant le renouvellement"
+  ]
+ },
+ "pitch": "**Concept à tester — Pass Candidature 90 jours : 39 €, paiement unique, sans reconduction.** Cette offre n’est pas actuellement disponible à l’achat.\n\nTu ajoutes ton CV et une offre ; JobTracker compare les deux, fait ressortir les mots-clés repérés et manquants, et calcule un score d’adéquation avec ses propres critères — pas une prédiction de décision d’un ATS ou d’un recruteur.\n\nTu peux générer une lettre à partir de ton CV et de l’offre, puis enregistrer l’état de ta candidature dans le suivi.\n\nLe parcours vise à préparer tes candidatures sans reprendre à zéro le contexte de ton CV. Les fonctions, limites d’usage, délai et coûts de ce pass restent à vérifier avant toute vente."
+}

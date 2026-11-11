@@ -6,16 +6,16 @@ import {
   buildCoverLetterUserPrompt,
 } from "@/lib/ai/prompts/cover-letter"
 
-describe("cover letter prompt v4", () => {
+describe("cover letter prompt v5", () => {
   it("bumps prompt version for coach pack output", () => {
-    assert.equal(COVER_LETTER_PROMPT_VERSION, "v4")
+    assert.equal(COVER_LETTER_PROMPT_VERSION, "v5")
   })
 
   it("requires angle + letter + coach notes JSON pack", () => {
     assert.match(COVER_LETTER_SYSTEM_PROMPT, /angle_briefing/)
     assert.match(COVER_LETTER_SYSTEM_PROMPT, /coach_notes/)
     assert.match(COVER_LETTER_SYSTEM_PROMPT, /un seul angle/)
-    assert.match(COVER_LETTER_SYSTEM_PROMPT, /N’invente aucune/)
+    assert.match(COVER_LETTER_SYSTEM_PROMPT, /N.invente aucune/)
     assert.match(COVER_LETTER_SYSTEM_PROMPT, /transparence courte/)
   })
 

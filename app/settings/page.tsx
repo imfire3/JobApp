@@ -3,12 +3,11 @@ import { AdminCreateAccessForm } from "@/components/settings/admin-create-access
 import { AiPromptsPanel } from "@/components/settings/ai-prompts-panel";
 import { AtsKeywordsPanel } from "@/components/settings/ats-keywords-panel";
 import { AppShell } from "@/components/layout/app-shell";
-import { getAuthenticatedUser } from "@/lib/auth";
-import { LOCAL_ADMIN_ID } from "@/lib/local-auth";
+import { getAuthenticatedUser, isAppAdmin } from "@/lib/auth";
 
 export default async function SettingsPage() {
   const { user } = await getAuthenticatedUser();
-  const isAdmin = user?.id === LOCAL_ADMIN_ID;
+  const isAdmin = isAppAdmin(user);
 
   return (
     <AppShell>

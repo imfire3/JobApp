@@ -5,13 +5,20 @@ import { createOfflineClient } from "@/lib/supabase/offline";
 import { isSupabaseReachable } from "@/lib/supabase/fetch";
 import {
   getAuthSecret,
+  LOCAL_ADMIN_ID,
   SESSION_COOKIE,
   verifySessionToken,
   type LocalUser,
 } from "@/lib/local-auth";
 import { ensureLocalAuthUserInSupabase } from "@/lib/supabase/ensure-local-user";
 
-export type AppUser = LocalUser;
+export type AppUser = LocalUser & { isAdmin?: boolean };
+
+export function isAppAdmin(user: AppUser | null) {
+  return process.env.NODE_ENV === "production"
+    ? user?.isAdmin === true
+    : user?.id === LOCAL_ADMIN_ID;
+}
 
 async function getLocalSessionUser(): Promise<LocalUser | null> {
   try {
@@ -25,7 +32,7 @@ async function getLocalSessionUser(): Promise<LocalUser | null> {
 }
 
 export async function getAuthenticatedUser() {
-  const localUser = await getLocalSessionUser();
+  const localUser = process.env.NODE_ENV === "production" ? null : await getLocalSessionUser();
 
   if (localUser) {
     const reachable = await isSupabaseReachable();
@@ -96,9 +103,15 @@ export async function getAuthenticatedUser() {
       };
     }
 
+    const appUser: AppUser = {
+      id: user.id,
+      email: user.email ?? "",
+      isAdmin: user.app_metadata.jobtracker_role === "admin",
+    };
+
     return {
       supabase,
-      user: { id: user.id, email: user.email ?? "" },
+      user: appUser,
       error: null,
       unreachable: false as const,
     };

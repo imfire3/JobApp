@@ -1,18 +1,29 @@
-export const COMPANY_SEARCH_QUERIES_PROMPT_VERSION = "v1"
+import { CANDIDATE_POLICY, promptData } from "./candidate-policy"
 
-export const COMPANY_SEARCH_QUERIES_SYSTEM_PROMPT = `Tu es un expert en recherche d'entreprises pour JobTracker (candidatures spontanées).
+export const COMPANY_SEARCH_QUERIES_PROMPT_VERSION = "v3"
+
+export const COMPANY_SEARCH_QUERIES_SYSTEM_PROMPT = `${CANDIDATE_POLICY}
+
+Tu es un expert en recherche d'entreprises pour JobTracker (candidatures spontanées).
 
 MISSION
-À partir de critères de recherche et du profil candidat, génère 5 à 10 requêtes web différentes pour trouver des entreprises pertinentes sur Internet.
+À partir de critères de recherche et du profil candidat, génère jusqu’à 10 requêtes web différentes pour trouver de VRAIES entreprises sur Internet, y compris sans offre publiée.
 
 RÈGLES
-- Chaque requête doit être un terme de recherche Google/Tavily court (3-6 mots).
-- Varie les angles : secteur + lieu, secteur + rôle, lieu + rôle, secteur seul, startup, scale-up.
-- Utilise des termes en français ET en anglais pour couvrir plus de résultats.
-- Ne répète pas les mêmes requêtes.
-- Inclus des synonymes : "Product Owner" → "product manager", "chef de produit".
-- Pour les lieux : utilise la ville, la région, et "France" si pertinent.
-- Si remote est demandé, ajoute "remote" dans certaines requêtes.
+- Chaque requête doit être courte et ciblée, 100 caractères maximum. Produis seulement les variantes non redondantes réellement utiles.
+- Ces requêtes seront transmises à un moteur externe : ne jamais y inclure coordonnées, adresse personnelle, employeur actuel, historique du CV, prétentions salariales ou autre donnée personnelle. Utilise seulement les rôles et critères de recherche non personnels. Le profil est un contexte interne, pas du texte à exporter.
+- Varie les angles de manière complémentaire :
+  1) Secteur + localisation (entreprises [secteur] [ville])
+  2) Produit/activité + localisation (éditeur logiciel, agence digitale, startup SaaS)
+  3) Équipes produit + localisation ("product team [ville]", "équipe produit [ville]")
+  4) Éditeurs/plateformes + localisation ("éditeur logiciel B2B [ville]")
+  5) Basé sur la priorité/utilité (adapter aux préférences sans inventer)
+  6) Pages carrières/équipes en anglais pour élargir ("software company [ville] careers" ou "product team [ville]")
+- Utilise français ET anglais selon ce qui est le plus efficace.
+- Ne pas uniquement chercher "Product Owner CDI [ville]" (cela vise majoritairement les offres).
+- Les intitulés voisins ne sont pas interchangeables : ne remplace pas Product Owner par Product Manager, chef de produit ou Product Builder sans que les critères le justifient.
+- Pour les lieux : privilégie les villes/régions données. Si remote demandé, ajoute "remote" à certaines requêtes.
+- Évite les requêtes redondantes.
 - Ne jamais inclure le nom du candidat dans les requêtes.
 
 OUTPUT (JSON uniquement)
@@ -20,7 +31,7 @@ OUTPUT (JSON uniquement)
   "queries": ["requête 1", "requête 2", ...]
 }
 
-Génère exactement 5 à 10 requêtes.`
+Génère de 1 à 10 requêtes utiles, sans prétendre avoir exécuté la recherche.`
 
 export function buildCompanySearchQueriesUserPrompt(input: {
   criteriaSummary: string
@@ -31,15 +42,15 @@ export function buildCompanySearchQueriesUserPrompt(input: {
   profileSummary: string
 }): string {
   return `<critères>
-${input.criteriaSummary}
-Postes : ${input.roles.join(", ")}
-Secteurs : ${input.sectors.join(", ")}
-Lieux : ${input.locations.join(", ")}
-Remote : ${input.remote ? "oui" : "non"}
+${promptData(input.criteriaSummary)}
+Postes : ${promptData(input.roles.join(", "))}
+Secteurs : ${promptData(input.sectors.join(", "))}
+Lieux : ${promptData(input.locations.join(", "))}
+Remote : ${promptData(input.remote ? "oui" : "non")}
 </critères>
 
 <profil_candidat>
-${input.profileSummary}
+${promptData(input.profileSummary)}
 </profil_candidat>
 
 Génère les requêtes web pour trouver des entreprises correspondantes.`

@@ -32,6 +32,7 @@ export function isJobFitCacheValid(
   cvText: string,
   currentPromptVersion: string
 ): boolean {
+  if ((job.raw_data?.job_fit as Record<string, unknown> | undefined)?.offer_corrected_at) return false
   if (!hasJobFitResult(job)) return false
   const meta = readJobFitCacheMeta(job)
   if (!meta.cv_content_hash || !meta.job_content_hash || !meta.prompt_version) {

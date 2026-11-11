@@ -1,18 +1,40 @@
 ---
-description: UI conventions for JobTracker pages and components
+description: Règles UI obligatoires pour les écrans JobTracker
 globs: app/**/*.tsx,components/**/*.tsx
 alwaysApply: false
 ---
 
-# UI rules
+# Règles UI
 
-- Reuse existing components in `components/` and shadcn/ui primitives before creating new ones.
-- Do not redesign the UI unless explicitly requested.
-- Do not introduce cards, layout systems, or visual languages that fight the current app chrome.
-- Prefer Tailwind utility classes consistent with the existing design system.
-- Preserve responsive behavior on dashboard, jobs board, applications, and settings.
-- Keep one clear action per primary control (select job, analyze, generate letter, update status).
-- Client components (`"use client"`) for interactive UI; keep data fetching and secrets on the server.
-- Do not duplicate job board, table, filter, or modal patterns that already exist.
-- Accessibility: buttons and interactive elements need labels; prefer existing patterns for dialogs and toasts (sonner).
-- When touching job selection or batch actions, preserve checkbox selection and batch cover-letter flows.
+## Choisir le bon niveau de réutilisation
+
+1. Cherche d’abord une primitive dans `components/ui/` puis un patron dans `components/layout/` ou le domaine concerné.
+2. Ajoute une **variante** à `Button`, `Input`, `Card`, `Select`, `Tabs` ou un en-tête si le même rôle visuel/comportemental sert plusieurs écrans. Documente-la dans `docs/design-system.md`.
+3. Crée un **composant partagé** seulement quand une composition, ses états ou sa logique d’accessibilité se répètent. Ne crée pas une variante locale de couleurs, bouton, filtre, carte ou modal déjà existante.
+4. Utilise les tokens `app-*` de `app/globals.css`; aucune couleur hex/RGB locale dans un écran migré. Les tokens `landing-*` restent dans la landing.
+
+## Primitives de référence
+
+- Actions : `Button`; privilégie `size="control"` et `size="icon-control"` pour les contrôles Figma de 50 px.
+- Saisie : `Input variant="control"`; `date` seulement pour les segments de date; `auth` seulement pour l’authentification.
+- Surfaces : `Card variant="app"`/`"inset"`, ou les helpers du domaine lorsqu’ils existent. `CardHeader` et `CardContent` portent déjà `px-(--card-spacing)` (16 px sur `variant="app"`) : ne remets pas `p-0` sur ces blocs, sauf bord à bord assumé et commenté.
+- Navigation locale : `TabsList` et `TabsTrigger variant="section"`.
+- En-têtes d’écran : `PageHeader` ou `StickyPageHeader`; ne recode pas le chrome de l’application.
+- Largeur de page : une page rendue dans `AppShell` occupe toute la largeur disponible à côté de la sidebar. Pas de `container`, `mx-auto` ni `max-w-*` sur son conteneur principal — les retraits horizontaux viennent d’`AppShell` et les en-têtes sticky compensent avec `-mx-*`. Toute exception doit être commentée et listée dans `docs/design-system.md`.
+- Dialogues, selects, toasts et popovers : conserve les primitives Base UI/shadcn déjà employées.
+
+## États et accessibilité à vérifier
+
+Pour toute interaction modifiée, vérifie : état initial/vide, chargement, succès, erreur et désactivé si applicable. Conserve les libellés explicites; la couleur seule ne doit jamais exprimer un statut, une erreur ou la Correspondance.
+
+- 390, 768 et 1440 px : aucun débordement horizontal, texte long lisible, aucune action fixe ne masque un champ.
+- Clavier : ordre de tabulation logique, Entrée/Espace activent les contrôles, Échap ferme menus/dialogues; les onglets gardent le comportement Base UI (flèches = focus, Entrée/Espace = activation).
+- Focus visible, contraste lisible dans les thèmes existants, labels reliés aux champs, nom accessible pour les boutons icône.
+- Les menus, feuilles et dialogues restaurent un état utilisable après fermeture.
+
+## Parcours à préserver
+
+- Onboarding `/onboarding/profile` et `/onboarding/profileupdate` partagent le même écran : saisie, validation, sauvegarde et « Continuer sans tout remplir » restent possibles.
+- Offres : import, filtres, cases de sélection, actions groupées, analyse et lettres restent disponibles.
+- Détail d’offre : distinguer visuellement et textuellement Correspondance et statut.
+- Candidatures : le suivi ne doit pas transformer une préparation de lettre/message en envoi automatique.

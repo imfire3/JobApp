@@ -370,8 +370,8 @@ export function matchScoreMeta(score: number | null): MatchScoreMeta {
       summary:
         "Ton profil est en très forte adéquation avec l’offre. Peu de choses à améliorer.",
       tone: "good",
-      textColor: "text-emerald-500",
-      barColor: "bg-emerald-500",
+      textColor: "text-score-good",
+      barColor: "bg-score-good",
     }
   }
   if (score >= 75) {
@@ -380,8 +380,8 @@ export function matchScoreMeta(score: number | null): MatchScoreMeta {
       summary:
         "Ton profil correspond très bien au poste, avec quelques finitions possibles.",
       tone: "good",
-      textColor: "text-emerald-500",
-      barColor: "bg-emerald-500",
+      textColor: "text-score-good",
+      barColor: "bg-score-good",
     }
   }
   if (score >= 60) {
@@ -390,8 +390,8 @@ export function matchScoreMeta(score: number | null): MatchScoreMeta {
       summary:
         "Ton profil correspond bien au poste, mais quelques éléments peuvent encore améliorer ta candidature.",
       tone: "partial",
-      textColor: "text-amber-500",
-      barColor: "bg-amber-500",
+      textColor: "text-score-warn",
+      barColor: "bg-score-warn",
     }
   }
   if (score >= 40) {
@@ -400,8 +400,8 @@ export function matchScoreMeta(score: number | null): MatchScoreMeta {
       summary:
         "Des points forts existent, mais des écarts ou mots-clés ATS manquent encore.",
       tone: "weak",
-      textColor: "text-orange-500",
-      barColor: "bg-orange-500",
+      textColor: "text-score-partial",
+      barColor: "bg-score-partial",
     }
   }
   return {
@@ -409,8 +409,8 @@ export function matchScoreMeta(score: number | null): MatchScoreMeta {
     summary:
       "Ton CV ne couvre pas assez les exigences visibles de l’offre pour l’instant.",
     tone: "weak",
-    textColor: "text-red-500",
-    barColor: "bg-red-500",
+    textColor: "text-score-bad",
+    barColor: "bg-score-bad",
   }
 }
 
@@ -458,25 +458,47 @@ export function suggestionLinksToCriterion(
     .related_criterion_ids
   if (Array.isArray(related) && related.includes(criterion.id)) return true
 
-  const hayTokens = tokenizeForLink(
-    [
-      item.action,
-      item.reason ?? "",
-      item.evidence_from_job,
-      item.source_offer_requirement ?? "",
-      item.reformulation ?? item.suggested_rewrite ?? "",
-    ].join(" ")
-  )
-  const needleTokens = tokenizeForLink(
-    [criterion.label, criterion.evidence_from_job].join(" ")
-  )
+  // Be conservative: require stronger overlap to avoid invented gains
+  const hayText = [
+    item.action,
+    item.reason ?? "",
+    item.evidence_from_job,
+    item.source_offer_requirement ?? "",
+    item.reformulation ?? item.suggested_rewrite ?? "",
+    item.cv_original ?? item.evidence_from_cv ?? "",
+  ].join(" ")
+  const needleText = [criterion.label, criterion.evidence_from_job].join(" ")
+  const hayLower = hayText.toLowerCase()
+  const needleLower = needleText.toLowerCase()
+
+  // Direct substring match is stronger signal
+  if (needleLower.length >= 4 && hayLower.includes(needleLower)) {
+    return true
+  }
+
+  const hayTokens = tokenizeForLink(hayText)
+  const needleTokens = tokenizeForLink(needleText)
   if (hayTokens.length === 0 || needleTokens.length === 0) return false
 
-  return needleTokens.some((needle) =>
-    hayTokens.some(
-      (hay) => hay === needle || hay.includes(needle) || needle.includes(hay)
-    )
-  )
+  // Require at least one exact strong token match or two short overlaps? More strict
+  let matches = 0
+  for (const needle of needleTokens) {
+    for (const hay of hayTokens) {
+      if (hay === needle) {
+        matches += 1
+        break
+      }
+      if (hay.length >= 5 && needle.length >= 5 && (hay.includes(needle) || needle.includes(hay))) {
+        matches += 1
+        break
+      }
+    }
+  }
+  // Only link if there's a meaningful match (>=1 strong match for longer criteria or >=2 for short)
+  if (needleTokens.length >= 3) {
+    return matches >= 2
+  }
+  return matches >= 1
 }
 
 function cloneCriteria(
@@ -511,6 +533,8 @@ function bumpLinkedCriteria(
 /**
  * Deterministic projected score: bump evidence +1 (cap 3) only for criteria
  * linked to safe reformulations — never invent experience.
+ * Only counts items that are explicitly safe AND linked to a specific criterion.
+ * Vocabulary-only changes do not create gains; projected may equal current.
  */
 export function projectOptimizedScore(job: Job): ProjectedScoreResult {
   const criteria = job.criteria_assessment ?? []
@@ -544,16 +568,42 @@ export function projectOptimizedScore(job: Job): ProjectedScoreResult {
     }
   }
 
+  // Only bump for suggestions that actually link to criteria (conservative)
+  const linkableSafe = safe.filter((s) =>
+    criteria.some((c) => suggestionLinksToCriterion(s, c))
+  )
+  if (linkableSafe.length === 0) {
+    return {
+      current,
+      projected: current,
+      safeSuggestionCount: safe.length,
+      missingKeywordCount,
+      bumpedCriterionIds: [],
+    }
+  }
+
   const { criteria: projectedCriteria, bumpedIds } = bumpLinkedCriteria(
     criteria,
-    safe
+    linkableSafe
   )
   const projected = computeScoreFromCriteria(projectedCriteria).match_score
 
+  // Projected is an estimate only; never guarantee gain. If no bump possible or
+  // calculation yields same/lower, return current to avoid inflation.
+  if (projected == null || projected <= (current ?? projected)) {
+    return {
+      current,
+      projected: current,
+      safeSuggestionCount: linkableSafe.length,
+      missingKeywordCount,
+      bumpedCriterionIds: [],
+    }
+  }
+
   return {
     current,
-    projected: projected ?? current,
-    safeSuggestionCount: safe.length,
+    projected,
+    safeSuggestionCount: linkableSafe.length,
     missingKeywordCount,
     bumpedCriterionIds: bumpedIds,
   }

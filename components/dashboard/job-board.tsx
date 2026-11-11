@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { JobScoringProgress } from "@/components/jobs/job-scoring-progress";
 
 const defaultFilters: JobFilters = {};
 
@@ -37,6 +38,7 @@ export function JobBoard() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [analysisByJobId, setAnalysisByJobId] = useState<Record<string, JobScoringProgress>>({});
   const [bulkProgress, setBulkProgress] = useState<{
     total: number;
     current: number;
@@ -129,8 +131,80 @@ export function JobBoard() {
         throw new Error(await getErrorMessage(res, "Sample import failed"));
       }
       const data = (await readJsonSafe(res)) as any;
-      toast.success(`Imported ${data.imported} sample jobs`);
+      const imported = Number(data.imported ?? 0);
+      const importedJobs = Array.isArray(data.jobs)
+        ? data.jobs.filter((job: any) => job && typeof job.id === "string" && !job.was_duplicate)
+        : [];
+
+      toast.success(
+        imported === 1
+          ? "1 offre importée — analyse du match…"
+          : imported > 0
+            ? `${imported} offres importées — analyse du match…`
+            : "Aucune nouvelle offre à importer"
+      );
       await fetchJobs();
+
+      if (importedJobs.length > 0) {
+        setAnalysisByJobId(
+          Object.fromEntries(
+            importedJobs.map((job: any, index: number) => [
+              job.id,
+              {
+                status: index === 0 ? ("analyzing" as const) : ("queued" as const),
+                progress: index === 0 ? 12 : 5,
+              },
+            ])
+          )
+        );
+        for (let index = 0; index < importedJobs.length; index += 1) {
+          const job = importedJobs[index];
+          const jobId = job.id as string;
+          setAnalysisByJobId((prev) => ({
+            ...prev,
+            [jobId]: { status: "analyzing", progress: Math.max(prev[jobId]?.progress ?? 15, 18) },
+          }));
+          try {
+            const ares = await fetch("/api/analyze-job", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ jobId }),
+            });
+            const adata = await readJsonSafe(ares);
+            if (ares.ok && adata?.job) {
+              setJobs((prev) =>
+                prev.map((j) => (j.id === jobId ? (adata.job as Job) : j))
+              );
+              setAnalysisByJobId((prev) => ({
+                ...prev,
+                [jobId]: { status: "done", progress: 100 },
+              }));
+            } else {
+              setAnalysisByJobId((prev) => ({
+                ...prev,
+                [jobId]: {
+                  status: "error",
+                  progress: 100,
+                  error: typeof adata?.error === "string" ? adata.error : "Analyse échouée",
+                },
+              }));
+            }
+          } catch {
+            setAnalysisByJobId((prev) => ({
+              ...prev,
+              [jobId]: { status: "error", progress: 100, error: "Analyse échouée" },
+            }));
+          }
+          const nextId = importedJobs[index + 1]?.id;
+          if (nextId) {
+            setAnalysisByJobId((prev) => ({
+              ...prev,
+              [nextId]: { status: "analyzing", progress: 15, error: null },
+            }));
+          }
+        }
+        await fetchJobs();
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Sample import failed");
       router.push("/jobs");
@@ -141,8 +215,18 @@ export function JobBoard() {
 
   async function updateJob(
     id: string,
-    updates: Partial<Pick<Job, "status" | "selected" | "cover_letter">>
+    updates: Partial<Pick<Job, "status" | "selected" | "cover_letter">> & {
+      /** When true, only toggles the checkbox and leaves the job status untouched. */
+      selection_only?: boolean;
+    }
   ) {
+    const optimisticUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([key]) => key !== "selection_only")
+    ) as Partial<Job>;
+    setJobs((prev) =>
+      prev.map((job) => (job.id === id ? { ...job, ...optimisticUpdates } : job))
+    );
+
     const res = await fetch("/api/jobs", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -150,6 +234,7 @@ export function JobBoard() {
     });
     if (!res.ok) {
       toast.error("Failed to update job");
+      await fetchJobs();
       return;
     }
     const data = (await readJsonSafe(res)) as any;
@@ -276,6 +361,10 @@ export function JobBoard() {
 
   async function handleAnalyze(jobId: string) {
     setAnalyzingId(jobId);
+    setAnalysisByJobId((prev) => ({
+      ...prev,
+      [jobId]: { status: "analyzing", progress: Math.max(prev[jobId]?.progress ?? 15, 18) },
+    }));
     try {
       const res = await fetch("/api/analyze-job", {
         method: "POST",
@@ -285,9 +374,27 @@ export function JobBoard() {
       const data = (await readJsonSafe(res)) as any;
       if (!res.ok) throw new Error(data.error ?? "Analysis failed");
       setJobs((prev) => prev.map((j) => (j.id === jobId ? data.job : j)));
-      toast.success(`Match score: ${data.analysis.match_score}%`);
+      setAnalysisByJobId((prev) => ({
+        ...prev,
+        [jobId]: { status: "done", progress: 100 },
+      }));
+      const score =
+        data.analysis?.match_score ?? data.job?.match_score ?? data.job?.ai_match_score;
+      if (typeof score === "number") {
+        toast.success(`Match score: ${score}%`);
+      } else {
+        toast.success("Analyse terminée");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Analysis failed");
+      setAnalysisByJobId((prev) => ({
+        ...prev,
+        [jobId]: {
+          status: "error",
+          progress: 100,
+          error: error instanceof Error ? error.message : "Analysis failed",
+        },
+      }));
     } finally {
       setAnalyzingId(null);
     }
@@ -402,7 +509,7 @@ export function JobBoard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${selectedCount > 0 ? "pb-24" : ""}`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Job board</h1>
@@ -488,7 +595,9 @@ export function JobBoard() {
                 <JobCard
                   key={job.id}
                   job={job}
-                  onSelect={(id, selected) => updateJob(id, { selected })}
+                  onSelect={(id, selected) =>
+                    updateJob(id, { selected, selection_only: true })
+                  }
                   onStatusChange={(id, status: JobStatus) =>
                     updateJob(id, { status })
                   }
@@ -498,6 +607,7 @@ export function JobBoard() {
                   onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
                   isAnalyzing={analyzingId === job.id}
                   isGenerating={generatingId === job.id}
+                  analysisProgress={analysisByJobId[job.id]}
                 />
               ))}
             </div>
@@ -512,7 +622,9 @@ export function JobBoard() {
           ) : (
             <JobTable
               jobs={filteredJobs}
-              onSelect={(id, selected) => updateJob(id, { selected })}
+              onSelect={(id, selected) =>
+                updateJob(id, { selected, selection_only: true })
+              }
               onSelectAll={handleSelectAllVisible}
               onStatusChange={(id, status) => updateJob(id, { status })}
               onAnalyze={handleAnalyze}

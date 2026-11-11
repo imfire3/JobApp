@@ -8,6 +8,7 @@ type OnboardingStepProps = {
   stepIndex: number
   total: number
   className?: string
+  titleId?: string
 }
 
 export function OnboardingStep({
@@ -15,6 +16,7 @@ export function OnboardingStep({
   stepIndex,
   total,
   className,
+  titleId,
 }: OnboardingStepProps) {
   return (
     <div
@@ -29,7 +31,10 @@ export function OnboardingStep({
         {stepIndex + 1} / {total}
       </p>
 
-      <h1 className="font-heading text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
+      <h1
+        id={titleId}
+        className="font-heading text-balance text-2xl font-semibold tracking-tight sm:text-3xl"
+      >
         {step.title}
       </h1>
 

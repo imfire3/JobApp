@@ -872,7 +872,7 @@ export function ProfilePage() {
   return (
     <div className="space-y-4">
       <div className="sticky top-0 z-30 space-y-4 border-b border-border bg-background pb-4 pt-4">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold tracking-tight">Profil</h1>
             <p className="max-w-2xl text-base leading-7 text-muted-foreground">
@@ -880,7 +880,15 @@ export function ProfilePage() {
               formation et préférences.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              disabled={saving || importingPdf || analyzing || !hasUnsaved}
+              onClick={() => void handleSave()}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {saving ? "Enregistrement…" : "Enregistrer le profil"}
+            </Button>
             <input
               ref={headerPdfInputRef}
               type="file"
@@ -914,7 +922,7 @@ export function ProfilePage() {
             </Button>
             <PageHelpButton pageId="cv" />
           </div>
-        </header>
+        </div>
 
         <nav
           aria-label="Sections du profil"
@@ -1478,8 +1486,14 @@ export function ProfilePage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Type de contrat</Label>
+              <div
+                role="group"
+                aria-labelledby="preferred-contract-types-label"
+                className="space-y-2"
+              >
+                <Label id="preferred-contract-types-label">
+                  Type de contrat
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   {CONTRACT_TYPE_OPTIONS.map((contract) => {
                     const selected =
@@ -1513,16 +1527,21 @@ export function ProfilePage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Télétravail</Label>
+              <div
+                role="group"
+                aria-labelledby="remote-preference-label"
+                className="space-y-2"
+              >
+                <Label id="remote-preference-label">Télétravail</Label>
                 <div className="grid gap-2">
                   {REMOTE_PREFERENCE_OPTIONS.map((option) => (
-                    <label
+                    <div
                       key={option.value}
                       className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-base"
                     >
                       <Checkbox
                         checked={profile.remote_preference === option.value}
+                        aria-labelledby={`remote-preference-${option.value}-label`}
                         onCheckedChange={(checked) =>
                           updateField(
                             "remote_preference",
@@ -1530,8 +1549,10 @@ export function ProfilePage() {
                           )
                         }
                       />
-                      {option.label}
-                    </label>
+                      <span id={`remote-preference-${option.value}-label`}>
+                        {option.label}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>

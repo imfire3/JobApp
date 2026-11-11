@@ -1,21 +1,17 @@
-"use client";
+"use client"
 
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { useEffect, useRef, useState } from "react";
+import { jobStatusLabel } from "@/lib/jobs/status-labels";
+
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  formatRelativeDate,
-  getMatchScoreColor,
-  getStatusColor,
-} from "@/lib/jobs/utils";
+import { formatRelativeDate } from "@/lib/jobs/utils";
 import type { Job, JobStatus } from "@/types";
 import { JOB_STATUSES } from "@/types";
 import {
@@ -24,9 +20,7 @@ import {
   CircleCheck,
   Eye,
   FileText,
-  MapPin,
   Sparkles,
-  Wifi,
   X,
 } from "lucide-react";
 import {
@@ -48,6 +42,18 @@ interface JobCardProps {
   analysisProgress?: JobScoringProgress;
 }
 
+/** Figma "Feedback/Badge" — success chip used for offer metadata. */
+const jobTagClassName =
+  "flex h-8 max-w-full shrink-0 items-center justify-center rounded-app-badge bg-app-success-surface px-2 text-base font-medium leading-6 tracking-[-0.02em] text-app-success";
+
+/** Figma match-score chip on Card Jobs. */
+const jobScoreClassName =
+  "flex h-8 shrink-0 items-center justify-center rounded-app-badge bg-app-match-surface px-2 text-base font-medium leading-6 tracking-[-0.02em] tabular-nums text-app-match";
+
+/** Figma "Forms/Select" trigger used in the card footer. */
+const jobCardSelectClassName =
+  "flex h-(--app-control-height) min-w-0 flex-1 items-center justify-between gap-2 rounded-app-control border-(length:--app-stroke) border-app-border-strong bg-app-surface px-3 text-base leading-6 transition-colors hover:border-app-text-muted focus-visible:border-app-text-secondary focus-visible:ring-2 focus-visible:ring-app-text-secondary/40 focus-visible:outline-none";
+
 export function JobCard({
   job,
   onSelect,
@@ -60,6 +66,8 @@ export function JobCard({
   isGenerating,
   analysisProgress,
 }: JobCardProps) {
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const [descriptionLineCount, setDescriptionLineCount] = useState(4);
   const scoring =
     analysisProgress ??
     (isAnalyzing ? { status: "analyzing" as const, progress: 55 } : null);
@@ -73,11 +81,46 @@ export function JobCard({
     onOpen?.(job);
   };
 
+  const tags = [
+    job.source,
+    job.contract_type,
+    job.posted_at ? formatRelativeDate(job.posted_at) : null,
+    job.salary,
+    job.remote_mode && job.remote_mode !== "unknown" ? job.remote_mode : null,
+    job.experience_level !== null && job.experience_level !== undefined
+      ? `${job.experience_level}+ ans`
+      : null,
+    job.tracked_search_name ? `Recherche : ${job.tracked_search_name}` : null,
+  ].filter((tag): tag is string => Boolean(tag)).slice(0, 6);
+
+  useEffect(() => {
+    const description = descriptionRef.current;
+    if (!description) return;
+
+    const updateLineCount = () => {
+      const paragraph = description.querySelector("p");
+      if (!paragraph) return;
+      const lineHeight = Number.parseFloat(getComputedStyle(paragraph).lineHeight);
+      if (!Number.isFinite(lineHeight) || lineHeight <= 0) return;
+
+      const nextLineCount = Math.max(1, Math.floor(description.clientHeight / lineHeight));
+      setDescriptionLineCount((current) =>
+        current === nextLineCount ? current : nextLineCount
+      );
+    };
+
+    updateLineCount();
+    const observer = new ResizeObserver(updateLineCount);
+    observer.observe(description);
+    return () => observer.disconnect();
+  }, [job.id]);
+
   return (
-    <Card
-      className={`flex h-[450px] flex-col self-start shadow-sm transition-shadow hover:shadow-md overflow-hidden ${
-        onOpen ? "cursor-pointer" : ""
-      }`}
+    <div
+      className={cn(
+        "flex flex-col self-start overflow-hidden rounded-app-surface border border-app-border-strong bg-app-surface transition-colors md:h-[404px]",
+        onOpen && "cursor-pointer hover:border-app-text-muted"
+      )}
       role={onOpen ? "link" : undefined}
       tabIndex={onOpen ? 0 : undefined}
       aria-label={onOpen ? `Ouvrir l’analyse pour ${job.title}` : undefined}
@@ -93,117 +136,95 @@ export function JobCard({
           : undefined
       }
     >
-      <CardHeader className="space-y-3 pb-3 flex-shrink-0">
-        <div className="flex items-start gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-6">
+        <div className="flex items-center gap-2">
           <Checkbox
             checked={job.selected}
             onCheckedChange={(checked) => onSelect(job.id, checked === true)}
             onClick={(event) => event.stopPropagation()}
-            className="mt-1"
+            aria-label={`Sélectionner ${job.title}`}
+            className="border-(length:--app-stroke) border-app-text-muted bg-app-control"
           />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              {job.company_logo_url ? (
-                <img
-                  src={job.company_logo_url}
-                  alt=""
-                  className="h-8 w-8 rounded-md border object-contain"
-                />
-              ) : null}
-              <h3 className="font-semibold leading-tight">{job.title}</h3>
-              {job.match_score !== null && (
-                <span
-                  className={`text-base font-bold ${getMatchScoreColor(job.match_score)}`}
-                >
-                  {job.match_score}%
-                </span>
-              )}
-            </div>
-            <p className="text-base text-muted-foreground">{job.company}</p>
-          </div>
-          <Badge className={getStatusColor(job.status)} variant="secondary">
-            {job.status.replace(/_/g, " ")}
-          </Badge>
-        </div>
-
-        <div className="flex flex-wrap gap-2 text-base text-muted-foreground">
-          <Badge variant="tag">{job.source}</Badge>
-          {job.tracked_search_name && (
-            <Badge variant="tag">Search: {job.tracked_search_name}</Badge>
-          )}
-          {job.location && (
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {job.location}
+          <h3 className="min-w-0 flex-1 truncate text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-strong">
+            {job.title}
+          </h3>
+          {job.match_score !== null && (
+            <span className={jobScoreClassName}>
+              {job.match_score}%
+              <span className="sr-only"> de correspondance</span>
             </span>
           )}
-          {job.contract_type && (
-            <Badge variant="tag">{job.contract_type}</Badge>
-          )}
-          {job.remote_mode && job.remote_mode !== "unknown" && (
-            <span className="inline-flex items-center gap-1">
-              <Wifi className="h-3 w-3" />
-              {job.remote_mode}
-            </span>
-          )}
-          {job.experience_level !== null && job.experience_level !== undefined && (
-            <Badge variant="tag">{job.experience_level}+ yrs</Badge>
-          )}
-          {job.salary && <Badge variant="tag">{job.salary}</Badge>}
-          {job.posted_at && (
-            <span>{formatRelativeDate(job.posted_at)}</span>
-          )}
         </div>
-      </CardHeader>
 
-      <CardContent className="pb-3 flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-5 text-app-text-secondary">
+          <span className="min-w-0 truncate font-medium text-app-text-strong">
+            {job.company || "Entreprise non renseignée"}
+          </span>
+          {job.location ? (
+            <>
+              <span aria-hidden>·</span>
+              <span className="min-w-0 truncate">{job.location}</span>
+            </>
+          ) : null}
+          <span className="ml-auto inline-flex h-7 shrink-0 items-center rounded-app-badge bg-app-control px-2 text-sm font-medium leading-5 text-app-text-strong">
+            {jobStatusLabel(job.status)}
+          </span>
+        </div>
+
+        {tags.length > 0 && (
+          <ul className="flex max-h-[72px] shrink-0 flex-wrap items-end gap-2 overflow-hidden">
+            {tags.map((tag, index) => (
+              <li key={`${tag}-${index}`} className={cn(jobTagClassName, "truncate")}>
+                {tag}
+              </li>
+            ))}
+          </ul>
+        )}
+
         {showScoringBar && scoring ? (
-          <div className="mb-3 flex-shrink-0">
-            <JobScoringProgressBar
-              progress={scoring.progress}
-              status={scoring.status}
-              title={job.title}
-              error={scoring.error}
-              label={
-                scoring.status === "analyzing" || scoring.status === "queued"
-                  ? analyzingLabelForProgress(scoring.progress)
-                  : null
-              }
-            />
-          </div>
+          <JobScoringProgressBar
+            progress={scoring.progress}
+            status={scoring.status}
+            title={job.title}
+            error={scoring.error}
+            label={
+              scoring.status === "analyzing" || scoring.status === "queued"
+                ? analyzingLabelForProgress(scoring.progress)
+                : null
+            }
+          />
         ) : null}
-        <div className="overflow-hidden">
-          <p className="line-clamp-3 text-base leading-relaxed text-muted-foreground">
-            {job.summary ?? job.ai_summary ?? job.description}
+
+        <div ref={descriptionRef} className="min-h-0 flex-1 overflow-hidden">
+          <p
+            className="overflow-hidden text-ellipsis text-base leading-[26px] tracking-[-0.02em] text-app-text-secondary"
+            style={{
+              display: "-webkit-box",
+              WebkitBoxOrient: "vertical",
+              WebkitLineClamp: descriptionLineCount,
+            }}
+            title={job.summary ?? job.ai_summary ?? job.description ?? undefined}
+          >
+            {job.summary ??
+              job.ai_summary ??
+              job.description ??
+              "Aucun descriptif pour cette offre. Ouvre-la pour consulter le détail."}
           </p>
-
-          {job.match_reasons && job.match_reasons.length > 0 && (
-            <div className="mt-3 space-y-1 overflow-hidden">
-              <p className="text-base font-medium text-foreground">Top matches</p>
-              <ul className="space-y-0.5 text-base text-muted-foreground">
-                {job.match_reasons.slice(0, 2).map((reason, i) => (
-                  <li key={i} className="truncate">• {reason}</li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
-      </CardContent>
 
-      <CardFooter
-        className="flex items-center gap-2 border-t pt-4"
+      </div>
+
+      <div
+        className="flex items-center gap-4 bg-app-control p-3"
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
       >
         <DropdownMenu>
           <DropdownMenuTrigger
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "flex-1 justify-between"
-            )}
+            className={cn(jobCardSelectClassName, "text-app-text-muted")}
           >
             Actions
-            <ChevronDown className="ml-1 h-3.5 w-3.5" />
+            <ChevronDown className="size-4 shrink-0" aria-hidden />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
@@ -214,7 +235,7 @@ export function JobCard({
               disabled={!job.url}
             >
               <Eye />
-              View
+              Voir l’offre d’origine
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onAnalyze(job.id)}
@@ -228,13 +249,13 @@ export function JobCard({
               {isAnalyzing || scoring?.status === "analyzing"
                 ? "Analyse…"
                 : scoring?.status === "queued"
-                  ? "En file…"
-                  : "Analyze"}
+                  ? "En attente d’analyse…"
+                  : "Comparer à mon CV"}
             </DropdownMenuItem>
             {job.cover_letter ? (
               <DropdownMenuItem onClick={() => onViewCoverLetter(job)}>
                 <FileText />
-                Cover letter
+                Lire la lettre
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
@@ -242,51 +263,49 @@ export function JobCard({
                 disabled={isGenerating}
               >
                 <FileText />
-                {isGenerating ? "Generating..." : "Generate CL"}
+                {isGenerating ? "Rédaction…" : "Rédiger une lettre"}
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem
-              onClick={() => onStatusChange(job.id, "applied")}
-            >
+            <DropdownMenuItem onClick={() => onStatusChange(job.id, "applied")}>
               <CircleCheck />
-              Apply
+              Marquer comme envoyée
             </DropdownMenuItem>
             <DropdownMenuItem
               variant="destructive"
               onClick={() => onStatusChange(job.id, "rejected")}
             >
               <X />
-              Reject
+              Écarter cette offre
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onStatusChange(job.id, "selected")}
-            >
+            <DropdownMenuItem onClick={() => onStatusChange(job.id, "selected")}>
               <Bookmark />
-              Save
+              Retenir cette offre
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-          >
-            <span className="text-muted-foreground">Status:</span>
-            <span className="ml-1">{job.status.replace(/_/g, " ")}</span>
-            <ChevronDown className="ml-1 h-3.5 w-3.5" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {JOB_STATUSES.map((status) => (
-              <DropdownMenuItem
-                key={status}
-                onClick={() => onStatusChange(job.id, status)}
-              >
-                {status.replace(/_/g, " ")}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </CardFooter>
-    </Card>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="shrink-0 text-base leading-6 text-app-text-strong">Statut</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={cn(jobCardSelectClassName, "text-app-text-strong")}
+            >
+              <span className="truncate">{jobStatusLabel(job.status)}</span>
+              <ChevronDown className="size-4 shrink-0" aria-hidden />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {JOB_STATUSES.map((status) => (
+                <DropdownMenuItem
+                  key={status}
+                  onClick={() => onStatusChange(job.id, status)}
+                >
+                  {jobStatusLabel(status)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </div>
   );
 }

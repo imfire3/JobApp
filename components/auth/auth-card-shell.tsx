@@ -15,6 +15,11 @@ type AuthCardShellProps = {
  * - children size to content (no forced full-height stretch)
  * - short content is vertically centered; tall content scrolls in the shell
  * - cards may also use max-h + overflow-y-auto for inner scroll
+ *
+ * EXCEPTION explicite à la règle « pleine largeur » : ces écrans (login,
+ * onboarding) n’ont pas de sidebar et restent une colonne centrée bornée par
+ * `AUTH_CARD_MAX_WIDTH`. Une page applicative dans `AppShell` ne doit pas
+ * reprendre ce plafond ; la justifier par un commentaire si c’est le cas.
  */
 export function AuthCardShell({ children, className }: AuthCardShellProps) {
   return (
@@ -26,9 +31,9 @@ export function AuthCardShell({ children, className }: AuthCardShellProps) {
           className
         )}
       >
-        <div className="flex min-h-0 flex-1 flex-col">
+        <main className="flex min-h-0 flex-1 flex-col">
           {children}
-        </div>
+        </main>
       </div>
     </div>
   )

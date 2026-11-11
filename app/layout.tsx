@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ResetToLandingButton } from "@/components/reset-to-landing-button";
+import { PromptTraceFab } from "@/components/dev/prompt-trace-fab";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -33,7 +34,12 @@ export default function RootLayout({
         <ThemeProvider>
           <TooltipProvider>
             {children}
-            <ResetToLandingButton />
+            {process.env.NODE_ENV === "development" && (
+              <>
+                <ResetToLandingButton />
+                <PromptTraceFab />
+              </>
+            )}
             <Toaster richColors position="top-right" />
           </TooltipProvider>
         </ThemeProvider>

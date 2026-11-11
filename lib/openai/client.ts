@@ -1,11 +1,21 @@
+import { PROFILE_PARSE_SYSTEM_PROMPT, buildProfileParseUserPrompt } from "@/lib/ai/prompts/profile-parse";
 import OpenAI from "openai";
 import { z } from "zod";
+import { logPromptTrace } from "@/lib/ai/prompt-trace";
 import {
   buildJobMatchSystemPrompt,
   buildJobMatchUserPrompt,
+  JOB_MATCH_PROMPT_VERSION,
 } from "@/lib/ai/prompts/job-match";
+import {
+  buildCvOptimizeSystemPrompt,
+  buildCvOptimizeUserPrompt,
+  CV_OPTIMIZE_PROMPT_VERSION,
+} from "@/lib/ai/prompts/cv-optimize";
+import { cvOptimizeResponseSchema, type CvOptimizeResponse } from "@/lib/ai/schemas/cv-optimize";
 import { parseJobMatchAnalysis } from "@/lib/ai/schemas/job-match";
 import { prepareJobMatchInputs } from "@/lib/jobs/job-match-input";
+import { WEBSITE_PASTE_SYSTEM_PROMPT } from "@/lib/ai/prompts/website-paste";
 import {
   mapOpenAIError,
   resolveOpenAIApiKey,
@@ -29,6 +39,20 @@ const parsedCvSchema = z.object({
 
 function getOpenAIClient(apiKey?: string | null) {
   return new OpenAI({ apiKey: resolveOpenAIApiKey(apiKey) });
+}
+
+export async function extractWebsitePasteWithAI(text: string): Promise<unknown> {
+  const response = await getOpenAIClient().chat.completions.create({
+    model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+    temperature: 0,
+    max_tokens: 650,
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: WEBSITE_PASTE_SYSTEM_PROMPT },
+      { role: "user", content: JSON.stringify({ text }) },
+    ],
+  }, { timeout: 8000, maxRetries: 0 });
+  return JSON.parse(response.choices[0]?.message?.content ?? "null");
 }
 
 export async function analyzeJobMatch(
@@ -56,7 +80,20 @@ export async function analyzeJobMatch(
       : null;
 
   let response: OpenAI.Chat.Completions.ChatCompletion;
+  const userPrompt = buildJobMatchUserPrompt({
+    ...params,
+    cvText: prepared.cvText,
+    jobDescription: prepared.jobDescription,
+    truncatedNote,
+  });
   try {
+    logPromptTrace({
+      feature: "job-match",
+      promptVersion: JOB_MATCH_PROMPT_VERSION,
+      model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+      systemPrompt,
+      userPrompt,
+    });
     response = await client.chat.completions.create({
       model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
       temperature: 0.1,
@@ -69,12 +106,7 @@ export async function analyzeJobMatch(
         },
         {
           role: "user",
-          content: buildJobMatchUserPrompt({
-            ...params,
-            cvText: prepared.cvText,
-            jobDescription: prepared.jobDescription,
-            truncatedNote,
-          }),
+          content: userPrompt,
         },
       ],
     });
@@ -88,6 +120,48 @@ export async function analyzeJobMatch(
   return parseJobMatchAnalysis(JSON.parse(content), {
     cvText: prepared.cvText,
   });
+}
+
+export async function optimizeCvForJob(params: {
+  cvText: string;
+  jobPosting: string;
+  candidateConfirmations?: string | null;
+}): Promise<CvOptimizeResponse> {
+  const client = getOpenAIClient();
+  const systemPrompt = buildCvOptimizeSystemPrompt();
+  const userPrompt = buildCvOptimizeUserPrompt({
+    cvText: params.cvText,
+    jobPosting: params.jobPosting,
+    candidateConfirmations: params.candidateConfirmations ?? null,
+  });
+
+  let response: OpenAI.Chat.Completions.ChatCompletion;
+  try {
+    logPromptTrace({
+      feature: "cv-optimize",
+      promptVersion: CV_OPTIMIZE_PROMPT_VERSION,
+      model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+      systemPrompt,
+      userPrompt,
+    });
+    response = await client.chat.completions.create({
+      model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+      temperature: 0.1,
+      max_tokens: 3500,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    });
+  } catch (error) {
+    throw mapOpenAIError(error);
+  }
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error("Empty response from OpenAI");
+  const parsed = JSON.parse(content);
+  return cvOptimizeResponseSchema.parse(parsed);
 }
 
 export async function parseCvProfileWithAI(
@@ -105,11 +179,11 @@ export async function parseCvProfileWithAI(
         {
           role: "system",
           content:
-            "Extract a structured job-search profile from the CV text. Return strict JSON with fields: experiences, skills, languages, education, tools, years_experience, desired_salary, desired_locations, target_roles, preferred_industries, soft_skills, keywords. Keep entries concise and deduplicated.",
+            PROFILE_PARSE_SYSTEM_PROMPT,
         },
         {
           role: "user",
-          content: cvText,
+          content: buildProfileParseUserPrompt(cvText),
         },
       ],
     });

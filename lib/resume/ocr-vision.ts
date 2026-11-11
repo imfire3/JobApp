@@ -1,3 +1,4 @@
+import { CV_OCR_SYSTEM_PROMPT } from "@/lib/ai/prompts/cv-ocr"
 import OpenAI from "openai"
 import { getDocumentProxy, renderPageAsImage } from "unpdf"
 import {
@@ -29,11 +30,7 @@ async function ocrImagesWithVision(
   const content: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [
     {
       type: "text",
-      text: [
-        "Extract ALL readable text from these resume/CV page image(s).",
-        "Preserve reading order, line breaks, emails, phones, URLs, job titles, companies, and dates.",
-        "Do not invent content. Return plain text only, no markdown.",
-      ].join(" "),
+      text: "Transcribe the supplied CV page images according to the system transcription rules.",
     },
     ...images.map(
       (image): OpenAI.Chat.Completions.ChatCompletionContentPart => ({
@@ -50,7 +47,10 @@ async function ocrImagesWithVision(
     const response = await client.chat.completions.create({
       model,
       temperature: 0,
-      messages: [{ role: "user", content }],
+      messages: [
+        { role: "system", content: CV_OCR_SYSTEM_PROMPT },
+        { role: "user", content },
+      ],
       max_tokens: 4000,
     })
     return normalizeResumeText(response.choices[0]?.message?.content ?? "")

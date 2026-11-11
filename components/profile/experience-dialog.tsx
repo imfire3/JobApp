@@ -166,12 +166,16 @@ export function ExperienceDialog({
           </div>
 
           <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 sm:col-span-2">
-            <Label htmlFor="exp-dialog-freelance" className="mb-0 cursor-pointer">
+            <Label
+              id="exp-dialog-freelance-label"
+              className="mb-0 cursor-pointer"
+            >
               Freelance
             </Label>
             <Switch
               id="exp-dialog-freelance"
               checked={draft.employmentType === "Freelance"}
+              aria-labelledby="exp-dialog-freelance-label"
               onCheckedChange={(checked) =>
                 updateDraft(
                   "employmentType",
@@ -182,12 +186,16 @@ export function ExperienceDialog({
           </div>
 
           <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 sm:col-span-2">
-            <Label htmlFor="exp-dialog-remote" className="mb-0 cursor-pointer">
+            <Label
+              id="exp-dialog-remote-label"
+              className="mb-0 cursor-pointer"
+            >
               Télétravail
             </Label>
             <Switch
               id="exp-dialog-remote"
               checked={draft.locationType === "remote"}
+              aria-labelledby="exp-dialog-remote-label"
               onCheckedChange={(checked) =>
                 updateDraft(
                   "locationType",
@@ -198,12 +206,16 @@ export function ExperienceDialog({
           </div>
 
           <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 sm:col-span-2">
-            <Label htmlFor="exp-dialog-current" className="mb-0 cursor-pointer">
+            <Label
+              id="exp-dialog-current-label"
+              className="mb-0 cursor-pointer"
+            >
               Poste actuel
             </Label>
             <Switch
               id="exp-dialog-current"
               checked={draft.isCurrent}
+              aria-labelledby="exp-dialog-current-label"
               onCheckedChange={(checked) => {
                 const isCurrent = checked === true
                 setDraft((prev) => ({
@@ -217,7 +229,7 @@ export function ExperienceDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Type d’emploi</Label>
+            <Label id="exp-dialog-employment-type-label">Type d’emploi</Label>
             <Select
               value={draft.employmentType || "__none__"}
               onValueChange={(value) =>
@@ -227,7 +239,10 @@ export function ExperienceDialog({
                 )
               }
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby="exp-dialog-employment-type-label"
+              >
                 <SelectValue placeholder="Sélectionner" />
               </SelectTrigger>
               <SelectContent>
@@ -244,7 +259,7 @@ export function ExperienceDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Type de lieu</Label>
+            <Label id="exp-dialog-location-type-label">Type de lieu</Label>
             <Select
               value={draft.locationType || "__none__"}
               onValueChange={(value) =>
@@ -254,7 +269,10 @@ export function ExperienceDialog({
                 )
               }
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby="exp-dialog-location-type-label"
+              >
                 <SelectValue placeholder="Sélectionner" />
               </SelectTrigger>
               <SelectContent>
@@ -271,12 +289,15 @@ export function ExperienceDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Mois de début</Label>
+            <Label id="exp-dialog-start-month-label">Mois de début</Label>
             <Select
               value={draft.startMonth}
               onValueChange={(value) => updateDraft("startMonth", value ?? "")}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby="exp-dialog-start-month-label"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -290,12 +311,15 @@ export function ExperienceDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Année de début *</Label>
+            <Label id="exp-dialog-start-year-label">Année de début *</Label>
             <Select
               value={draft.startYear}
               onValueChange={(value) => updateDraft("startYear", value ?? "")}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby="exp-dialog-start-year-label"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -311,14 +335,17 @@ export function ExperienceDialog({
           {!draft.isCurrent ? (
             <>
               <div className="space-y-2">
-                <Label>Mois de fin</Label>
+                <Label id="exp-dialog-end-month-label">Mois de fin</Label>
                 <Select
                   value={draft.endMonth || "__none__"}
                   onValueChange={(value) =>
                     updateDraft("endMonth", !value || value === "__none__" ? "" : value)
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger
+                    className="w-full"
+                    aria-labelledby="exp-dialog-end-month-label"
+                  >
                     <SelectValue placeholder="Mois" />
                   </SelectTrigger>
                   <SelectContent>
@@ -333,14 +360,17 @@ export function ExperienceDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>Année de fin</Label>
+                <Label id="exp-dialog-end-year-label">Année de fin</Label>
                 <Select
                   value={draft.endYear || "__none__"}
                   onValueChange={(value) =>
                     updateDraft("endYear", !value || value === "__none__" ? "" : value)
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger
+                    className="w-full"
+                    aria-labelledby="exp-dialog-end-year-label"
+                  >
                     <SelectValue placeholder="Année" />
                   </SelectTrigger>
                   <SelectContent>
@@ -356,8 +386,16 @@ export function ExperienceDialog({
             </>
           ) : (
             <div className="flex items-center gap-2 sm:col-span-2">
-              <Checkbox id="exp-dialog-current-check" checked disabled />
-              <Label htmlFor="exp-dialog-current-check" className="mb-0 text-muted-foreground">
+              <Checkbox
+                id="exp-dialog-current-check"
+                checked
+                disabled
+                aria-labelledby="exp-dialog-current-check-label"
+              />
+              <Label
+                id="exp-dialog-current-check-label"
+                className="mb-0 text-muted-foreground"
+              >
                 En cours jusqu’à présent
               </Label>
             </div>

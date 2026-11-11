@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import {
   Building2,
   Download,
@@ -13,11 +14,11 @@ import { AppShell } from "@/components/layout/app-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PageHelpButton } from "@/components/onboarding/page-help-button"
 import { StickyPageHeader } from "@/components/layout/sticky-page-header"
 import { CompanyCard } from "@/components/companies/company-card"
@@ -60,10 +61,18 @@ const STEP_MAP: Record<string, number> = {
 }
 
 function splitComma(value: string): string[] {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
+  return value.split(",").map((item) => item.trim()).filter(Boolean)
+}
+
+function dedupeCompanies(items: Company[]): Company[] {
+  const unique = new Map<string, Company>()
+  for (const company of items) {
+    const domain = company.domain?.trim().toLowerCase().replace(/^www\./, "")
+    const name = company.name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+    const key = domain || name
+    if (key && (!unique.has(key) || (!unique.get(key)?.website && company.website))) unique.set(key, company)
+  }
+  return Array.from(unique.values())
 }
 
 export function CompanySearchPage() {
@@ -78,6 +87,8 @@ export function CompanySearchPage() {
     summary_fr: "",
   })
   const [running, setRunning] = useState(false)
+  const [searchCompleted, setSearchCompleted] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [results, setResults] = useState<Company[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
@@ -92,8 +103,6 @@ export function CompanySearchPage() {
   const [locationsLine, setLocationsLine] = useState("")
   const [sizeMin, setSizeMin] = useState("")
   const [sizeMax, setSizeMax] = useState("")
-  const [remote, setRemote] = useState(false)
-  const [priority, setPriority] = useState("")
   const [summary, setSummary] = useState("")
 
   async function loadCompanies({ silent }: { silent?: boolean } = {}) {
@@ -123,6 +132,8 @@ export function CompanySearchPage() {
     setRunning(true)
     setSearchStep(0)
     setResults([])
+    setSearchCompleted(false)
+    setSearchError(null)
     setProgress({ current: 0, total: 0 })
     try {
       const res = await fetch("/api/searches/companies/run", {
@@ -169,6 +180,7 @@ export function CompanySearchPage() {
                   return [...prev, parsed.company]
                 })
               } else if (eventType === "done") {
+                setSearchCompleted(true)
                 setLastProvider(parsed.provider ?? "mock")
                 setSearchStep(SEARCH_STEPS.length - 1)
                 await loadCompanies({ silent: true })
@@ -176,7 +188,10 @@ export function CompanySearchPage() {
                   `${parsed.total ?? 0} entreprise(s) ajoutée(s) à ton CRM`
                 )
               } else if (eventType === "error") {
-                throw new Error(parsed.error ?? "Erreur serveur")
+                const message = parsed.error ?? "Erreur serveur"
+                setSearchError(message)
+                setSearchCompleted(true)
+                toast.error(message)
               }
             } catch {
               // ignore malformed lines
@@ -185,7 +200,10 @@ export function CompanySearchPage() {
         }
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible de lancer la recherche")
+      const message = error instanceof Error ? error.message : "Impossible de lancer la recherche"
+      setSearchError(message)
+      setSearchCompleted(true)
+      toast.error(message)
     } finally {
       setRunning(false)
       setTimeout(() => setSearchStep(-1), 1500)
@@ -203,7 +221,7 @@ export function CompanySearchPage() {
       const res = await fetch("/api/companies/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyIds: companies.map((c) => c.id) }),
+        body: JSON.stringify({ companyIds: displayCompanies.map((c) => c.id) }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -242,12 +260,13 @@ export function CompanySearchPage() {
   const grouped = useMemo(() => {
     const map = new Map<CompanyPipelineStatus, Company[]>()
     for (const status of PIPELINE_STATUSES) map.set(status, [])
-    for (const company of companies) map.get(company.status)?.push(company)
+    for (const company of dedupeCompanies(companies)) map.get(company.status)?.push(company)
     return map
   }, [companies])
 
-  const prospectCompanies = (
-    results.length > 0 ? results : companies.filter((company) => company.search_id)
+  const displayCompanies = dedupeCompanies(companies)
+  const prospectCompanies = dedupeCompanies(
+    searchCompleted ? results : displayCompanies.filter((company) => company.search_id)
   )
     .slice(0, 10)
     .sort((a, b) => {
@@ -262,44 +281,67 @@ export function CompanySearchPage() {
         <StickyPageHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Entreprises</h1>
-              <p className="text-base text-muted-foreground">
-                Candidatures spontanées : trouve des entreprises, évalue l’opportunité
-                et suis ta prospection.
+              <h1 className="text-[32px] font-bold leading-10 tracking-tight text-app-text-strong">Entreprises</h1>
+              <p className="text-base leading-6 text-app-text-secondary">
+                Trouve des entreprises pour une candidature spontanée. Pour chercher un poste publié, utilise Recherche d’offres.
               </p>
             </div>
             <PageHelpButton pageId="companies" />
           </div>
         </StickyPageHeader>
 
-        <Tabs
-          defaultValue="prospect"
-          value={view}
-          onValueChange={(value) => setView(value as "prospect" | "pipeline")}
-        >
-          <TabsList>
-            <TabsTrigger value="prospect">
-              <Sparkles className="mr-2 h-4 w-4" />
-              Prospecter
-            </TabsTrigger>
-            <TabsTrigger value="pipeline">
-              <Building2 className="mr-2 h-4 w-4" />
-              Pipeline · {companies.length}
-            </TabsTrigger>
-          </TabsList>
+            {running && searchStep >= 0 ? (
+              <Card className="rounded-app-surface border-app-border bg-app-surface shadow-none">
+                <CardContent className="space-y-3 p-4" aria-live="polite">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex items-center gap-2 font-medium text-app-text-strong">
+                      <Loader2 className="size-4 animate-spin text-primary" aria-hidden />
+                      {SEARCH_STEPS[searchStep] ?? "Recherche…"}
+                    </span>
+                    {progress.total > 0 ? (
+                      <span className="shrink-0 tabular-nums text-app-text-secondary">
+                        {progress.current} / {progress.total}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div
+                    className="h-2 overflow-hidden rounded-full bg-app-control"
+                    role="progressbar"
+                    aria-label="Progression de la recherche d’entreprises"
+                    aria-valuemin={progress.total > 0 ? 0 : undefined}
+                    aria-valuemax={progress.total > 0 ? progress.total : undefined}
+                    aria-valuenow={progress.total > 0 ? progress.current : undefined}
+                    aria-valuetext={SEARCH_STEPS[searchStep] ?? "Recherche en cours"}
+                  >
+                    <div
+                      className={progress.total > 0
+                        ? "h-full rounded-full bg-primary transition-[width] duration-300"
+                        : "h-full w-1/4 animate-pulse rounded-full bg-primary motion-reduce:animate-none"}
+                      style={progress.total > 0 ? { width: `${Math.max(4, (progress.current / progress.total) * 100)}%` } : undefined}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
 
-          <TabsContent value="prospect" className="mt-4 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Critères de recherche</CardTitle>
+            <Card className="rounded-app-surface border-(length:--app-stroke) border-app-border bg-app-surface shadow-none">
+              <CardHeader className="gap-1 p-4 pb-0">
+                <CardTitle className="text-lg font-medium leading-6 text-app-text-strong">
+                  Quelles entreprises souhaites-tu cibler ?
+                </CardTitle>
+                <p className="text-sm leading-5 text-app-text-secondary">
+                  Précise les postes et les entreprises qui t’intéressent pour orienter la recherche.
+                </p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
+              <CardContent className="space-y-4 p-4 pt-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="space-y-2">
-                      <Label htmlFor="crit-roles">Postes visés (virgules)</Label>
+                      <Label htmlFor="crit-roles" className="text-sm font-medium text-app-text-strong">Poste ou entreprise</Label>
                       <Input
                         id="crit-roles"
+                        variant="control"
                         value={rolesLine}
+                        placeholder="Product Owner, entreprise…"
                         onChange={(e) => {
                           setRolesLine(e.target.value)
                           updateCriteria({ roles: splitComma(e.target.value) })
@@ -307,10 +349,12 @@ export function CompanySearchPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="crit-sectors">Secteurs (virgules)</Label>
+                      <Label htmlFor="crit-sectors" className="text-sm font-medium text-app-text-strong">Secteurs d’activité</Label>
                       <Input
                         id="crit-sectors"
+                        variant="control"
                         value={sectorsLine}
+                        placeholder="Banque, assurance, santé…"
                         onChange={(e) => {
                           setSectorsLine(e.target.value)
                           updateCriteria({ sectors: splitComma(e.target.value) })
@@ -318,79 +362,51 @@ export function CompanySearchPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="crit-locations">Villes / régions (virgules)</Label>
+                      <Label htmlFor="crit-locations" className="text-sm font-medium text-app-text-strong">Villes ou régions</Label>
                       <Input
                         id="crit-locations"
+                        variant="control"
                         value={locationsLine}
+                        placeholder="Marseille, Aix-en-Provence…"
                         onChange={(e) => {
                           setLocationsLine(e.target.value)
                           updateCriteria({ locations: splitComma(e.target.value) })
                         }}
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="crit-size-min">Taille min (salariés)</Label>
-                        <Input
-                          id="crit-size-min"
-                          type="number"
-                          min={1}
-                          value={sizeMin}
-                          onChange={(e) => {
-                            setSizeMin(e.target.value)
-                            updateCriteria({
-                              size_min: e.target.value ? Number(e.target.value) : null,
-                            })
+                        <Label id="crit-company-size-label" className="text-sm font-medium text-app-text-strong">Taille de l’entreprise</Label>
+                        <Select
+                          value={sizeMin === "1" && sizeMax === "50" ? "small" : sizeMin === "51" && sizeMax === "500" ? "medium" : sizeMin === "501" && sizeMax === "" ? "large" : "all"}
+                          onValueChange={(value) => {
+                            const bands: Record<string, [string, string]> = {
+                              all: ["", ""], small: ["1", "50"], medium: ["51", "500"], large: ["501", ""],
+                            }
+                            const [min, max] = (value ? bands[value] : undefined) ?? ["", ""]
+                            setSizeMin(min)
+                            setSizeMax(max)
+                            updateCriteria({ size_min: min ? Number(min) : null, size_max: max ? Number(max) : null })
                           }}
-                        />
+                        >
+                          <SelectTrigger aria-labelledby="crit-company-size-label" variant="control">
+                            <SelectValue placeholder="Toutes les tailles" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Toutes les tailles</SelectItem>
+                            <SelectItem value="small">Petite</SelectItem>
+                            <SelectItem value="medium">Moyenne</SelectItem>
+                            <SelectItem value="large">Grande</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="crit-size-max">Taille max (salariés)</Label>
-                        <Input
-                          id="crit-size-max"
-                          type="number"
-                          min={1}
-                          value={sizeMax}
-                          onChange={(e) => {
-                            setSizeMax(e.target.value)
-                            updateCriteria({
-                              size_max: e.target.value ? Number(e.target.value) : null,
-                            })
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="crit-remote"
-                      checked={remote}
-                      onCheckedChange={(checked) => {
-                        setRemote(Boolean(checked))
-                        updateCriteria({ remote: Boolean(checked) })
-                      }}
-                    />
-                    <Label htmlFor="crit-remote" className="font-medium">
-                      Télétravail / remote souhaité
-                    </Label>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="crit-priority">Priorité (optionnel)</Label>
-                    <Input
-                      id="crit-priority"
-                      value={priority}
-                      placeholder="Ex. : entreprises tech / produit, forte culture produit"
-                      onChange={(e) => {
-                        setPriority(e.target.value)
-                        updateCriteria({ priority: e.target.value || undefined })
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="crit-summary">Résumé</Label>
+                    <Label htmlFor="crit-summary" className="text-sm font-medium text-app-text-strong">Autres critères ou exclusions (facultatif)</Label>
                     <Textarea
                       id="crit-summary"
-                      rows={2}
+                      rows={3}
+                      className="min-h-[82px] resize-y rounded-app-control border-app-border bg-app-control text-sm text-app-text placeholder:text-app-text-muted"
+                      placeholder="Ex. Je privilégie les PME. Je souhaite éviter les cabinets de conseil et les ESN."
                       value={summary}
                       onChange={(e) => {
                         setSummary(e.target.value)
@@ -398,12 +414,9 @@ export function CompanySearchPage() {
                       }}
                     />
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                    <p className="text-sm text-muted-foreground">
-                      {rolesLine.trim() || "Rôles par défaut"} · {criteria.sectors.length} secteur(s)
-                      {lastProvider ? ` · source : ${lastProvider}` : ""}
-                    </p>
-                    <Button type="button" onClick={() => void handleRun()} disabled={running}>
+                  <div className="flex flex-wrap items-center justify-end gap-3 pt-1">
+                    {lastProvider ? <p className="mr-auto text-xs text-app-text-muted">Dernière source : {lastProvider}</p> : null}
+                    <Button type="button" size="control" onClick={() => void handleRun()} disabled={running}>
                       {running ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -412,7 +425,7 @@ export function CompanySearchPage() {
                       ) : (
                         <>
                           <Play className="mr-2 h-4 w-4" />
-                          Lancer la recherche
+                          Rechercher des entreprises
                         </>
                       )}
                     </Button>
@@ -420,44 +433,38 @@ export function CompanySearchPage() {
                 </CardContent>
               </Card>
 
-            {running && searchStep >= 0 ? (
-              <Card>
-                <CardContent className="p-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-foreground">
-                        {SEARCH_STEPS[searchStep] ?? "Recherche…"}
-                      </span>
-                      {progress.total > 0 ? (
-                        <span className="text-muted-foreground">
-                          {progress.current} / {progress.total}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
-                        style={{
-                          width: progress.total > 0
-                            ? `${Math.round((progress.current / progress.total) * 100)}%`
-                            : searchStep <= 2 ? "30%" : "60%",
-                        }}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null}
+          <Tabs
+            defaultValue="prospect"
+            value={view}
+            onValueChange={(value) => setView(value as "prospect" | "pipeline")}
+          >
+              <TabsList variant="section" className="h-auto w-fit max-w-full flex-wrap gap-1">
+                <TabsTrigger value="prospect" variant="section">
+                  <Sparkles className="size-4" aria-hidden />
+                  Rechercher des entreprises
+                </TabsTrigger>
+                <TabsTrigger value="pipeline" variant="section">
+                  <Building2 className="size-4" aria-hidden />
+                  Mon suivi <span className="tabular-nums">({companies.length})</span>
+                </TabsTrigger>
+              </TabsList>
 
+          <TabsContent value="prospect" className="mt-4 space-y-4">
+            {searchError ? (
+              <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-app-surface border border-app-danger/40 bg-app-surface p-4">
+                <div><p className="font-medium text-app-text-strong">La prospection n’a pas abouti.</p><p className="text-sm text-app-text-secondary">{searchError}</p></div>
+                <Button type="button" variant="outline" onClick={() => void handleRun()} disabled={running}>Réessayer</Button>
+              </div>
+            ) : null}
             {prospectCompanies.length > 0 ? (
               <section className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold tracking-tight">
+                  <Badge className="rounded-app-badge bg-app-action text-app-action-foreground">{prospectCompanies.length}</Badge>
+                  <h2 className="text-xl font-semibold leading-7 tracking-tight text-app-text-strong">
                     Entreprises candidates
                   </h2>
-                  <Badge variant="secondary">{prospectCompanies.length}</Badge>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                   {prospectCompanies.map((company) => (
                     <CompanyCard
                       key={company.id}
@@ -467,6 +474,16 @@ export function CompanySearchPage() {
                   ))}
                 </div>
               </section>
+            ) : searchCompleted ? (
+              <div className="rounded-app-surface border border-app-border bg-app-surface px-4 py-8 text-center" role="status">
+                <p className="text-base font-medium leading-6 text-app-text-strong">Aucune entreprise trouvée pour cette recherche.</p>
+                <p className="mt-1 text-sm leading-5 text-app-text-secondary">Élargis les postes, secteurs ou régions, ou passe à la recherche d’offres pour chercher un poste publié.</p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <Button type="button" variant="outline" onClick={() => { setSectorsLine(""); setLocationsLine(""); setCriteria((current) => ({ ...current, sectors: [], locations: [] })); setSearchCompleted(false) }}>Élargir secteurs et lieux</Button>
+                  <Button type="button" onClick={() => void handleRun()} disabled={running}>Relancer la prospection</Button>
+                  <Link href="/research" className="inline-flex min-h-10 items-center rounded-app-control border border-app-border-strong px-4 text-sm font-medium text-app-text">Recherche d’offres</Link>
+                </div>
+              </div>
             ) : null}
           </TabsContent>
 
@@ -476,23 +493,23 @@ export function CompanySearchPage() {
                 {PIPELINE_STATUSES.slice(0, 5).map((status) => (
                   <div
                     key={status}
-                    className="min-w-[220px] flex-1 rounded-xl border bg-muted/40 p-3"
+                    className="min-w-[220px] flex-1 rounded-app-surface border border-app-border bg-app-surface/60 p-3"
                   >
-                    <div className="mb-3 h-5 w-24 animate-pulse rounded bg-muted" />
+                    <div className="mb-3 h-5 w-24 animate-pulse rounded bg-app-control" />
                     <div className="space-y-2">
-                      <div className="h-16 animate-pulse rounded-lg bg-muted" />
-                      <div className="h-16 animate-pulse rounded-lg bg-muted" />
+                      <div className="h-16 animate-pulse rounded-lg bg-app-control" />
+                      <div className="h-16 animate-pulse rounded-lg bg-app-control" />
                     </div>
                   </div>
                 ))}
               </div>
-            ) : companies.length === 0 ? (
-              <div className="rounded-xl border border-dashed p-10 text-center space-y-4">
-                <p className="text-base text-muted-foreground">
+            ) : displayCompanies.length === 0 ? (
+              <div className="rounded-app-surface border border-dashed border-app-border p-10 text-center space-y-4">
+                <p className="text-base text-app-text-secondary">
                   Aucune entreprise prospectée pour l’instant. Lance une recherche sur
                   l’onglet Prospecter.
                 </p>
-                <Button type="button" onClick={() => setView("prospect")}>
+                <Button type="button" size="control" onClick={() => setView("prospect")}>
                   <Plus className="mr-2 h-4 w-4" />
                   Prospecter
                 </Button>
@@ -500,8 +517,8 @@ export function CompanySearchPage() {
             ) : (
               <>
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    {companies.length} entreprise(s) dans le pipeline
+                  <p className="text-sm text-app-text-secondary">
+                    {displayCompanies.length} entreprise(s) dans le pipeline
                   </p>
                   <Button
                     type="button"
@@ -524,19 +541,19 @@ export function CompanySearchPage() {
                   return (
                     <section
                       key={status}
-                      className="flex min-w-[260px] max-w-[320px] flex-1 flex-col rounded-xl border bg-muted/30 p-3"
+                      className="flex min-w-[260px] max-w-[320px] flex-1 flex-col rounded-app-surface border border-app-border bg-app-surface/50 p-3"
                     >
                       <header className="mb-3 flex items-center justify-between gap-2">
-                        <h3 className="text-base font-semibold">
+                        <h3 className="text-base font-semibold text-app-text-strong">
                           {PIPELINE_STATUS_LABEL[status]}
                         </h3>
-                        <span className="rounded-full bg-background px-2 py-0.5 text-base text-muted-foreground">
+                        <span className="rounded-full bg-app-control px-2 py-0.5 text-base text-app-text-secondary">
                           {columnCompanies.length}
                         </span>
                       </header>
                       <div className="flex min-h-[120px] flex-1 flex-col gap-2">
                         {columnCompanies.length === 0 ? (
-                          <p className="rounded-lg border border-dashed px-3 py-6 text-center text-base text-muted-foreground">
+                          <p className="rounded-app-control border border-dashed border-app-border px-3 py-6 text-center text-base text-app-text-secondary">
                             Aucune
                           </p>
                         ) : (

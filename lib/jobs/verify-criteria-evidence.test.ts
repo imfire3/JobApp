@@ -108,4 +108,15 @@ describe("verify-criteria-evidence", () => {
     )
     assert.equal(row.evidence_level, 1)
   })
+
+  it("does not turn product practice into five years of product experience", () => {
+    const [row] = enforceCriteriaEvidenceAgainstCv([criterion({id:"years",label:"5 ans d’expérience produit",evidence_from_cv:"priorisation backlog, discovery utilisateurs"})],cvText)
+    assert.equal(row.cv_status,"mentioned_only")
+    assert.equal(row.evidence_level,1)
+    assert.ok(row.question_to_candidate)
+  })
+
+  it("never accepts scattered CV words as a quote", () => {
+    assert.equal(isVerifiableCvQuote("Produit : backlog.\nFormation : réglementation.\nOutils : intelligence artificielle.","Produit réglementation artificielle"),false)
+  })
 })

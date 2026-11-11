@@ -1,20 +1,45 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react"
+import { Plus, Trash2, ChevronUp, ChevronDown, GraduationCap } from "lucide-react"
 import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { MONTH_OPTIONS } from "@/lib/cv/experiences"
-import { emptyEducationEntry } from "@/lib/profile/helpers"
+import { MonthYearDatePicker } from "@/components/profile/month-year-date-picker"
+import {
+  MONTH_OPTIONS,
+  formatMonthYear,
+  isMonthYearValid,
+  parseMonthYear,
+} from "@/lib/cv/experiences"
+import {
+  EDUCATION_LEVEL_OPTIONS,
+  emptyEducationEntry,
+} from "@/lib/profile/helpers"
 import type { ProfileEducationEntry } from "@/lib/profile/types"
 
 type EducationEntriesCardProps = {
   entries: ProfileEducationEntry[]
   onChange: (entries: ProfileEducationEntry[]) => void
+}
+
+function compareMonthYear(left: string, right: string) {
+  const a = parseMonthYear(left)
+  const b = parseMonthYear(right)
+  if (a.year !== b.year) return a.year < b.year ? -1 : 1
+  if (a.month === b.month) return 0
+  return a.month < b.month ? -1 : 1
 }
 
 export function EducationEntriesCard({
@@ -23,16 +48,66 @@ export function EducationEntriesCard({
 }: EducationEntriesCardProps) {
   const [draft, setDraft] = useState<ProfileEducationEntry | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [isNewDraft, setIsNewDraft] = useState(false)
+  const [startText, setStartText] = useState("")
+  const [endText, setEndText] = useState("")
+  const [startTouched, setStartTouched] = useState(false)
+  const [endTouched, setEndTouched] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
+  const loadedIdRef = useRef<string | null>(null)
 
-  const yearOptions = useMemo(() => {
-    const current = new Date().getFullYear()
-    const years: string[] = []
-    for (let year = current + 1; year >= current - 60; year -= 1) {
-      years.push(String(year))
+  const draftLevel = draft?.level ?? ""
+
+  const levelOptions = useMemo(() => {
+    if (draftLevel && !EDUCATION_LEVEL_OPTIONS.includes(draftLevel)) {
+      return [...EDUCATION_LEVEL_OPTIONS, draftLevel]
     }
-    return years
-  }, [])
+    return EDUCATION_LEVEL_OPTIONS
+  }, [draftLevel])
+
+  const canSave = useMemo(() => {
+    if (!draft) return false
+    if (!isMonthYearValid(startText)) return false
+    if (!draft.isCurrent && endText.trim() && !isMonthYearValid(endText)) return false
+    if (
+      !draft.isCurrent &&
+      isMonthYearValid(endText) &&
+      compareMonthYear(endText, startText) < 0
+    ) {
+      return false
+    }
+    return draft.name.trim().length > 0
+  }, [draft, startText, endText])
+
+  const startError = useMemo(() => {
+    if (!startText.trim()) {
+      return startTouched ? "La date de début est requise." : null
+    }
+    if (!isMonthYearValid(startText)) return "Saisis une date au format MM/AAAA."
+    return null
+  }, [startText, startTouched])
+
+  const endError = useMemo(() => {
+    if (!draft || draft.isCurrent) return null
+    if (!endText.trim()) {
+      return endTouched ? "La date de fin est requise." : null
+    }
+    if (!isMonthYearValid(endText)) return "Saisis une date au format MM/AAAA."
+    if (isMonthYearValid(startText) && compareMonthYear(endText, startText) < 0) {
+      return "La date de fin doit être postérieure à la date de début."
+    }
+    return null
+  }, [draft, endText, endTouched, startText])
+
+  useEffect(() => {
+    if (!draft) return
+    if (loadedIdRef.current === draft.id) return
+    loadedIdRef.current = draft.id
+    setStartText(formatMonthYear(draft.startMonth, draft.startYear))
+    setEndText(formatMonthYear(draft.endMonth, draft.endYear))
+    setStartTouched(false)
+    setEndTouched(false)
+  }, [draft])
 
   useEffect(() => {
     if (draft && editingId === draft.id) {
@@ -44,7 +119,38 @@ export function EducationEntriesCard({
     const next = emptyEducationEntry()
     setDraft(next)
     setEditingId(next.id)
+    setIsNewDraft(true)
+    loadedIdRef.current = null
     onChange([next, ...entries])
+  }
+
+  const handleStartChange = (value: string) => {
+    const parsed = parseMonthYear(value)
+    setStartText(parsed.month && parsed.year ? `${parsed.month}/${parsed.year}` : "")
+    setDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            startMonth: parsed.month,
+            startYear: parsed.year,
+          }
+        : prev
+    )
+  }
+
+  const handleEndChange = (value: string) => {
+    const parsed = parseMonthYear(value)
+    setEndText(parsed.month && parsed.year ? `${parsed.month}/${parsed.year}` : "")
+    setDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            endMonth: parsed.month,
+            endYear: parsed.year,
+            isCurrent: !(parsed.month && parsed.year),
+          }
+        : prev
+    )
   }
 
   const handleSaveDraft = () => {
@@ -53,11 +159,26 @@ export function EducationEntriesCard({
       toast.error("Le nom du diplôme est requis")
       return
     }
+    if (!canSave) {
+      toast.error("Vérifie les dates (MM/AAAA) avant d’enregistrer")
+      return
+    }
     onChange(
-      entries.map((entry) => (entry.id === draft.id ? { ...draft, name: draft.name.trim() } : entry))
+      entries.map((entry) =>
+        entry.id === draft.id
+          ? {
+              ...draft,
+              name: draft.name.trim(),
+              school: draft.school.trim(),
+              description: draft.description.trim(),
+            }
+          : entry
+      )
     )
     setDraft(null)
     setEditingId(null)
+    setIsNewDraft(false)
+    loadedIdRef.current = null
     toast.success("Diplôme enregistré")
   }
 
@@ -66,23 +187,25 @@ export function EducationEntriesCard({
     if (draft?.id === id) {
       setDraft(null)
       setEditingId(null)
+      setIsNewDraft(false)
+      loadedIdRef.current = null
     }
   }
 
   return (
-    <div className="flex w-full flex-col gap-6 rounded-[18px] border border-[#2F2F2F] bg-[#171717] p-6">
+    <div className="flex max-h-full w-full min-h-0 flex-col gap-6 rounded-[8px] border-[1.25px] border-[#525252] bg-[#171717] p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-xl font-semibold text-[#FAFAFA]">Diplômes & formations</h2>
-          <p className="text-base text-[#A1A1A1]">
-            Ajoute tes diplômes — utilise les flèches pour réorganiser.
+          <h2 className="text-xl font-medium leading-6 tracking-[-0.02em] text-white">Diplômes &amp; formations</h2>
+          <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-[#d4d4d4]">
+            Listez vos diplômes, formations et certifications pertinents.
           </p>
         </div>
         <Button
           type="button"
           variant="outline"
           onClick={handleAdd}
-          className="h-12 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+          className="h-12 gap-2 rounded-[8px] border-[1.25px] border-[#a3a3a3] bg-[#262626] px-4 text-sm font-medium text-[#fafafa] hover:bg-[#333]"
         >
           <Plus className="h-4 w-4" />
           Ajouter un diplôme
@@ -90,12 +213,12 @@ export function EducationEntriesCard({
       </div>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
         {entries.length === 0 ? (
-          <div className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6 text-center">
-            <p className="text-base text-[#A1A1A1]">Aucun diplôme pour l&apos;instant.</p>
+          <div className="rounded-[8px] border border-[#525252] bg-[#171717] p-4 text-center">
+            <p className="text-base leading-6 text-[#a3a3a3]">Aucun diplôme pour l&apos;instant.</p>
             <Button
               type="button"
               variant="outline"
-              className="mt-4 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+              className="mt-4 h-12 gap-2 rounded-[8px] border-[1.25px] border-[#a3a3a3] bg-[#262626] px-4 text-sm font-medium text-[#fafafa] hover:bg-[#333]"
               onClick={handleAdd}
             >
               <Plus className="h-4 w-4" />
@@ -108,137 +231,152 @@ export function EducationEntriesCard({
               const isEditing = draft?.id === entry.id
               if (isEditing && draft) {
                 return (
-                  <li key={entry.id} className="space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor={`edu-name-${draft.id}`}>Nom *</Label>
-                      <Input
-                        ref={nameRef}
-                        id={`edu-name-${draft.id}`}
-                        value={draft.name}
-                        onChange={(e) =>
-                          setDraft({ ...draft, name: e.target.value })
-                        }
-                        placeholder="Master Product Management"
-                      />
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>École</Label>
+                  <li key={draft.id}>
+                    <div className="space-y-6 rounded-[16px] border-[1.25px] border-[#404040] bg-[#212121] p-4">
+                    <h3 className="text-xl font-medium leading-6 tracking-[-0.02em] text-white">{isNewDraft ? "Ajouter un diplôme" : "Édition du diplôme"}</h3>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field className="sm:col-span-2">
+                        <Label htmlFor={`edu-name-${draft.id}`} className="mb-0 text-base">
+                          Nom de la formation
+                        </Label>
                         <Input
+                          ref={nameRef}
+                          id={`edu-name-${draft.id}`}
+                          value={draft.name}
+                          onChange={(e) =>
+                            setDraft({ ...draft, name: e.target.value })
+                          }
+                          placeholder="Ex. : Master UI/UX Design"
+                          className="h-[50px] rounded-[8px] border-[1.25px] border-[#737373] bg-[#262626] text-base dark:bg-[#262626]"
+                        />
+                      </Field>
+                      <Field>
+                        <Label
+                          id={`edu-level-label-${draft.id}`}
+                          className="mb-0 text-base"
+                        >
+                          Niveau
+                        </Label>
+                        <Select
+                          value={draft.level || "__none__"}
+                          items={levelOptions.map((level) => ({
+                            value: level,
+                            label: level,
+                          }))}
+                          onValueChange={(value) =>
+                            setDraft({
+                              ...draft,
+                              level: !value || value === "__none__" ? "" : value,
+                            })
+                          }
+                        >
+                          <SelectTrigger
+                          className="h-[50px] w-full rounded-[8px] border-[1.25px] border-[#737373] bg-[#262626] text-base dark:bg-[#262626]"
+                            aria-labelledby={`edu-level-label-${draft.id}`}
+                          >
+                            <SelectValue placeholder="Sélectionnez" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {levelOptions.map((level) => (
+                              <SelectItem key={level} value={level}>
+                                {level}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field>
+                        <Label
+                          htmlFor={`edu-school-${draft.id}`}
+                          className="mb-0 text-base"
+                        >
+                          École ou organisme
+                        </Label>
+                        <Input
+                          id={`edu-school-${draft.id}`}
                           value={draft.school}
                           onChange={(e) =>
                             setDraft({ ...draft, school: e.target.value })
                           }
+                          placeholder="Ex. : Université Paris II"
+                          className="h-[50px] rounded-[8px] border-[1.25px] border-[#737373] bg-[#262626] text-base dark:bg-[#262626]"
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Niveau</Label>
-                        <Input
-                          value={draft.level}
+                      </Field>
+                      <Field>
+                        <Label
+                          htmlFor={`edu-start-${draft.id}`}
+                          className="mb-0 text-base"
+                        >
+                          Du *
+                        </Label>
+                        <MonthYearDatePicker
+                          id={`edu-start-${draft.id}`}
+                          value={draft.startYear && draft.startMonth ? `${draft.startYear}-${draft.startMonth}` : ""}
+                          onChange={handleStartChange}
+                          onBlur={() => setStartTouched(true)}
+                          label="la date de début"
+                          invalid={Boolean(startError)}
+                          describedBy={startError ? `edu-start-error-${draft.id}` : undefined}
+                        />
+                        {startError ? (
+                          <p
+                            id={`edu-start-error-${draft.id}`}
+                            role="alert"
+                            className="text-sm text-destructive"
+                          >
+                            {startError}
+                          </p>
+                        ) : null}
+                      </Field>
+                      <Field>
+                        <Label
+                          htmlFor={`edu-end-${draft.id}`}
+                          className="mb-0 text-base"
+                        >
+                          Au
+                        </Label>
+                        <MonthYearDatePicker
+                          id={`edu-end-${draft.id}`}
+                          value={draft.endYear && draft.endMonth ? `${draft.endYear}-${draft.endMonth}` : ""}
+                          onChange={handleEndChange}
+                          onBlur={() => setEndTouched(true)}
+                          label="la date de fin"
+                          min={draft.startYear && draft.startMonth ? `${draft.startYear}-${draft.startMonth}` : undefined}
+                          invalid={Boolean(endError)}
+                          describedBy={endError ? `edu-end-error-${draft.id}` : undefined}
+                        />
+                        {endError ? (
+                          <p
+                            id={`edu-end-error-${draft.id}`}
+                            role="alert"
+                            className="text-sm text-destructive"
+                          >
+                            {endError}
+                          </p>
+                        ) : null}
+                      </Field>
+                      <Field className="sm:col-span-2">
+                        <Label
+                          htmlFor={`edu-desc-${draft.id}`}
+                          className="mb-0 text-base"
+                        >
+                          Description
+                        </Label>
+                        <Textarea
+                          id={`edu-desc-${draft.id}`}
+                          value={draft.description}
                           onChange={(e) =>
-                            setDraft({ ...draft, level: e.target.value })
+                            setDraft({ ...draft, description: e.target.value })
                           }
+                          rows={5}
+                          placeholder={
+                            "Mes apprentissages\n• Apprendre les outils et techniques de conception industrielle.\n• Gérer le processus de développement d'un produit.\n• Appliquer les théories de la culture du design à un projet de conception de produit."
+                          }
+                          className="min-h-[95px] rounded-[8px] border-[1.25px] border-[#737373] bg-[#262626] text-base leading-6 dark:bg-[#262626]"
                         />
-                      </div>
+                      </Field>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>Début</Label>
-                        <div className="flex gap-2">
-                          <select
-                            className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
-                            value={draft.startMonth}
-                            onChange={(e) =>
-                              setDraft({ ...draft, startMonth: e.target.value })
-                            }
-                          >
-                            <option value="">MM</option>
-                            {MONTH_OPTIONS.map((month) => (
-                              <option key={month.value} value={month.value}>
-                                {month.label}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
-                            value={draft.startYear}
-                            onChange={(e) =>
-                              setDraft({ ...draft, startYear: e.target.value })
-                            }
-                          >
-                            <option value="">AAAA</option>
-                            {yearOptions.map((year) => (
-                              <option key={year} value={year}>
-                                {year}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Fin</Label>
-                        <div className="flex gap-2">
-                          <select
-                            className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
-                            value={draft.endMonth}
-                            disabled={draft.isCurrent}
-                            onChange={(e) =>
-                              setDraft({ ...draft, endMonth: e.target.value })
-                            }
-                          >
-                            <option value="">MM</option>
-                            {MONTH_OPTIONS.map((month) => (
-                              <option key={month.value} value={month.value}>
-                                {month.label}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            className="h-10 flex-1 rounded-md border border-input bg-transparent px-2 text-base"
-                            value={draft.endYear}
-                            disabled={draft.isCurrent}
-                            onChange={(e) =>
-                              setDraft({ ...draft, endYear: e.target.value })
-                            }
-                          >
-                            <option value="">AAAA</option>
-                            {yearOptions.map((year) => (
-                              <option key={year} value={year}>
-                                {year}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                    <label className="flex items-center gap-2 text-base">
-                      <Checkbox
-                        checked={draft.isCurrent}
-                        onCheckedChange={(checked) =>
-                          setDraft({
-                            ...draft,
-                            isCurrent: Boolean(checked),
-                            endMonth: checked ? "" : draft.endMonth,
-                            endYear: checked ? "" : draft.endYear,
-                          })
-                        }
-                      />
-                      J&apos;y étudie toujours
-                    </label>
-                    <div className="space-y-2">
-                      <Label>Description</Label>
-                      <Textarea
-                        value={draft.description}
-                        onChange={(e) =>
-                          setDraft({ ...draft, description: e.target.value })
-                        }
-                        rows={3}
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" onClick={handleSaveDraft}>
-                        Enregistrer
-                      </Button>
+                    <div className="flex flex-wrap justify-end gap-2">
                       <Button
                         type="button"
                         variant="outline"
@@ -249,79 +387,67 @@ export function EducationEntriesCard({
                           }
                           setDraft(null)
                           setEditingId(null)
+                          setIsNewDraft(false)
+                          loadedIdRef.current = null
                         }}
+                        className="h-[50px] rounded-[8px] border-[1.25px] border-[#a3a3a3] bg-[#262626] px-4 text-sm font-medium text-[#d4d4d4] hover:bg-[#333]"
                       >
                         Annuler
                       </Button>
-</div>
-                </li>
-              )
+                      <Button
+                        type="button"
+                        onClick={handleSaveDraft}
+                        disabled={!canSave}
+                        className="h-[50px] rounded-[8px] bg-white px-4 text-sm font-medium text-[#0a0a0a] hover:bg-[#e5e5e5]"
+                      >
+                        {isNewDraft ? "Ajouter" : "Modifier"}
+                      </Button>
+                    </div>
+                    </div>
+                  </li>
+                )
             }
 
             return (
                 <li key={entry.id}>
-                  <div className="w-full rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6">
-                    <div className="flex items-start justify-between gap-4">
+                  <div className="w-full rounded-[8px] border-[1.25px] border-[#525252] bg-[#171717] p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
                       <div className="min-w-0 flex-1 space-y-1">
-                      <p className="text-lg font-semibold text-[#FAFAFA]">
-                        {entry.name || "Nouveau diplôme"}
-                      </p>
-                      <p className="text-base text-[#A1A1A1]">
-                        {[entry.school, entry.level].filter(Boolean).join(" · ") ||
-                          "Complète les détails"}
-                      </p>
-                      <p className="text-base text-[#A1A1A1]">
-                        {[
-                          entry.startMonth
-                            ? MONTH_OPTIONS.find((m) => m.value === entry.startMonth)
-                                ?.label
-                            : null,
-                          entry.startYear,
-                          "→",
-                          entry.isCurrent
-                            ? "présent"
-                            : [
-                                MONTH_OPTIONS.find((m) => m.value === entry.endMonth)
-                                  ?.label,
-                                entry.endYear,
-                              ]
-                                .filter(Boolean)
-                                .join(" "),
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 gap-2">
+                        <p className="text-xl font-medium leading-6 tracking-[-0.02em] text-white">
+                          {entry.name || "Nouveau diplôme"}
+                        </p>
+                        <p className="text-base leading-6 text-[#a3a3a3]">
+                          {(() => {
+                            const month = entry.isCurrent || !entry.endYear ? entry.startMonth : entry.endMonth
+                            const year = entry.isCurrent || !entry.endYear ? entry.startYear : entry.endYear
+                            return [month ? MONTH_OPTIONS.find((item) => item.value === month)?.label : null, year].filter(Boolean).join(" ") || "Date à compléter"
+                          })()}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          {entry.school ? (
+                            <Badge variant="secondary" className="h-8 gap-1.5 rounded-[8px] bg-[#262626] px-2 text-sm font-medium text-[#fafafa]">
+                              <GraduationCap className="size-4" aria-hidden />
+                              {entry.school}
+                            </Badge>
+                          ) : (
+                            <span className="text-sm text-[#737373]">École à compléter</span>
+                          )}
+                          {entry.level ? <Badge variant="secondary" className="h-8 rounded-[8px] bg-[#262626] px-2 text-sm font-medium text-[#a3a3a3]">{entry.level}</Badge> : null}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap gap-2">
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
                         onClick={() => {
                           setDraft(entry)
                           setEditingId(entry.id)
+                          setIsNewDraft(false)
+                          loadedIdRef.current = null
                         }}
-                        className="h-12 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+                        className="h-12 rounded-[8px] border-[1.25px] border-[#525252] bg-[#262626] px-4 text-sm font-medium text-[#a3a3a3] hover:bg-[#333] hover:text-white"
                       >
                         Modifier
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          if (index > 0) {
-                            const next = [...entries]
-                            const [moved] = next.splice(index, 1)
-                            next.splice(index - 1, 0, moved)
-                            onChange(next)
-                          }
-                        }}
-                        disabled={index === 0}
-                        aria-label="Monter"
-                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)] disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <ChevronUp className="h-4 w-4" />
                       </Button>
                       <Button
                         type="button"
@@ -337,7 +463,7 @@ export function EducationEntriesCard({
                         }}
                         disabled={index === entries.length - 1}
                         aria-label="Descendre"
-                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)] disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="size-12 rounded-[8px] border-[1.25px] border-[#525252] bg-[#262626] text-[#d4d4d4] hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-35"
                       >
                         <ChevronDown className="h-4 w-4" />
                       </Button>
@@ -345,9 +471,27 @@ export function EducationEntriesCard({
                         type="button"
                         variant="outline"
                         size="icon"
+                        onClick={() => {
+                          if (index > 0) {
+                            const next = [...entries]
+                            const [moved] = next.splice(index, 1)
+                            next.splice(index - 1, 0, moved)
+                            onChange(next)
+                          }
+                        }}
+                        disabled={index === 0}
+                        aria-label="Monter"
+                        className="size-12 rounded-[8px] border-[1.25px] border-[#525252] bg-[#262626] text-[#d4d4d4] hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-35"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
                         aria-label={`Supprimer ${entry.name}`}
                         onClick={() => handleRemove(entry.id)}
-                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+                        className="size-12 rounded-[8px] border-[1.25px] border-[#525252] bg-[#262626] text-[#d4d4d4] hover:border-[#f87171] hover:bg-[#262626] hover:text-[#f87171]"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

@@ -1,3 +1,5 @@
+export const WEBSITE_PASTE_SOURCE = "website_paste";
+
 /**
  * Parse salary strings such as "45K à 55K €", "60k-72k EUR", "500 €/jour".
  */
@@ -160,6 +162,7 @@ export function normalizeSourceKey(source: string | null | undefined): string {
 
 export function formatSourceLabel(sourceKey: string): string {
   const labels: Record<string, string> = {
+    [WEBSITE_PASTE_SOURCE]: "Offre collée",
     welcome_to_the_jungle: "Welcome to the Jungle",
     linkedin_jobs: "LinkedIn",
     indeed: "Indeed",

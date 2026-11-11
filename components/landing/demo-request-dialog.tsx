@@ -76,7 +76,7 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
   }
 
   const fieldClass =
-    "w-full rounded-xl border border-[#111]/15 bg-white px-3 py-2.5 text-base text-[#111] outline-none transition placeholder:text-[#111]/40 focus:border-[#111]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
+    "w-full rounded-xl border border-[#111]/15 bg-white px-3 py-2.5 text-base text-[#111] outline-none transition placeholder:text-[#111]/60 focus:border-[#111]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111]"
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

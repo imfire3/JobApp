@@ -1,4 +1,6 @@
-export const COMPANY_ENRICHMENT_PROMPT_VERSION = "v1"
+import { CANDIDATE_POLICY, promptData } from "./candidate-policy"
+
+export const COMPANY_ENRICHMENT_PROMPT_VERSION = "v2"
 
 export const COMPANY_ENRICHMENT_POLICY = `POLITIQUE OBLIGATOIRE (non négociable)
 - Analyse uniquement les textes fournis : <website_text>, <careers_text>, <snippet>.
@@ -6,9 +8,18 @@ export const COMPANY_ENRICHMENT_POLICY = `POLITIQUE OBLIGATOIRE (non négociable
 - Chaque affirmation doit être vérifiable dans les sources ; fournis sources[] comme citations verbatim.
 - Si une donnée est absente des sources, laisse le champ vide — ne comble jamais.`
 
-export const COMPANY_ENRICHMENT_SYSTEM_PROMPT = `${COMPANY_ENRICHMENT_POLICY}
+export const COMPANY_ENRICHMENT_SYSTEM_PROMPT = `${CANDIDATE_POLICY}
+
+${COMPANY_ENRICHMENT_POLICY}
 
 Tu es un analyste de données d’entreprises pour JobTracker (prospection de candidatures spontanées). À partir du site web, de la page carrières et d’un extrait de recherche, tu structures une fiche entreprise.
+
+RÈGLES SUPPLÉMENTAIRES
+- Une page carrières ou une offre sans date ne prouve pas un recrutement actuellement actif. Présente seulement le poste observé dans le texte, avec sa limite de fraîcheur ; ne déclare pas une offre encore ouverte sans preuve temporelle.
+- Sépare siège, bureaux et zone de recrutement. Une adresse de siège ne prouve ni poste local ni télétravail.
+- Les snippets peuvent être tronqués ou périmés. En cas de conflit entre sources, mentionne l’incertitude dans description plutôt que choisir un fait inventé. Ne complète pas depuis la connaissance du modèle.
+- Ne déduis pas la présence d’une équipe produit de l’existence d’un produit numérique.
+- Ne devine pas la taille (effectifs). Si non indiquée explicitement, laisse size_min/size_max null.
 
 SORTIE (JSON uniquement)
 {
@@ -37,19 +48,19 @@ export function buildCompanyEnrichmentUserPrompt(input: {
   snippet: string
 }): string {
   return `<company_name>
-${input.companyName}
+${promptData(input.companyName)}
 </company_name>
 
 <website_text>
-${input.websiteText ?? ""}
+${promptData(input.websiteText ?? "")}
 </website_text>
 
 <careers_text>
-${input.careersText ?? ""}
+${promptData(input.careersText ?? "")}
 </careers_text>
 
 <snippet>
-${input.snippet ?? ""}
+${promptData(input.snippet ?? "")}
 </snippet>
 
 Retourne uniquement le JSON de la fiche entreprise.`

@@ -1,0 +1,13 @@
+{
+  "id": "P018",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "habit",
+  "reason": "J'essaierais l'analyse gratuite, mais je ne paierais pas le pass cette semaine. J'ai déjà laissé tomber mon suivi et annulé un outil de CV : je ne veux pas payer 39 € pour un outil de plus que je n'utiliserai pas.",
+  "objection": "La promesse des dix minutes m'intéresse, mais combien de temps vais-je passer à tout prendre en main et à corriger la lettre pour mon profil en reconversion ?",
+  "would_change_my_mind": "Que l'essai gratuit me permette réellement de préparer une candidature pertinente pour une offre de produit junior en dix minutes, sans rien inventer sur mon expérience.",
+  "price_too_cheap": 5,
+  "price_cheap": 19,
+  "price_expensive": 35,
+  "price_too_expensive": 60
+}

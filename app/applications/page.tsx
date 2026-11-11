@@ -58,7 +58,7 @@ import { StickyPageHeader } from "@/components/layout/sticky-page-header";
 
 const STATUS_LABEL: Record<ApplicationStatus, string> = {
   to_apply: "À candidater",
-  applied: "Candidaté",
+  applied: "Candidature envoyée",
   hr_interview: "Entretien RH",
   technical_interview: "Entretien technique",
   case_study: "Étude de cas",
@@ -72,6 +72,12 @@ const PIPELINE_STATUSES = APPLICATION_STATUSES.filter(
   (status): status is Exclude<ApplicationStatus, "to_apply"> =>
     status !== "to_apply"
 );
+
+function formatInterviewDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
 
 const emptyForm = {
   company: "",
@@ -93,6 +99,7 @@ function toDatetimeLocalValue(iso: string | null | undefined): string {
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -112,6 +119,7 @@ export default function ApplicationsPage() {
 
   async function load(options?: { silent?: boolean }) {
     if (!options?.silent) setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch("/api/applications");
       const data = await res.json();
@@ -119,6 +127,7 @@ export default function ApplicationsPage() {
       setApplications(data.applications ?? []);
     } catch (error) {
       setApplications([]);
+      setLoadError(error instanceof Error ? error.message : "Impossible de charger les candidatures");
       toast.error(
         error instanceof Error ? error.message : "Impossible de charger les candidatures"
       );
@@ -259,7 +268,7 @@ export default function ApplicationsPage() {
         <StickyPageHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Candidatures</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-app-text">Candidatures</h1>
               <p className="text-base text-muted-foreground">
                 Offres où tu as postulé — pipeline, entretiens et notes de réunion.
               </p>
@@ -268,20 +277,33 @@ export default function ApplicationsPage() {
               <Button
                 type="button"
                 variant="outline"
+                size="control"
                 onClick={() => void load()}
                 disabled={loading}
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
+                <RefreshCw className="h-4 w-4" />
                 Rafraîchir
               </Button>
-              <Button type="button" onClick={() => setCreateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
+              <Button type="button" size="control" onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4" />
                 Nouvelle candidature
               </Button>
               <PageHelpButton pageId="applications" />
             </div>
           </div>
         </StickyPageHeader>
+
+        {loadError ? (
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
+            <div>
+              <p className="font-medium">Les candidatures n’ont pas pu être chargées.</p>
+              <p className="text-sm text-muted-foreground">{loadError}</p>
+            </div>
+            <Button type="button" variant="outline" onClick={() => void load()} disabled={loading}>
+              <RefreshCw className="mr-2 h-4 w-4" aria-hidden />Réessayer
+            </Button>
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-xl font-semibold tracking-tight">
@@ -298,13 +320,13 @@ export default function ApplicationsPage() {
           value={view}
           onValueChange={(value) => setView(value as "pipeline" | "table")}
         >
-          <TabsList>
-            <TabsTrigger value="pipeline">
-              <LayoutGrid className="mr-2 h-4 w-4" />
+          <TabsList variant="section" className="w-fit max-w-full">
+            <TabsTrigger value="pipeline" variant="section">
+              <LayoutGrid className="h-4 w-4" />
               Pipeline
             </TabsTrigger>
-            <TabsTrigger value="table">
-              <List className="mr-2 h-4 w-4" />
+            <TabsTrigger value="table" variant="section">
+              <List className="h-4 w-4" />
               Tableau
             </TabsTrigger>
           </TabsList>
@@ -325,7 +347,7 @@ export default function ApplicationsPage() {
                   </div>
                 ))}
               </div>
-            ) : pipelineApplications.length === 0 ? (
+            ) : loadError ? null : pipelineApplications.length === 0 ? (
               <div className="rounded-xl border border-dashed p-10 text-center space-y-4">
                 <p className="text-base text-muted-foreground">
                   Aucune candidature envoyée. Crée-en une, ou marque une offre comme
@@ -360,44 +382,31 @@ export default function ApplicationsPage() {
                           </p>
                         ) : (
                           columnApps.map((application) => (
-                            <article
-                              key={application.id}
-                              role="button"
-                              tabIndex={0}
-                              aria-label={`Ouvrir ${application.position} chez ${application.company}`}
-                              className={cn(
-                                "cursor-pointer rounded-lg border bg-background p-3 shadow-sm transition-shadow hover:shadow-md",
-                                "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                              )}
-                              onClick={() => openApplication(application)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  openApplication(application);
-                                }
-                              }}
-                            >
-                              <p className="line-clamp-2 text-base font-medium leading-snug">
-                                {application.position}
-                              </p>
-                              <p className="mt-1 truncate text-base text-muted-foreground">
-                                {application.company}
-                              </p>
-                              <div className="mt-2 flex flex-wrap items-center gap-2">
-                                <Badge variant="outline" className="h-auto text-sm">
-                                  {STATUS_LABEL[application.status]}
-                                </Badge>
+                            <article key={application.id} className="rounded-lg border bg-background p-3 shadow-sm transition-shadow hover:shadow-md">
+                              <button
+                                type="button"
+                                className="block w-full rounded-sm text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                onClick={() => openApplication(application)}
+                                aria-label={`Ouvrir le suivi : ${application.position} chez ${application.company}`}
+                              >
+                                <p className="line-clamp-2 text-base font-medium leading-snug">{application.position}</p>
+                                <p className="mt-1 truncate text-base text-muted-foreground">{application.company}</p>
                                 {application.interview_date ? (
-                                  <span className="text-sm text-muted-foreground">
-                                    Entretien {formatRelativeDate(application.interview_date)}
-                                  </span>
+                                  <p className="mt-2 text-sm font-medium text-foreground">Prochain entretien · {formatInterviewDate(application.interview_date)}</p>
                                 ) : null}
+                                {application.notes ? <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{application.notes}</p> : null}
+                              </button>
+                              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                                <Badge variant="outline" className="h-auto text-sm">{STATUS_LABEL[application.status]}</Badge>
+                                <Select value={application.status} onValueChange={(value) => void updateStatus(application.id, value as ApplicationStatus)}>
+                                  <SelectTrigger className="h-9 w-[190px]" aria-label={`Changer le statut de ${application.position} chez ${application.company}`}>
+                                    <SelectValue placeholder="Changer le statut" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {PIPELINE_STATUSES.map((nextStatus) => <SelectItem key={nextStatus} value={nextStatus}>{STATUS_LABEL[nextStatus]}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
                               </div>
-                              {application.notes ? (
-                                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                                  {application.notes}
-                                </p>
-                              ) : null}
                             </article>
                           ))
                         )}
@@ -412,7 +421,7 @@ export default function ApplicationsPage() {
           <TabsContent value="table" className="mt-4">
             {loading ? (
               <div className="h-56 animate-pulse rounded-xl border bg-muted/40" />
-            ) : pipelineApplications.length === 0 ? (
+            ) : loadError ? null : pipelineApplications.length === 0 ? (
               <div className="rounded-xl border border-dashed p-10 text-center text-base text-muted-foreground">
                 Aucune candidature pour l’instant.
               </div>
@@ -522,7 +531,7 @@ export default function ApplicationsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Statut</Label>
+              <Label id="app-status-label">Statut</Label>
               <Select
                 value={form.status}
                 onValueChange={(value) =>
@@ -532,7 +541,7 @@ export default function ApplicationsPage() {
                   }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger aria-labelledby="app-status-label">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -630,14 +639,14 @@ export default function ApplicationsPage() {
 
               <div className="flex flex-col gap-6 px-4 pb-4">
                 <div className="space-y-2">
-                  <Label>Statut</Label>
+                  <Label id="detail-status-label">Statut</Label>
                   <Select
                     value={draftStatus}
                     onValueChange={(value) =>
                       setDraftStatus(value as ApplicationStatus)
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-labelledby="detail-status-label">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

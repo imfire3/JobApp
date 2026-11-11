@@ -1,0 +1,13 @@
+{
+  "id": "P003",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "habit",
+  "reason": "J'ai déjà mon réflexe : j'ouvre ChatGPT, je colle l'offre et mon CV, j'ai ma lettre en deux minutes, et ça ne me coûte rien. Payer 39 € pour la même chose, même mieux expliqué, ça veut dire changer une habitude que j'ai déjà et ajouter un outil de plus à ma pile.",
+  "objection": "Je ne vois pas ce que ça m'apporte que ChatGPT ne me donne pas si je lui demande gentiment la même chose — et sur les relances, un Google Sheet avec deux colonnes fait le boulot. Si je paie et que le résultat est à peine mieux, j'ai juste perdu 39 € et du temps à importer mon CV.",
+  "would_change_my_mind": "Que la version gratuite me montre concrètement une différence que je ne peux pas reproduire avec ChatGPT : le même CV face à deux offres, avec le détail ligne par ligne et les mots-clés manquants, et surtout le suivi des relances qui me sorte les deux candidatures que j'ai oubliées sans que je les ressaisisse.",
+  "price_too_cheap": 5,
+  "price_cheap": 20,
+  "price_expensive": 45,
+  "price_too_expensive": 90
+}

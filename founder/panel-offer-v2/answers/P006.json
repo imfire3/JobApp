@@ -1,0 +1,13 @@
+{
+  "id": "P006",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Je n’achèterais pas à 39 € : je doute déjà des scores ATS, et le score proposé repose sur des critères propres à JobTracker. Les mots-clés et la lettre pourraient m’aider, mais l’offre ne dit pas assez pour me convaincre de lâcher mon tableur.",
+  "objection": "Comment savoir si la comparaison et les mots-clés sont vraiment pertinents pour un poste produit, plutôt qu’un score arbitraire de plus ?",
+  "would_change_my_mind": "Un exemple concret et vérifiable de comparaison entre un CV et une offre de poste produit, sans prétendre prédire la décision d’un ATS.",
+  "price_too_cheap": 5,
+  "price_cheap": 15,
+  "price_expensive": 39,
+  "price_too_expensive": 60
+}

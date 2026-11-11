@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { getAuthenticatedUser } from "@/lib/auth"
-import { LOCAL_ADMIN_ID, registerLocalUser } from "@/lib/local-auth"
+import { getAuthenticatedUser, isAppAdmin } from "@/lib/auth"
+import { registerLocalUser } from "@/lib/local-auth"
 import { ensureLocalAuthUserInSupabase } from "@/lib/supabase/ensure-local-user"
 import { createServiceClient, hasServiceRoleKey } from "@/lib/supabase/admin"
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   if (!user || authError) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
-  if (user.id !== LOCAL_ADMIN_ID) {
+  if (!isAppAdmin(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -51,6 +51,32 @@ export async function POST(request: Request) {
     )
   }
 
+  if (process.env.NODE_ENV === "production") {
+    const supabase = createServiceClient()
+    const { data, error } = await supabase.auth.admin.createUser({
+      email: body.email,
+      password: body.password,
+      email_confirm: true,
+      user_metadata: { first_name: body.first_name, last_name: body.last_name },
+    })
+    if (error || !data.user) {
+      return NextResponse.json({ error: "Impossible de créer ce compte Supabase." }, { status: 400 })
+    }
+
+    await supabase.from("profiles").update({
+      first_name: body.first_name,
+      last_name: body.last_name,
+      contact_email: body.email,
+    }).eq("id", data.user.id)
+
+    return NextResponse.json({ user: {
+      id: data.user.id,
+      email: data.user.email,
+      first_name: body.first_name,
+      last_name: body.last_name,
+    } }, { status: 201 })
+  }
+
   const result = registerLocalUser(body.email, body.password)
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 409 })
@@ -58,9 +84,10 @@ export async function POST(request: Request) {
 
   // Do not set a session cookie — admin stays logged in.
   await ensureLocalAuthUserInSupabase(result.user, undefined, {
-      first_name: body.first_name,
-      last_name: body.last_name,
-    })
+    first_name: body.first_name,
+    last_name: body.last_name,
+    contact_email: body.email,
+  })
 
   if (hasServiceRoleKey()) {
     const supabase = createServiceClient()
@@ -69,6 +96,7 @@ export async function POST(request: Request) {
         id: result.user.id,
         first_name: body.first_name,
         last_name: body.last_name,
+        contact_email: body.email,
       },
       { onConflict: "id" }
     )

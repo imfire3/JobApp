@@ -28,9 +28,13 @@ This document describes the current scalable architecture of JobTracker after th
 ### API domain boundaries
 
 - `app/api/jobs/*` -> jobs CRUD updates
+- `POST /api/jobs/[id]/correct-paste` -> preview then explicit confirmation of pasted metadata correction; signed, user/job/version-bound preview, metadata allowlist, CRM preserved, previous analysis flagged stale (no schema migration)
+- `POST /api/import-jobs` -> multipart uploads for CSV/XLSX/Apify JSON or a JSON body `{ text, url? }` for a copied offer; metadata extraction and validation run server-side
 - `app/api/analyze-job` -> AI match scoring
+- `app/api/analyze-job/answer` and `/confirm` -> candidate clarifications and confirmation of analysis criteria
 - `app/api/generate-cover-letter` -> cover letter generation
 - `app/api/profile/*` -> profile + CV import and parsing
+- `app/api/jobs/[id]/optimize/*` -> guarded CV rewrite proposals for one offer
 - `app/api/sources/*` -> connectors and saved searches
 - `app/api/sync/*` -> daily/source/search automation entrypoints
 - `app/api/applications` -> CRM applications data
@@ -55,11 +59,16 @@ This document describes the current scalable architecture of JobTracker after th
 - `lib/jobs/utils.ts` -> filters, KPIs, formatting helpers
 - `lib/supabase/*` -> browser/server/proxy session clients
 
+Prompt diagnostics collect request content only in local development. Hosted builds neither store this trace content nor serve the diagnostic API.
+
+Production builds authenticate with Supabase Auth and read/write candidate data using the candidate session and RLS. The local development session cookie is ignored in production. Creating an invited account is an explicit administrator operation and uses the Supabase Admin API on the server.
+
 ## 3) Data model (normalized)
 
 Core tables:
 
 - `profiles`
+- `cv_contexts`
 - `job_sources`
 - `source_searches`
 - `jobs`
@@ -126,3 +135,10 @@ See `docs/automation.md`.
 - Add charts for import volume, score distribution, pipeline conversion
 - Add background queues for AI scoring and generation (for large volumes)
 - Add webhook/event audit trail for sync observability
+
+### Frontières UX / données
+
+- `lib/jobs/job-analysis-model.ts` construit le résumé et les compteurs à partir des critères évalués. Les déclarations du candidat ne sont jamais rendues comme citation CV; la ligne de critère garde la réponse candidat séparée.
+- `app/applications` fournit la mise à jour de statut dans les cartes du pipeline; les dates d’entretien ne sont affichées que si présentes. La recherche offres (`app/research`) et la prospection (`app/companies`) restent deux parcours et modèles distincts.
+- Le rendu Entreprises déduplique la vue par domaine/nom normalisés uniquement : aucune suppression ni fusion de données persistées n’est effectuée.
+- L’inscription hébergée Supabase reste opt-in jusqu’à validation des e-mails de confirmation et des URLs `/auth/callback`; elle est activée par `ALLOW_HOSTED_SIGNUP=true`.

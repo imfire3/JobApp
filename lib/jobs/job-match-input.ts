@@ -1,5 +1,5 @@
-/** Max CV characters sent to the job-match LLM (keeps latency low). */
-export const JOB_MATCH_CV_MAX_CHARS = 10_000
+/** Max CV characters sent to the job-match LLM (no practical limit for real CVs). */
+export const JOB_MATCH_CV_MAX_CHARS = 200_000
 
 /** Max job description characters sent to the job-match LLM. */
 export const JOB_MATCH_JOB_MAX_CHARS = 6_000

@@ -2,11 +2,16 @@ import { z } from "zod";
 import type { JobAnalysis, JobCriterionAssessment, JobCvImprovementItem } from "@/types";
 import { deriveMatchScore } from "@/lib/jobs/derive-match-score";
 import {
+  capConfidence,
+  computeCriteriaCoverage,
   computeScoreFromCriteria,
+  deriveApplicationPriority,
   slugFromLabel,
   type JobCriterionAssessment as CriterionRow,
 } from "@/lib/jobs/criteria-score";
-import { enforceCriteriaEvidenceAgainstCv } from "@/lib/jobs/verify-criteria-evidence";
+import { enforceCriteriaEvidenceAgainstCv, isVerifiableCvQuote, questionForRequirement } from "@/lib/jobs/verify-criteria-evidence";
+import { deriveCriteriaPresentation } from "@/lib/jobs/criteria-presentation";
+import { isFactuallySafeRewrite } from "@/lib/jobs/rewrite-safety";
 
 const confidenceSchema = z.preprocess((value) => {
   if (value == null || value === "") return "low"
@@ -173,7 +178,8 @@ const evidenceLevelSchema = z.preprocess((value) => {
   if (rounded <= 0) return 0
   if (rounded === 1) return 1
   if (rounded === 2) return 2
-  return 3
+  if (rounded >= 3) return 3
+  return 0
 }, z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]))
 /** Models often return null for missing evidence — coerce to empty string. */
 const softString = z.preprocess(
@@ -213,7 +219,12 @@ const matchTypeSchema = z.preprocess((value) => {
 const criterionAssessmentSchema = z.object({
   id: softString,
   label: softString,
-  weight_percent: z.number().min(0).max(100),
+  weight_percent: z.preprocess((value) => {
+    if (value == null || value === "") return 0
+    const n = typeof value === "number" ? value : Number(value)
+    if (!Number.isFinite(n)) return 0
+    return n
+  }, z.number().min(0).max(100)),
   evidence_level: evidenceLevelSchema,
   cv_status: cvStatusSchema,
   evidence_from_job: softString,
@@ -255,17 +266,31 @@ export const jobMatchAnalysisRawSchema = z.object({
     .default([]),
   match_reasons: z
     .array(
-      z.object({
+      z.preprocess((value) => {
+        if (typeof value === "string") {
+          const text = value.trim()
+          if (!text) return { title: "", evidence_from_cv: "", evidence_from_job: "", explanation: "" }
+          return { title: text, evidence_from_cv: "", evidence_from_job: "", explanation: "" }
+        }
+        return value
+      }, z.object({
         title: softString,
         evidence_from_cv: softString,
         evidence_from_job: softString,
         explanation: softString,
-      })
+      }))
     )
     .default([]),
   match_gaps: z
     .array(
-      z.object({
+      z.preprocess((value) => {
+        if (typeof value === "string") {
+          const text = value.trim()
+          if (!text) return { title: "", severity: "medium", gap_type: "not_evidenced", evidence_from_job: "", evidence_from_cv: null, explanation: "", question_to_candidate: null }
+          return { title: text, severity: "medium", gap_type: "not_evidenced", evidence_from_job: "", evidence_from_cv: null, explanation: "", question_to_candidate: null }
+        }
+        return value
+      }, z.object({
         title: softString,
         severity: prioritySchema,
         gap_type: gapTypeSchema,
@@ -273,34 +298,67 @@ export const jobMatchAnalysisRawSchema = z.object({
         evidence_from_cv: softNullableString,
         explanation: softString,
         question_to_candidate: softNullableString,
-      })
+      }))
     )
     .default([]),
   keywords_matched: z
     .array(
-      z.object({
+      z.preprocess((value) => {
+        if (typeof value === "string") {
+          const term = value.trim()
+          if (!term) return { job_term: "", cv_term: "", match_type: "exact", evidence_from_job: "", evidence_from_cv: "" }
+          return { job_term: term, cv_term: "", match_type: "exact", evidence_from_job: "", evidence_from_cv: "" }
+        }
+        if (value && typeof value === "object") {
+          const obj = value as Record<string, unknown>
+          if (obj.keyword && !obj.job_term) {
+            return { ...obj, job_term: obj.keyword, cv_term: obj.cv_term ?? "" }
+          }
+        }
+        return value
+      }, z.object({
         job_term: softString,
         cv_term: softString,
         match_type: matchTypeSchema,
         evidence_from_job: softString,
         evidence_from_cv: softString,
-      })
+      }))
     )
     .default([]),
   keywords_missing: z
     .array(
-      z.object({
+      z.preprocess((value) => {
+        if (typeof value === "string") {
+          const term = value.trim()
+          if (!term) return { keyword: "", importance: "unspecified", evidence_from_job: "", comment: "" }
+          return { keyword: term, importance: "unspecified", evidence_from_job: "", comment: "" }
+        }
+        if (value && typeof value === "object") {
+          const obj = value as Record<string, unknown>
+          if (obj.job_term && !obj.keyword) {
+            return { ...obj, keyword: obj.job_term }
+          }
+        }
+        return value
+      }, z.object({
         keyword: softString,
         importance: importanceSchema,
         evidence_from_job: softString,
         comment: softString,
-      })
+      }))
     )
     .default([]),
   keywords_from_job: z.array(softString).default([]),
   cv_improvements: z
     .array(
-      z.object({
+      z.preprocess((value) => {
+        if (typeof value === "string") {
+          const text = value.trim()
+          if (!text) return { type: "suggestion", action: "" }
+          return { type: "suggestion", action: text, reason: text }
+        }
+        return value
+      }, z.object({
         id: softString,
         type: z
           .preprocess((value) => {
@@ -356,7 +414,7 @@ export const jobMatchAnalysisRawSchema = z.object({
             z.boolean().optional()
           )
           .optional(),
-      })
+      }))
     )
     .default([]),
   cover_letter_angle: softString.default(""),
@@ -425,25 +483,30 @@ function improvementLine(item: {
 }
 
 function toImprovementItem(
-  item: JobMatchAnalysisRaw["cv_improvements"][number]
+  item: JobMatchAnalysisRaw["cv_improvements"][number],
+  cvText?: string
 ): JobCvImprovementItem {
-  if (item.type === "confirmation_required") {
+  const original = item.cv_original?.trim() || item.evidence_from_cv?.trim() || "";
+  const proposedRewrite = item.reformulation?.trim() || item.suggested_rewrite?.trim();
+  const unsafeRewrite = Boolean(proposedRewrite) && (!cvText || !isVerifiableCvQuote(cvText, original) ||
+    !isFactuallySafeRewrite({original, rewrite: proposedRewrite}));
+  if (item.type === "confirmation_required" || unsafeRewrite) {
     const requirement =
       item.requirement?.trim() || item.action.trim() || "Information manquante";
     return {
       id: item.id.trim() || `confirm-${slugFromLabel(requirement.slice(0, 40))}`,
       type: "confirmation_required",
       priority: "high",
-      cv_section: item.cv_section.trim(),
+      cv_section: item.section?.trim() || item.cv_section.trim(),
       action: requirement,
       evidence_from_cv: "",
       evidence_from_job:
         item.source_offer_requirement?.trim() || item.evidence_from_job?.trim() || "",
       suggested_rewrite: null,
       information_to_confirm:
-        item.question?.trim() || item.information_to_confirm?.trim() || null,
+        item.question?.trim() || item.information_to_confirm?.trim() || questionForRequirement(requirement),
       requirement: item.requirement?.trim() || null,
-      question: item.question?.trim() || null,
+      question: item.question?.trim() || item.information_to_confirm?.trim() || questionForRequirement(requirement),
       confidence: "low",
       safe: false,
     } satisfies JobCvImprovementItem;
@@ -454,10 +517,16 @@ function toImprovementItem(
     item.reformulation?.trim() || item.suggested_rewrite?.trim() || null;
   const toConfirm =
     item.information_to_confirm?.trim() || item.question?.trim() || null;
+  // `safe` is never inferred: the model must explicitly claim it AND the rewrite
+  // must pass the deterministic fact-preservation guard.
   const safe =
-    typeof item.safe === "boolean"
-      ? item.safe
-      : Boolean(rewrite && !toConfirm);
+    item.safe === true &&
+    !toConfirm &&
+    isFactuallySafeRewrite({
+      original: fromCv,
+      rewrite,
+      keywordsAdded: item.keywords_added,
+    });
 
   return {
     id: item.id.trim() || `edit-${(item.reason?.trim() || fromCv || "edit").slice(0, 12)}`,
@@ -611,6 +680,11 @@ export function flattenJobMatchAnalysis(
     : normalized;
   const criteriaComputed = computeScoreFromCriteria(enforced);
   const criteria_assessment = criteriaComputed.criteria as JobCriterionAssessment[];
+  const coverage = computeCriteriaCoverage(criteria_assessment);
+  const scoreConfidence =
+    criteria_assessment.length > 0
+      ? capConfidence(raw.score_confidence, coverage.confidence)
+      : raw.score_confidence;
 
   const fallback = deriveMatchScore({
     match_score: raw.match_score,
@@ -626,10 +700,18 @@ export function flattenJobMatchAnalysis(
       ? criteriaComputed.match_score
       : fallback.score;
 
+  const applicationPriority =
+    criteria_assessment.length > 0
+      ? deriveApplicationPriority({
+          criteria: criteria_assessment,
+          coverage,
+          matchScore: match_score,
+        })
+      : { priority: "undetermined" as const, reasons: [] };
+
   const scoreExplanation =
     criteria_assessment.length > 0
-      ? raw.score_explanation?.trim() ||
-        "Score calculé à partir des critères pondérés de l’offre et du niveau de preuve vérifiable dans le CV (0–3)."
+      ? deriveCriteriaPresentation(criteria_assessment).explanation
       : raw.score_explanation?.trim() ||
         (fallback.source === "keywords"
           ? "Score estimé à partir de la couverture des mots-clés ATS extraits (match_score IA absent)."
@@ -641,23 +723,18 @@ export function flattenJobMatchAnalysis(
 
   return {
     match_score,
-    match_reasons: matchReasons,
-    match_gaps: matchGaps,
+    match_reasons: criteria_assessment.length ? deriveCriteriaPresentation(criteria_assessment).strengths : matchReasons,
+    match_gaps: criteria_assessment.length ? deriveCriteriaPresentation(criteria_assessment).gaps : matchGaps,
     cover_letter_angle: raw.cover_letter_angle,
     keywords_from_job: fromJob,
     keywords_matched: matched,
     keywords_missing: missing,
-    cv_improvements: raw.cv_improvements
-      .filter(
-        (item) =>
-          item.action.trim() ||
-          item.reason?.trim() ||
-          item.requirement?.trim() ||
-          Boolean(item.reformulation?.trim())
-      )
-      .slice(0, 10)
-      .map(improvementLine),
-    cv_improvement_items: raw.cv_improvements.slice(0, 10).map(toImprovementItem),
+    cv_improvements: raw.cv_improvements.slice(0, 10).map((item) =>
+      toImprovementItem(item, options?.cvText)).map((item) => improvementLine({
+        ...item, type: item.type ?? "suggestion", question: item.question ?? undefined,
+        requirement: item.requirement ?? undefined,
+      })),
+    cv_improvement_items: raw.cv_improvements.slice(0, 10).map((item) => toImprovementItem(item, options?.cvText)),
     criteria_assessment,
     score_breakdown: raw.score_breakdown
       .filter((item) => item.dimension.trim())
@@ -668,7 +745,13 @@ export function flattenJobMatchAnalysis(
         rationale: item.rationale.trim(),
       })),
     job_posting_summary: raw.job_posting_summary,
-    score_confidence: raw.score_confidence,
+    score_confidence: scoreConfidence,
+    criteria_coverage:
+      criteria_assessment.length > 0
+        ? Math.round(coverage.evidenced_ratio * 100)
+        : null,
+    application_priority: criteria_assessment.length > 0 ? applicationPriority.priority : "undetermined",
+    application_priority_reasons: criteria_assessment.length > 0 ? applicationPriority.reasons : [],
     score_explanation: scoreExplanation,
     limitations: raw.limitations,
     status: raw.status,

@@ -1,9 +1,12 @@
 import { Suspense } from "react"
 import LoginPageClient from "./login-client"
-import { isSelfSignupAllowed } from "@/lib/auth/self-signup"
+import {
+  isHostedSignupEnabled,
+  isSignupOpen,
+} from "@/lib/auth/self-signup"
 
 export default function LoginPage() {
-  const allowSelfSignup = isSelfSignupAllowed()
+  const signupOpen = isSignupOpen()
 
   return (
     <Suspense
@@ -13,7 +16,10 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginPageClient allowSelfSignup={allowSelfSignup} />
+      <LoginPageClient
+        allowSelfSignup={signupOpen}
+        hostedSignup={isHostedSignupEnabled()}
+      />
     </Suspense>
   )
 }

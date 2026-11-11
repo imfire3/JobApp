@@ -1,0 +1,13 @@
+{
+  "id": "P002",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "J’ai six candidatures en cours et le suivi m’aiderait, mais je ne mettrais pas mon vrai CV sur un service dont le brief ne précise pas comment il est traité. À 39 €, je ne prends pas non plus le risque d’une lettre IA qui sonne générique.",
+  "objection": "Je ne sais pas ce que JobTracker fait de mon CV, et je crains que la lettre générée soit repérable comme texte d’IA.",
+  "would_change_my_mind": "Une explication claire, avant l’ajout du CV, de son traitement et de sa suppression, ainsi qu’un exemple réaliste de lettre générée.",
+  "price_too_cheap": 5,
+  "price_cheap": 15,
+  "price_expensive": 39,
+  "price_too_expensive": 60
+}

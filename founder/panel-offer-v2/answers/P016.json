@@ -1,0 +1,13 @@
+{
+  "id": "P016",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Je passe vraiment trop de temps à adapter mes candidatures, mais la comparaison, les mots-clés et la lettre ne me semblent pas assez différents de ce que je peux déjà faire avec ChatGPT pour payer 39 € sans être rassuré. Je vérifierais aussi ce qu’il advient de mon CV avant de le déposer.",
+  "objection": "Qu’est-ce qui justifie de payer et d’envoyer mon CV ici plutôt que de refaire le même travail avec ChatGPT ?",
+  "would_change_my_mind": "Des informations claires et crédibles sur le traitement de mon CV, avec une démonstration concrète du parcours décrit.",
+  "price_too_cheap": 5,
+  "price_cheap": 15,
+  "price_expensive": 50,
+  "price_too_expensive": 80
+}

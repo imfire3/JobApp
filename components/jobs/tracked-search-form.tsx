@@ -194,8 +194,12 @@ export function TrackedSearchForm({
         />
       </div>
 
-      <div className="space-y-3">
-        <Label>Salaire / Taux journalier</Label>
+      <div
+        role="group"
+        aria-labelledby="alert-salary-label"
+        className="space-y-3"
+      >
+        <Label id="alert-salary-label">Salaire / Taux journalier</Label>
         <select
           className={nativeSelectClassName}
           style={nativeSelectChevronStyle}
@@ -290,26 +294,34 @@ export function TrackedSearchForm({
         </label>
       </div>
 
-      <div className="space-y-3">
-        <Label>Montrer les opportunités</Label>
-        <label className="flex items-center gap-2 text-base">
+      <div
+        role="group"
+        aria-labelledby="alert-opportunities-label"
+        className="space-y-3"
+      >
+        <Label id="alert-opportunities-label">
+          Montrer les opportunités
+        </Label>
+        <div className="flex items-center gap-2 text-base">
           <Checkbox
             checked={value.exclusive_only}
+            aria-labelledby="alert-exclusive-only-label"
             onCheckedChange={(checked) =>
               patch({ exclusive_only: checked === true })
             }
           />
-          Uniquement exclusives
-        </label>
-        <label className="flex items-center gap-2 text-base">
+          <span id="alert-exclusive-only-label">Uniquement exclusives</span>
+        </div>
+        <div className="flex items-center gap-2 text-base">
           <Checkbox
             checked={value.top_recruiter_only}
+            aria-labelledby="alert-top-recruiter-label"
             onCheckedChange={(checked) =>
               patch({ top_recruiter_only: checked === true })
             }
           />
-          Uniquement Top Recruteur
-        </label>
+          <span id="alert-top-recruiter-label">Uniquement Top Recruteur</span>
+        </div>
       </div>
 
       <div className="space-y-2">

@@ -1,0 +1,13 @@
+{
+  "id": "P007",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "À 39 €, je vois l’intérêt de comparer mon CV à une offre et de préparer une lettre, mais je ne confierais pas mon vrai CV à un service inconnu sans savoir ce qu’il en fait. Avec mon manque de temps pour apprendre un nouvel outil, je ne tenterais pas avec mon CV anonymisé non plus.",
+  "objection": "Je ne sais pas où mon CV serait stocké ni combien de temps il serait conservé.",
+  "would_change_my_mind": "Une explication claire et vérifiable du stockage et de la suppression de mon CV.",
+  "price_too_cheap": 5,
+  "price_cheap": 12,
+  "price_expensive": 25,
+  "price_too_expensive": 35
+}

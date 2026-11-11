@@ -212,7 +212,7 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="w-full min-w-0 space-y-6">
       <div className="space-y-2">
         <Link href="/jobs" className={buttonVariants({ variant: "ghost", size: "sm", className: "-ml-2 w-fit" })}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -374,8 +374,11 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Job titles (comma separated)</Label>
+                  <Label htmlFor="search-job-titles">
+                    Job titles (comma separated)
+                  </Label>
                   <Input
+                    id="search-job-titles"
                     value={form.job_titles.join(", ")}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, job_titles: parseCsv(e.target.value) }))
@@ -383,8 +386,9 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Keywords</Label>
+                  <Label htmlFor="search-keywords">Keywords</Label>
                   <Input
+                    id="search-keywords"
                     value={form.keywords.join(", ")}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, keywords: parseCsv(e.target.value) }))
@@ -392,8 +396,11 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Excluded keywords</Label>
+                  <Label htmlFor="search-excluded-keywords">
+                    Excluded keywords
+                  </Label>
                   <Input
+                    id="search-excluded-keywords"
                     value={form.excluded_keywords.join(", ")}
                     onChange={(e) =>
                       setForm((prev) => ({
@@ -404,8 +411,9 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Locations</Label>
+                  <Label htmlFor="search-locations">Locations</Label>
                   <Input
+                    id="search-locations"
                     value={form.locations.join(", ")}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, locations: parseCsv(e.target.value) }))
@@ -428,8 +436,9 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Minimum salary</Label>
+                  <Label htmlFor="search-minimum-salary">Minimum salary</Label>
                   <Input
+                    id="search-minimum-salary"
                     type="number"
                     value={form.minimum_salary ?? ""}
                     onChange={(e) =>
@@ -441,15 +450,17 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Currency</Label>
+                  <Label htmlFor="search-currency">Currency</Label>
                   <Input
+                    id="search-currency"
                     value={form.currency}
                     onChange={(e) => setForm((prev) => ({ ...prev, currency: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Contract types</Label>
+                  <Label htmlFor="search-contract-types">Contract types</Label>
                   <Input
+                    id="search-contract-types"
                     value={form.contract_types.join(", ")}
                     onChange={(e) =>
                       setForm((prev) => ({
@@ -460,8 +471,11 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Experience level</Label>
+                  <Label htmlFor="search-experience-level">
+                    Experience level
+                  </Label>
                   <Input
+                    id="search-experience-level"
                     value={form.experience.join(", ")}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, experience: parseCsv(e.target.value) }))
@@ -469,8 +483,11 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Remote preference</Label>
+                  <Label htmlFor="search-remote-preference">
+                    Remote preference
+                  </Label>
                   <Input
+                    id="search-remote-preference"
                     value={form.remote_preference}
                     onChange={(e) =>
                       setForm((prev) => ({
@@ -482,8 +499,9 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Company size</Label>
+                  <Label htmlFor="search-company-size">Company size</Label>
                   <Input
+                    id="search-company-size"
                     value={form.company_size ?? ""}
                     onChange={(e) =>
                       setForm((prev) => ({
@@ -494,8 +512,9 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label>Industries</Label>
+                  <Label htmlFor="search-industries">Industries</Label>
                   <Input
+                    id="search-industries"
                     value={form.industries.join(", ")}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, industries: parseCsv(e.target.value) }))
@@ -503,8 +522,11 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label>Excluded industries</Label>
+                  <Label htmlFor="search-excluded-industries">
+                    Excluded industries
+                  </Label>
                   <Input
+                    id="search-excluded-industries"
                     value={form.excluded_industries.join(", ")}
                     onChange={(e) =>
                       setForm((prev) => ({
@@ -530,8 +552,11 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
-                  <Label>Company culture</Label>
+                  <Label htmlFor="search-company-culture">
+                    Company culture
+                  </Label>
                   <Textarea
+                    id="search-company-culture"
                     rows={3}
                     value={form.company_culture ?? ""}
                     onChange={(e) =>
@@ -543,8 +568,11 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label>AI preferences (JSON)</Label>
+                  <Label htmlFor="search-ai-preferences">
+                    AI preferences (JSON)
+                  </Label>
                   <Textarea
+                    id="search-ai-preferences"
                     rows={5}
                     value={JSON.stringify(form.ai_preferences, null, 2)}
                     onChange={(e) => {
@@ -562,8 +590,11 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Minimum AI match score</Label>
+                  <Label htmlFor="search-minimum-ai-match-score">
+                    Minimum AI match score
+                  </Label>
                   <Input
+                    id="search-minimum-ai-match-score"
                     type="number"
                     value={form.minimum_match_score ?? ""}
                     onChange={(e) =>
@@ -579,31 +610,34 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
                     <Switch
                       id="search-enabled"
                       checked={form.enabled}
+                      aria-labelledby="search-enabled-label"
                       onCheckedChange={(checked) =>
                         setForm((prev) => ({ ...prev, enabled: checked }))
                       }
                     />
-                    <Label htmlFor="search-enabled">Search enabled</Label>
+                    <Label id="search-enabled-label">Search enabled</Label>
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch
                       id="search-hybrid"
                       checked={form.hybrid}
+                      aria-labelledby="search-hybrid-label"
                       onCheckedChange={(checked) =>
                         setForm((prev) => ({ ...prev, hybrid: checked }))
                       }
                     />
-                    <Label htmlFor="search-hybrid">Hybrid</Label>
+                    <Label id="search-hybrid-label">Hybrid</Label>
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch
                       id="search-onsite"
                       checked={form.on_site}
+                      aria-labelledby="search-onsite-label"
                       onCheckedChange={(checked) =>
                         setForm((prev) => ({ ...prev, on_site: checked }))
                       }
                     />
-                    <Label htmlFor="search-onsite">On-site</Label>
+                    <Label id="search-onsite-label">On-site</Label>
                   </div>
                 </div>
               </div>

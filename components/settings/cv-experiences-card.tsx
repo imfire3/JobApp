@@ -1,11 +1,10 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Plus, Trash2, X, ChevronUp, ChevronDown } from "lucide-react"
+import { Plus, Trash2, X, ChevronUp, ChevronDown, Building2 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,16 +16,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { MonthYearDatePicker } from "@/components/profile/month-year-date-picker"
 import {
   EMPLOYMENT_TYPE_OPTIONS,
-  LOCATION_TYPE_OPTIONS,
   MAX_HIGHLIGHTS,
   MONTH_OPTIONS,
   clampHighlights,
   emptyCvExperience,
+  formatMonthYear,
+  isMonthYearValid,
+  parseMonthYear,
   type CvEmploymentType,
   type CvExperience,
-  type CvLocationType,
 } from "@/lib/cv/experiences"
 
 type CvExperiencesCardProps = {
@@ -34,28 +35,67 @@ type CvExperiencesCardProps = {
   onChange: (experiences: CvExperience[]) => void
 }
 
-const yearOptions = (() => {
-  const current = new Date().getFullYear()
-  const years: string[] = []
-  for (let year = current + 1; year >= current - 40; year -= 1) {
-    years.push(String(year))
-  }
-  return years
-})()
+function compareMonthYear(left: string, right: string) {
+  const a = parseMonthYear(left)
+  const b = parseMonthYear(right)
+  if (a.year !== b.year) return a.year < b.year ? -1 : 1
+  if (a.month === b.month) return 0
+  return a.month < b.month ? -1 : 1
+}
 
 export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [isNewDraft, setIsNewDraft] = useState(false)
   const [draft, setDraft] = useState<CvExperience | null>(null)
   const [skillInput, setSkillInput] = useState("")
+  const [startText, setStartText] = useState("")
+  const [endText, setEndText] = useState("")
+  const [startTouched, setStartTouched] = useState(false)
+  const [endTouched, setEndTouched] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
+  const loadedIdRef = useRef<string | null>(null)
 
   const canSave = useMemo(() => {
     if (!draft) return false
+    if (!isMonthYearValid(startText)) return false
+    if (!draft.isCurrent && endText.trim() && !isMonthYearValid(endText)) return false
+    if (!draft.isCurrent && isMonthYearValid(endText) && compareMonthYear(endText, startText) < 0) {
+      return false
+    }
     return (
       draft.title.trim().length > 0 &&
-      draft.organization.trim().length > 0 &&
-      draft.startYear.trim().length > 0
+      draft.organization.trim().length > 0
     )
+  }, [draft, startText, endText])
+
+  const startError = useMemo(() => {
+    if (!startText.trim()) {
+      return startTouched ? "La date de début est requise." : null
+    }
+    if (!isMonthYearValid(startText)) return "Saisis une date au format MM/AAAA."
+    return null
+  }, [startText, startTouched])
+
+  const endError = useMemo(() => {
+    if (!draft || draft.isCurrent) return null
+    if (!endText.trim()) {
+      return endTouched ? "La date de fin est requise." : null
+    }
+    if (!isMonthYearValid(endText)) return "Saisis une date au format MM/AAAA."
+    if (isMonthYearValid(startText) && compareMonthYear(endText, startText) < 0) {
+      return "La date de fin doit être postérieure à la date de début."
+    }
+    return null
+  }, [draft, endText, endTouched, startText])
+
+  useEffect(() => {
+    if (!draft) return
+    if (loadedIdRef.current === draft.id) return
+    loadedIdRef.current = draft.id
+    setStartText(formatMonthYear(draft.startMonth, draft.startYear))
+    setEndText(formatMonthYear(draft.endMonth, draft.endYear))
+    setStartTouched(false)
+    setEndTouched(false)
   }, [draft])
 
   useEffect(() => {
@@ -68,6 +108,29 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
     setDraft((prev) => (prev ? { ...prev, [key]: value } : prev))
   }
 
+  function handleStartChange(value: string) {
+    const parsed = parseMonthYear(value)
+    setStartText(parsed.month && parsed.year ? formatMonthYear(parsed.month, parsed.year) : "")
+    setDraft((prev) =>
+      prev ? { ...prev, startMonth: parsed.month, startYear: parsed.year } : prev
+    )
+  }
+
+  function handleEndChange(value: string) {
+    const parsed = parseMonthYear(value)
+    setEndText(parsed.month && parsed.year ? formatMonthYear(parsed.month, parsed.year) : "")
+    setDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            endMonth: parsed.month,
+            endYear: parsed.year,
+            isCurrent: parsed.month && parsed.year ? false : prev.isCurrent,
+          }
+        : prev
+    )
+  }
+
   function handleAddExperience() {
     const next: CvExperience = {
       id:
@@ -78,13 +141,14 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
     }
     setDraft(next)
     setEditingId(next.id)
+    setIsNewDraft(true)
     setSkillInput("")
     onChange([next, ...experiences])
   }
 
   function handleSave() {
     if (!draft || !canSave) {
-      toast.error("Intitulé, organisation et année de début sont requis")
+      toast.error("Intitulé, entreprise, date de début (MM/AAAA) et date de fin cohérente sont requis")
       return
     }
     const saved: CvExperience = {
@@ -97,7 +161,9 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
     onChange(experiences.map((item) => (item.id === saved.id ? saved : item)))
     setDraft(null)
     setEditingId(null)
+    setIsNewDraft(false)
     setSkillInput("")
+    loadedIdRef.current = null
     toast.success("Expérience enregistrée")
   }
 
@@ -112,7 +178,9 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
     }
     setDraft(null)
     setEditingId(null)
+    setIsNewDraft(false)
     setSkillInput("")
+    loadedIdRef.current = null
   }
 
   function handleRemoveExperience(id: string) {
@@ -120,6 +188,8 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
     if (draft?.id === id) {
       setDraft(null)
       setEditingId(null)
+      setIsNewDraft(false)
+      loadedIdRef.current = null
     }
   }
 
@@ -136,18 +206,18 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
   }
 
   return (
-    <div className="flex w-full flex-col gap-6 rounded-[18px] border border-[#2F2F2F] bg-[#171717] p-6">
+    <div className="flex w-full flex-col gap-6 rounded-[8px] border-[1.25px] border-[#525252] bg-[#171717] p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold text-[#FAFAFA]">Expériences</h2>
-          <p className="text-base leading-7 text-[#A1A1A1]">
+          <h2 className="text-xl font-medium leading-6 tracking-[-0.02em] text-white">Expériences</h2>
+          <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-[#d4d4d4]">
             Ajoute tes postes — utilise les flèches pour réorganiser l&apos;ordre.
           </p>
         </div>
         <Button
           type="button"
           onClick={handleAddExperience}
-          className="h-12 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+          className="h-[46px] gap-2 border-[1.25px] border-[#737373] bg-[#262626] px-4 text-sm font-medium text-[#d4d4d4] hover:bg-[#404040]"
           variant="outline"
         >
           <Plus className="h-4 w-4" />
@@ -156,7 +226,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
       </div>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
         {experiences.length === 0 ? (
-          <div className="rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6 text-center">
+          <div className="rounded-[8px] border border-[#404040] bg-[#171717] p-4 text-center">
             <p className="text-base text-[#A1A1A1]">Aucune expérience ajoutée pour l&apos;instant.</p>
             <Button
               type="button"
@@ -174,75 +244,64 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
               const isEditing = draft?.id === experience.id
               if (isEditing && draft) {
                 return (
-                  <li key={experience.id} className="space-y-5">
-                    <h3 className="text-lg font-semibold">Édition de l'expérience</h3>
+                  <li key={experience.id}>
+                    <div className="space-y-5 rounded-[8px] border border-[#404040] bg-[#171717] p-4">
+                    <h3 className="text-lg font-medium leading-6 tracking-[-0.02em] text-white">Édition de l&apos;expérience</h3>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Field className="sm:col-span-2">
                         <Label htmlFor={`exp-title-${draft.id}`} className="mb-0 text-base">
-                          Intitulé du poste *
+                          Titre, rôle ou nom du projet *
                         </Label>
                         <Input
                           ref={titleRef}
                           id={`exp-title-${draft.id}`}
                           value={draft.title}
                           onChange={(e) => updateDraft("title", e.target.value)}
-                          placeholder="Exemple : Product Manager"
-                          className="h-12 text-base"
+                          placeholder="Ex. : Product Manager"
+                           className="h-[50px] rounded-[8px] border-[1.25px] border-[#525252] bg-[#262626] text-base dark:bg-[#262626]"
                         />
                       </Field>
                       <Field className="sm:col-span-2">
                         <Label htmlFor={`exp-org-${draft.id}`} className="mb-0 text-base">
-                          Organisation *
+                          Entreprise ou client *
                         </Label>
                         <Input
                           id={`exp-org-${draft.id}`}
                           value={draft.organization}
                           onChange={(e) => updateDraft("organization", e.target.value)}
-                          placeholder="Exemple : Welcome to the Jungle"
-                          className="h-12 text-base"
+                          placeholder="Ex. : Welcome to the Jungle"
+                           className="h-[50px] rounded-[8px] border-[1.25px] border-[#525252] bg-[#262626] text-base dark:bg-[#262626]"
                         />
                       </Field>
                       <Field>
-                        <Label className="mb-0 text-base">Lieu</Label>
+                        <Label htmlFor={`exp-location-${draft.id}`} className="mb-0 text-base">
+                          Localisation
+                        </Label>
                         <Input
+                          id={`exp-location-${draft.id}`}
                           value={draft.location}
                           onChange={(e) => updateDraft("location", e.target.value)}
-                          placeholder="Ville ou région"
-                          className="h-12 text-base"
+                          placeholder="Ex. : Paris, Île-de-France, France"
+                          aria-describedby={`exp-location-hint-${draft.id}`}
+                           className="h-[50px] rounded-[8px] border-[1.25px] border-[#525252] bg-[#262626] text-base dark:bg-[#262626]"
                         />
-                      </Field>
-                      <Field>
-                        <Label className="mb-0 text-base">Type de lieu</Label>
-                        <Select
-                          value={draft.locationType || "__none__"}
-                          onValueChange={(value) =>
-                            updateDraft(
-                              "locationType",
-                              (!value || value === "__none__"
-                                ? ""
-                                : value) as CvLocationType
-                            )
-                          }
+                        <p
+                          id={`exp-location-hint-${draft.id}`}
+                          className="text-sm text-muted-foreground"
                         >
-                          <SelectTrigger className="h-12 w-full text-base">
-                            <SelectValue placeholder="Veuillez sélectionner" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {LOCATION_TYPE_OPTIONS.map((option) => (
-                              <SelectItem
-                                key={option.value || "none"}
-                                value={option.value || "__none__"}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          Ville, région, pays
+                        </p>
                       </Field>
                       <Field>
-                        <Label className="mb-0 text-base">Type d’emploi</Label>
+                        <Label id={`exp-contract-label-${draft.id}`} className="mb-0 text-base">
+                          Type de contrat
+                        </Label>
                         <Select
                           value={draft.employmentType || "__none__"}
+                          items={EMPLOYMENT_TYPE_OPTIONS.map((option) => ({
+                            value: option.value || "__none__",
+                            label: option.value ? option.label : "Sélectionnez",
+                          }))}
                           onValueChange={(value) =>
                             updateDraft(
                               "employmentType",
@@ -252,8 +311,11 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                             )
                           }
                         >
-                          <SelectTrigger className="h-12 w-full text-base">
-                            <SelectValue placeholder="Veuillez sélectionner" />
+                          <SelectTrigger
+                             className="h-[50px] w-full rounded-[8px] border-[1.25px] border-[#525252] bg-[#262626] text-base dark:bg-[#262626]"
+                            aria-labelledby={`exp-contract-label-${draft.id}`}
+                          >
+                            <SelectValue placeholder="Sélectionnez" />
                           </SelectTrigger>
                           <SelectContent>
                             {EMPLOYMENT_TYPE_OPTIONS.map((option) => (
@@ -261,132 +323,65 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                                 key={option.value || "none"}
                                 value={option.value || "__none__"}
                               >
-                                {option.label}
+                                {option.value ? option.label : "Sélectionnez"}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </Field>
-                      <div className="flex items-center gap-3 sm:items-end sm:pb-2">
-                        <Checkbox
-                          id={`exp-current-${draft.id}`}
-                          checked={draft.isCurrent}
-                          onCheckedChange={(checked) => {
-                            const isCurrent = checked === true
-                            setDraft((prev) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    isCurrent,
-                                    endMonth: isCurrent ? "" : prev.endMonth,
-                                    endYear: isCurrent ? "" : prev.endYear,
-                                  }
-                                : prev
-                            )
-                          }}
-                        />
-                        <Label
-                          htmlFor={`exp-current-${draft.id}`}
-                          className="mb-0 cursor-pointer text-base"
-                        >
-                          Ceci est mon poste actuel
+                      <Field>
+                        <Label htmlFor={`exp-start-${draft.id}`} className="mb-0 text-base">
+                          Du *
                         </Label>
-                      </div>
-                      <Field>
-                        <Label className="mb-0 text-base">Mois de début</Label>
-                        <Select
-                          value={draft.startMonth}
-                          onValueChange={(value) =>
-                            updateDraft("startMonth", value ?? "")
-                          }
-                        >
-                          <SelectTrigger className="h-12 w-full text-base">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {MONTH_OPTIONS.map((month) => (
-                              <SelectItem key={month.value} value={month.value}>
-                                {month.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <MonthYearDatePicker
+                          id={`exp-start-${draft.id}`}
+                          value={draft.startYear && draft.startMonth ? `${draft.startYear}-${draft.startMonth}` : ""}
+                          onChange={handleStartChange}
+                          onBlur={() => setStartTouched(true)}
+                          label="la date de début"
+                          invalid={Boolean(startError)}
+                          describedBy={startError ? `exp-start-error-${draft.id}` : undefined}
+                        />
+                        {startError ? (
+                          <p
+                            id={`exp-start-error-${draft.id}`}
+                            role="alert"
+                            className="text-sm text-destructive"
+                          >
+                            {startError}
+                          </p>
+                        ) : null}
                       </Field>
                       <Field>
-                        <Label className="mb-0 text-base">Année de début *</Label>
-                        <Select
-                          value={draft.startYear}
-                          onValueChange={(value) =>
-                            updateDraft("startYear", value ?? "")
-                          }
-                        >
-                          <SelectTrigger className="h-12 w-full text-base">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {yearOptions.map((year) => (
-                              <SelectItem key={year} value={year}>
-                                {year}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor={`exp-end-${draft.id}`} className="mb-0 text-base">
+                          Au
+                        </Label>
+                        <MonthYearDatePicker
+                          id={`exp-end-${draft.id}`}
+                          value={draft.endYear && draft.endMonth ? `${draft.endYear}-${draft.endMonth}` : ""}
+                          onChange={handleEndChange}
+                          onBlur={() => setEndTouched(true)}
+                          label="la date de fin"
+                          min={draft.startYear && draft.startMonth ? `${draft.startYear}-${draft.startMonth}` : undefined}
+                          invalid={Boolean(endError)}
+                          describedBy={endError ? `exp-end-error-${draft.id}` : undefined}
+                        />
+                        {endError ? (
+                          <p
+                            id={`exp-end-error-${draft.id}`}
+                            role="alert"
+                            className="text-sm text-destructive"
+                          >
+                            {endError}
+                          </p>
+                        ) : null}
                       </Field>
-                      {!draft.isCurrent ? (
-                        <>
-                          <Field>
-                            <Label className="mb-0 text-base">Mois de fin</Label>
-                            <Select
-                              value={draft.endMonth || "__none__"}
-                              onValueChange={(value) =>
-                                updateDraft(
-                                  "endMonth",
-                                  !value || value === "__none__" ? "" : value
-                                )
-                              }
-                            >
-                              <SelectTrigger className="h-12 w-full text-base">
-                                <SelectValue placeholder="Mois" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">—</SelectItem>
-                                {MONTH_OPTIONS.map((month) => (
-                                  <SelectItem key={month.value} value={month.value}>
-                                    {month.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </Field>
-                          <Field>
-                            <Label className="mb-0 text-base">Année de fin</Label>
-                            <Select
-                              value={draft.endYear || "__none__"}
-                              onValueChange={(value) =>
-                                updateDraft(
-                                  "endYear",
-                                  !value || value === "__none__" ? "" : value
-                                )
-                              }
-                            >
-                              <SelectTrigger className="h-12 w-full text-base">
-                                <SelectValue placeholder="Année" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">—</SelectItem>
-                                {yearOptions.map((year) => (
-                                  <SelectItem key={year} value={year}>
-                                    {year}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </Field>
-                        </>
-                      ) : null}
                       <Field className="sm:col-span-2">
-                        <Label className="mb-0 text-base">Points clés</Label>
+                        <Label htmlFor={`exp-highlights-${draft.id}`} className="mb-0 text-base">
+                          Description, missions
+                        </Label>
                         <Textarea
+                          id={`exp-highlights-${draft.id}`}
                           value={draft.highlights}
                           onChange={(e) =>
                             updateDraft(
@@ -394,9 +389,11 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                               clampHighlights(e.target.value)
                             )
                           }
-                          rows={4}
-                          placeholder="Réalisations, impact, contexte…"
-                          className="text-base leading-7"
+                          rows={5}
+                          placeholder={
+                            "Mes réalisations\n• Mise en place du Design System qui a réduit de 30% le temps de delivery de l’équipe Design.\n• Conception de deux applications du portfolio qui a permis l’acquisition de 120 nouveaux clients"
+                          }
+                           className="min-h-[95px] rounded-[8px] border-[1.25px] border-[#525252] bg-[#262626] text-base leading-6 dark:bg-[#262626]"
                         />
                         <p className="text-base text-muted-foreground">
                           {draft.highlights.length}/{MAX_HIGHLIGHTS}
@@ -409,7 +406,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                             value={skillInput}
                             onChange={(e) => setSkillInput(e.target.value)}
                             placeholder="Ajouter une compétence"
-                            className="h-12 text-base"
+                             className="h-[50px] rounded-[8px] border-[1.25px] border-[#525252] bg-[#262626] text-base dark:bg-[#262626]"
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
                                 e.preventDefault()
@@ -450,40 +447,40 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                         ) : null}
                       </Field>
                     </div>
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        type="button"
-                        size="lg"
-                        onClick={handleSave}
-                        disabled={!canSave}
-                      >
-                        Enregistrer l’expérience
-                      </Button>
+                    <div className="flex flex-wrap justify-end gap-3">
                       <Button
                         type="button"
                         size="lg"
                         variant="outline"
                         onClick={handleCancel}
+                        className="h-[50px] rounded-[8px] border-[1.25px] border-[#a3a3a3] bg-[#161616] px-4 text-sm font-medium text-white hover:bg-[#262626]"
                       >
                         Annuler
                       </Button>
+                      <Button
+                        type="button"
+                        size="lg"
+                        onClick={handleSave}
+                        disabled={!canSave}
+                        className="h-[50px] rounded-[8px] bg-white px-4 text-sm font-medium text-[#0a0a0a] hover:bg-[#d4d4d4]"
+                      >
+                        {isNewDraft ? "Ajouter" : "Modifier"}
+                      </Button>
 </div>
+                    </div>
                 </li>
               )
             }
 
             return (
                 <li key={experience.id}>
-                  <div className="w-full rounded-[18px] border border-[#2F2F2F] bg-[#212121] p-6">
+                  <div className="w-full rounded-[8px] border border-[#404040] bg-[#171717] p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1 space-y-1">
-                      <p className="text-lg font-semibold text-[#FAFAFA]">
+                      <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-white">
                         {experience.title || "Nouvelle expérience"}
                       </p>
-                      <p className="text-base font-medium text-[#FAFAFA]">
-                        {experience.organization || "Organisation à compléter"}
-                      </p>
-                      <p className="text-base text-[#A1A1A1]">
+                      <p className="text-base leading-6 text-[#a3a3a3]">
                         {[
                           experience.startMonth
                             ? MONTH_OPTIONS.find(
@@ -504,11 +501,24 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                                 .join(" "),
                           experience.location,
                         ]
-                          .filter(Boolean)
-                          .join(" · ")}
+                        .filter(Boolean)
+                        .join(" · ")}
                       </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {experience.organization ? (
+                          <Badge variant="secondary" className="gap-1.5 rounded-[8px] bg-[#262626] text-base font-medium text-white">
+                            <Building2 className="h-4 w-4" aria-hidden />
+                            {experience.organization}
+                          </Badge>
+                        ) : null}
+                        {experience.employmentType ? (
+                          <Badge variant="secondary" className="rounded-[8px] bg-[#262626] text-base font-medium text-white">
+                            {experience.employmentType}
+                          </Badge>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
+                      <div className="flex shrink-0 flex-wrap gap-2">
                       <Button
                         type="button"
                         variant="outline"
@@ -516,9 +526,10 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                         onClick={() => {
                           setDraft(experience)
                           setEditingId(experience.id)
+                          setIsNewDraft(false)
                           setSkillInput("")
                         }}
-                        className="h-12 gap-2 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] px-4 text-base font-medium text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+                        className="h-[46px] gap-2 border-[1.25px] border-[#525252] bg-[#262626] px-4 text-sm font-medium text-[#a3a3a3] hover:bg-[#404040]"
                       >
                         Modifier
                       </Button>
@@ -536,7 +547,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                         }}
                         disabled={index === 0}
                         aria-label="Monter"
-                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)] disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="h-[46px] w-[46px] border-[1.25px] border-[#525252] bg-[#262626] text-[#d4d4d4] hover:bg-[#404040] disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <ChevronUp className="h-4 w-4" />
                       </Button>
@@ -554,7 +565,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                         }}
                         disabled={index === experiences.length - 1}
                         aria-label="Descendre"
-                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)] disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="h-[46px] w-[46px] border-[1.25px] border-[#525252] bg-[#262626] text-[#d4d4d4] hover:bg-[#404040] disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <ChevronDown className="h-4 w-4" />
                       </Button>
@@ -564,7 +575,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                         size="icon"
                         onClick={() => handleRemoveExperience(experience.id)}
                         aria-label={`Supprimer ${experience.title}`}
-                        className="h-12 w-12 border-[rgba(255,255,255,0.149)] bg-[rgba(255,255,255,0.045)] text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.08)]"
+                        className="h-[46px] w-[46px] border-[1.25px] border-[#525252] bg-[#262626] text-[#d4d4d4] hover:bg-[#404040]"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -572,7 +583,7 @@ export function CvExperiencesCard({ experiences, onChange }: CvExperiencesCardPr
                   </div>
 
                   {experience.highlights.trim() ? (
-                    <p className="mt-4 whitespace-pre-wrap text-base leading-7 text-[#A1A1A1]">
+                    <p className="mt-4 whitespace-pre-wrap text-base leading-6 text-[#d4d4d4]">
                       {experience.highlights.trim()}
                     </p>
                   ) : null}

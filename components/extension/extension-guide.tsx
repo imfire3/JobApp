@@ -58,7 +58,7 @@ export function ExtensionGuide() {
             </a>
             <p className="text-base text-muted-foreground">
               {CHROME_EXTENSION_DOWNLOAD_NAME}{" "}
-              <span className="text-muted-foreground/70">
+              <span className="text-muted-foreground">
                 ({CHROME_EXTENSION_DOWNLOAD_APPROX_SIZE})
               </span>
             </p>
@@ -109,6 +109,7 @@ export function ExtensionGuide() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input
               readOnly
+              aria-label="URL de l’extension Chrome"
               value={CHROME_EXTENSIONS_URL}
               className="font-mono sm:flex-1"
             />

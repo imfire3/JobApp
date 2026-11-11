@@ -1,0 +1,13 @@
+{
+  "id": "P002",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "need",
+  "reason": "J'ai six candidatures en cours et deux relances oubliées, donc le suivi plus les relances au même endroit vaut déjà le coup pour moi. Le truc qui me décide vraiment, c'est le remboursement si la lettre invente une expérience : ça répond pile à ma trouille que le recruteur repère une lettre fabriquée.",
+  "objection": "C'est le dépôt de mon vrai CV qui me bloque, pas le prix : je ne connais pas ce site, et même avec le remboursement je dois leur donner mon parcours complet avant de savoir si l'analyse vaut quelque chose.",
+  "would_change_my_mind": "Si le test gratuit ne se fait pas sans compte ou sans CV complet, ou si l'analyse ATS gratuite me sort un score sans m'expliquer pourquoi, je reste sur mon vieux CV anonymisé et je ne paie pas.",
+  "price_too_cheap": 9,
+  "price_cheap": 25,
+  "price_expensive": 60,
+  "price_too_expensive": 100
+}

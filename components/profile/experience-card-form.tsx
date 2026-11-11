@@ -203,7 +203,7 @@ export function ExperienceCardForm({
                 onChange={(e) => updateField("locationType", e.target.value as ProfileExperienceEntry["locationType"])}
                 className="h-11 w-full rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#FAFAFA] focus-visible:border-[#00D492] focus-visible:outline-none"
               >
-                <option value="">Sélectionner...</option>
+                <option value="">Sélectionne un lieu</option>
                 {LOCATION_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
@@ -221,7 +221,7 @@ export function ExperienceCardForm({
               onChange={(e) => updateField("employmentType", e.target.value as ProfileExperienceEntry["employmentType"])}
               className="h-11 w-full rounded-[10px] border border-[#383838] bg-[#212121] px-3 text-sm text-[#FAFAFA] focus-visible:border-[#00D492] focus-visible:outline-none"
             >
-              <option value="">Sélectionner...</option>
+              <option value="">Sélectionne un type d’emploi</option>
               {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}

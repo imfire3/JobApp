@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { CandidateProfileForm } from "@/components/profile/candidate-profile-form"
 import { AuthCardShell } from "@/components/auth/auth-card-shell"
 import { Skeleton } from "@/components/ui/skeleton"
+import { PageHelpButton } from "@/components/onboarding/page-help-button"
+import { CircleHelp } from "lucide-react"
 
 export function OnboardingProfilePageClient() {
   const router = useRouter()
@@ -58,7 +60,7 @@ export function OnboardingProfilePageClient() {
 
   if (!ready) {
     return (
-      <AuthCardShell className="!max-w-5xl">
+      <AuthCardShell className="!max-w-[980px]">
         <div className="w-full space-y-4">
           <Skeleton className="h-10 w-72" />
           <Skeleton className="h-[480px] w-full rounded-2xl" />
@@ -68,22 +70,36 @@ export function OnboardingProfilePageClient() {
   }
 
   return (
-    <AuthCardShell className="!max-w-5xl">
+    <AuthCardShell className="!max-w-[980px]">
       <div className="flex h-full flex-col overflow-hidden">
-        <div className="shrink-0 space-y-2 pb-4">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Complète ton profil
-          </h1>
-          <p className="text-base leading-6 text-muted-foreground">
-            Nous avons rempli ce que ton CV permet d&apos;extraire. Vérifie,
-            complète, puis continue — les champs vides sont OK.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            CV analysé — vérifie et complète les champs avant d&apos;enregistrer.
-          </p>
+        <div className="flex shrink-0 items-start justify-between gap-6 border-b border-app-border-strong pb-4">
+          <div className="min-w-0 space-y-2">
+            <h1 className="text-[32px] font-bold leading-10 tracking-tight text-app-text">
+              Complète ton profil
+            </h1>
+            <p className="text-base leading-6 tracking-[-0.02em] text-app-text-secondary">
+              Nous avons rempli ce que ton CV permet d&apos;extraire. Vérifie,
+              complète, puis continue — les champs vides sont OK.
+            </p>
+            <p className="text-base leading-6 tracking-[-0.02em] text-app-text-secondary">
+              CV analysé — vérifie et complète les champs avant d&apos;enregistrer.
+            </p>
+          </div>
+          <PageHelpButton
+            pageId="cv"
+            label="Aide pour compléter ton profil"
+            trigger={(openHelp) => (
+              <button
+                type="button"
+                onClick={openHelp}
+                aria-label="Aide pour compléter ton profil"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-app-control text-app-text-secondary transition-colors hover:bg-app-surface hover:text-app-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-text-secondary"
+              >
+                <CircleHelp className="h-6 w-6" aria-hidden />
+              </button>
+            )}
+          />
         </div>
-
-        <div className="shrink-0 border-b border-border" />
 
         <div className="min-h-0 flex-1 overflow-hidden">
           <CandidateProfileForm

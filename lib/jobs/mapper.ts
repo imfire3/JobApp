@@ -6,19 +6,22 @@ import {
   parseRemoteMode,
   parseSalaryRange,
   normalizeSourceKey,
+  WEBSITE_PASTE_SOURCE,
   type RemoteMode,
 } from "@/lib/jobs/normalize";
 import { deriveMatchScore } from "@/lib/jobs/derive-match-score";
 import { computeScoreFromCriteria } from "@/lib/jobs/criteria-score";
 import { parseAtsBreakdown } from "@/lib/jobs/ats-offer-score";
+import { deriveCriteriaPresentation } from "@/lib/jobs/criteria-presentation";
 import type {
   ImportedJob,
   Job,
   JobCriterionAssessment,
+  JobCriterionConfirmation,
   JobRecord,
   JobStatus,
 } from "@/types";
-import type { ParsedImportRow } from "@/lib/imports/jobs-file";
+import type { ImportRow } from "@/lib/imports/jobs-file";
 
 type JobRow = JobRecord & {
   tracked_searches?: { name?: string } | null;
@@ -43,12 +46,12 @@ function resolveGaps(row: JobRow): string[] | null {
 export function buildJobInsertPayload(input: {
   userId: string;
   trackedSearchId?: string | null;
-  job: ImportedJob;
+  job: ImportedJob | ImportRow;
   rawData?: Record<string, unknown> | null;
   scrapedAt?: string;
 }): Omit<JobRecord, "id" | "created_at" | "updated_at"> {
   const { job, userId, trackedSearchId, rawData, scrapedAt } = input;
-  const extended = job as ParsedImportRow;
+  const extended = job as ImportRow;
   const source = normalizeSourceKey(job.source);
   const { city, country } = parseLocation(job.location ?? null);
   const remote_mode =
@@ -142,8 +145,8 @@ export function toJobViewModel(row: JobRow): Job {
         ? `from ${Math.round(row.salary_min / 1000)}k ${row.salary_currency ?? "EUR"}`
         : null;
 
-  const matchReasons = resolveStrengths(row);
-  const matchGaps = resolveGaps(row);
+  let matchReasons = resolveStrengths(row);
+  let matchGaps = resolveGaps(row);
   const jobFit =
     row.raw_data &&
     typeof row.raw_data === "object" &&
@@ -164,6 +167,40 @@ export function toJobViewModel(row: JobRow): Job {
   const criteriaAssessment = Array.isArray(jobFit?.criteria_assessment)
     ? (jobFit.criteria_assessment as JobCriterionAssessment[])
     : null;
+  const criterionConfirmations = Array.isArray(jobFit?.confirmations)
+    ? (jobFit.confirmations as JobCriterionConfirmation[]).filter(
+        (item) =>
+          item &&
+          typeof item.criterion_id === "string" &&
+          (item.answer === "yes" ||
+            item.answer === "no" ||
+            item.answer === "unknown")
+      )
+    : null;
+  const presentation = criteriaAssessment?.length ? deriveCriteriaPresentation(criteriaAssessment) : null;
+  if (presentation) {
+    matchReasons = presentation.strengths;
+    matchGaps = presentation.gaps;
+  }
+  const analysisLimitations = asStringArray(jobFit?.limitations);
+  const applicationPriorityReasons = asStringArray(
+    jobFit?.application_priority_reasons
+  );
+  const cvOptimizeApplied = asStringArray(jobFit?.cv_optimize_applied);
+  const cvOptimizeDismissed = Array.isArray(jobFit?.cv_optimize_dismissed)
+    ? (jobFit.cv_optimize_dismissed as Array<Record<string, unknown>>)
+        .map((item) => item?.proposal_id)
+        .filter((item): item is string => typeof item === "string")
+    : null;
+  const optimizeAnswers =
+    jobFit?.optimize &&
+    typeof jobFit.optimize === "object" &&
+    !Array.isArray(jobFit.optimize) &&
+    (jobFit.optimize as Record<string, unknown>).answers &&
+    typeof (jobFit.optimize as Record<string, unknown>).answers === "object" &&
+    !Array.isArray((jobFit.optimize as Record<string, unknown>).answers)
+      ? ((jobFit.optimize as Record<string, unknown>).answers as Job["optimize_answers"])
+      : null;
   const atsBreakdown = parseAtsBreakdown(jobFit?.ats_breakdown);
   const atsScore =
     typeof jobFit?.ats_score === "number" && Number.isFinite(jobFit.ats_score)
@@ -191,7 +228,7 @@ export function toJobViewModel(row: JobRow): Job {
   const scoreExplanationStored =
     typeof jobFit?.score_explanation === "string" ? jobFit.score_explanation : null;
   const scoreExplanation =
-    scoreExplanationStored?.trim() ||
+    presentation?.explanation || scoreExplanationStored?.trim() ||
     (criteriaScore?.match_score != null
       ? "Score calculé à partir des critères pondérés de l’offre et du niveau de preuve dans le CV (0–3)."
       : derivedMeta.source === "keywords"
@@ -252,7 +289,9 @@ export function toJobViewModel(row: JobRow): Job {
     summary: row.summary,
     published_at: row.published_at,
     scraped_at: row.scraped_at,
-    posted_at: row.published_at ?? row.scraped_at ?? row.created_at,
+    posted_at: row.source === WEBSITE_PASTE_SOURCE || typeof row.raw_data?.pasted_text === "string"
+      ? row.published_at
+      : row.published_at ?? row.scraped_at ?? row.created_at,
     imported_at: row.scraped_at,
     description: row.description,
     profile: row.profile,
@@ -294,6 +333,36 @@ export function toJobViewModel(row: JobRow): Job {
       ? (jobFit.cv_improvement_items as Job["cv_improvement_items"])
       : null,
     criteria_assessment: criteriaAssessment,
+    criterion_confirmations: criterionConfirmations,
+    analysis_limitations: analysisLimitations,
+    analysis_status:
+      jobFit?.status === "ok" ||
+      jobFit?.status === "partial" ||
+      jobFit?.status === "insufficient_input"
+        ? jobFit.status
+        : null,
+    score_confidence:
+      jobFit?.score_confidence === "low" ||
+      jobFit?.score_confidence === "medium" ||
+      jobFit?.score_confidence === "high"
+        ? jobFit.score_confidence
+        : null,
+    criteria_coverage:
+      typeof jobFit?.criteria_coverage === "number" &&
+      Number.isFinite(jobFit.criteria_coverage)
+        ? jobFit.criteria_coverage
+        : null,
+    application_priority:
+      jobFit?.application_priority === "high" ||
+      jobFit?.application_priority === "medium" ||
+      jobFit?.application_priority === "low" ||
+      jobFit?.application_priority === "undetermined"
+        ? jobFit.application_priority
+        : null,
+    application_priority_reasons: applicationPriorityReasons,
+    cv_optimize_applied: cvOptimizeApplied,
+    cv_optimize_dismissed: cvOptimizeDismissed,
+    optimize_answers: optimizeAnswers,
     score_breakdown: scoreBreakdown,
     ats_score: atsScore,
     ats_breakdown: atsBreakdown,

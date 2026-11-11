@@ -1,0 +1,13 @@
+{
+  "id": "P007",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "39 € pour trois mois sans renouvellement automatique, c'est envisageable, mais je ne confie pas mon vrai CV à un site inconnu. Au mieux, je testerais l'analyse gratuite avec un vieux CV anonymisé avant de payer encore un outil de candidature.",
+  "objection": "Je ne sais pas ce que deviennent mon CV et mes données une fois importés ; le remboursement d'une lettre ne règle pas ce problème.",
+  "would_change_my_mind": "Pouvoir vérifier avant tout import une politique de confidentialité claire garantissant que mon CV n'est ni réutilisé pour entraîner une IA ni conservé après sa suppression.",
+  "price_too_cheap": 5,
+  "price_cheap": 19,
+  "price_expensive": 45,
+  "price_too_expensive": 75
+}

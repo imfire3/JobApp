@@ -1,0 +1,13 @@
+{
+  "id": "P016",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "ChatGPT me fait déjà les lettres gratuitement, donc je commencerais par l'analyse gratuite sans sortir ma carte. Les 39 € ne sont pas le principal frein : je veux vérifier que le score expliqué aide vraiment ma transition vers le produit, plutôt que de me vendre des mots-clés.",
+  "objection": "Qui me dit que ce score ATS est pertinent pour les postes produit que je vise, et que le remboursement promis sera simple à obtenir ?",
+  "would_change_my_mind": "Que l'essai gratuit sur mon CV et une vraie offre produit fasse ressortir des améliorations précises et justifiées que je n'avais pas obtenues avec ChatGPT.",
+  "price_too_cheap": 5,
+  "price_cheap": 19,
+  "price_expensive": 39,
+  "price_too_expensive": 69
+}

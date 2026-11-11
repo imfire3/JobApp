@@ -1,0 +1,13 @@
+{
+  "id": "P004",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "habit",
+  "reason": "J'ai déjà un tracker gratuit qui fait le suivi, et je n'ai jamais payé pour de l'analyse ATS parce que je n'y crois pas plus que ça. Là le gratuit me donne déjà une analyse complète et une lettre, donc je teste ça et je m'arrête là.",
+  "objection": "Une lettre générée par IA, un recruteur le repère tout de suite. Le remboursement couvre seulement les expériences inventées, pas le fait que ça sonne faux.",
+  "would_change_my_mind": "Voir la lettre écrite sur mon propre CV, avec mes mots et mes chiffres, et qu'elle ne sente pas le ChatGPT — ou voir l'analyse ligne par ligne me sortir quelque chose que mon outil gratuit ne m'avait pas dit.",
+  "price_too_cheap": 5,
+  "price_cheap": 15,
+  "price_expensive": 29,
+  "price_too_expensive": 45
+}

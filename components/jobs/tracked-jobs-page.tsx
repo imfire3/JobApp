@@ -4,17 +4,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { JobFiltersBar, JobDateFilter, JobFilterMenu } from "@/components/dashboard/job-filters";
+import { JobFiltersBar } from "@/components/dashboard/job-filters";
 import { JobCard } from "@/components/dashboard/job-card";
-import { JobTable } from "@/components/dashboard/job-table";
 import { JobKanban } from "@/components/dashboard/job-kanban";
 import { JobBulkActions } from "@/components/dashboard/job-bulk-actions";
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
-import { StickyPageHeader } from "@/components/layout/sticky-page-header";
+import { PasteJobDialog } from "@/components/jobs/paste-job-dialog";
 import { filterJobs } from "@/lib/jobs/utils";
 import type { Job, JobFilters, JobStatus } from "@/types";
-import { ClipboardPaste, Columns3, List, RefreshCw, LayoutGrid, Upload } from "lucide-react";
+import {
+  CircleHelp,
+  ClipboardPaste,
+  Columns3,
+  RefreshCw,
+  LayoutGrid,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { JobScoringProgress } from "@/components/jobs/job-scoring-progress";
@@ -49,17 +55,20 @@ export function TrackedJobsPage({
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filters, setFilters] = useState<JobFilters>(defaultFilters);
-  const [view, setView] = useState<"cards" | "table" | "kanban">("table");
+  const [view, setView] = useState<"cards" | "kanban">("cards");
   const [seedingFakeJobs, setSeedingFakeJobs] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
   const [analysisByJobId, setAnalysisByJobId] = useState<
     Record<string, JobScoringProgress>
   >({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [coverLetterJob, setCoverLetterJob] = useState<Job | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkAnalyzeLoading, setBulkAnalyzeLoading] = useState(false);
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -85,6 +94,7 @@ export function TrackedJobsPage({
     if (!options?.silent) {
       setLoading(true);
     }
+    setLoadError(null);
     try {
       const jobsRes = await fetch("/api/jobs");
       const jobsData = await readJsonSafe(jobsRes);
@@ -95,7 +105,10 @@ export function TrackedJobsPage({
       }
       setJobs((jobsData.jobs as Job[]) ?? []);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load jobs");
+      const message =
+        error instanceof Error ? error.message : "Chargement des offres impossible";
+      setLoadError(message);
+      toast.error(message);
       setJobs([]);
     } finally {
       setLoading(false);
@@ -165,6 +178,10 @@ export function TrackedJobsPage({
 
   const filteredJobs = useMemo(() => filterJobs(jobs, filters), [jobs, filters]);
   const sources = useMemo(() => [...new Set(jobs.map((job) => job.source))].sort(), [jobs]);
+  const contracts = useMemo(
+    () => [...new Set(jobs.map((job) => job.contract_type?.trim()).filter((value): value is string => Boolean(value)))].sort(),
+    [jobs]
+  );
 
   async function seedFakeJobs() {
     if (!allowLocalDevTools) return
@@ -186,8 +203,8 @@ export function TrackedJobsPage({
         )
       }
       await ingestImportedJobs(data, {
-        successSingular: "1 offre fake ajoutée — analyse du match…",
-        successPlural: (n) => `${n} offres fake ajoutées — analyse du match…`,
+        successSingular: "1 offre fake ajoutée — comparaison avec ton CV…",
+        successPlural: (n) => `${n} offres fake ajoutées — comparaison avec ton CV…`,
       })
     } catch (error) {
       toast.error(
@@ -268,8 +285,8 @@ export function TrackedJobsPage({
         )
       }
       await ingestImportedJobs(data, {
-        successSingular: "1 offre importée — analyse du match…",
-        successPlural: (n) => `${n} offres importées — analyse du match…`,
+        successSingular: "1 offre importée — comparaison avec ton CV…",
+        successPlural: (n) => `${n} offres importées — comparaison avec ton CV…`,
       })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Import échoué")
@@ -280,8 +297,18 @@ export function TrackedJobsPage({
 
   async function updateJob(
     id: string,
-    updates: Partial<Pick<Job, "status" | "selected" | "cover_letter">>
+    updates: Partial<Pick<Job, "status" | "selected" | "cover_letter">> & {
+      /** When true, only toggles the checkbox and leaves the job status untouched. */
+      selection_only?: boolean;
+    }
   ) {
+    const optimisticUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([key]) => key !== "selection_only")
+    ) as Partial<Job>;
+    setJobs((prev) =>
+      prev.map((job) => (job.id === id ? { ...job, ...optimisticUpdates } : job))
+    );
+
     const res = await fetch("/api/jobs", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -290,6 +317,7 @@ export function TrackedJobsPage({
     const data = await readJsonSafe(res);
     if (!res.ok) {
       toast.error(typeof data.error === "string" ? data.error : "Failed to update job");
+      await loadAll({ silent: true });
       return;
     }
     setJobs((prev) =>
@@ -344,37 +372,6 @@ export function TrackedJobsPage({
     }
   }
 
-  async function handleSelectAllVisible(selected: boolean) {
-    const ids = filteredJobs.map((job) => job.id);
-    if (ids.length === 0) return;
-
-    setBulkStatusLoading(true);
-    try {
-      const res = await fetch("/api/jobs", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids, selected, selection_only: true }),
-      });
-      const data = await readJsonSafe(res);
-      if (!res.ok) {
-        throw new Error(
-          typeof data.error === "string" ? data.error : "Sélection groupée échouée"
-        );
-      }
-      const updatedJobs = Array.isArray(data.jobs) ? (data.jobs as Job[]) : [];
-      if (updatedJobs.length) {
-        const byId = new Map(updatedJobs.map((job) => [job.id, job]));
-        setJobs((prev) => prev.map((job) => byId.get(job.id) ?? job));
-      } else {
-        await loadAll();
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Sélection groupée échouée");
-    } finally {
-      setBulkStatusLoading(false);
-    }
-  }
-
   async function handleBulkDelete() {
     const selected = jobs.filter((job) => job.selected);
     if (selected.length === 0) {
@@ -415,6 +412,17 @@ export function TrackedJobsPage({
       toast.error(error instanceof Error ? error.message : "Suppression groupée échouée");
     } finally {
       setBulkDeleteLoading(false);
+    }
+  }
+
+  async function handleBulkAnalyze() {
+    const selected = jobs.filter((job) => job.selected);
+    if (!selected.length) return;
+    setBulkAnalyzeLoading(true);
+    try {
+      await analyzeImportedJobs(selected.map((job) => job.id));
+    } finally {
+      setBulkAnalyzeLoading(false);
     }
   }
 
@@ -661,40 +669,39 @@ export function TrackedJobsPage({
     }
   }
 
+  const selectedCount = jobs.filter((job) => job.selected).length;
+
+  const primaryActionClassName =
+    "gap-2 text-sm font-medium";
+  const secondaryActionClassName =
+    "gap-2 text-sm font-medium";
+
   const emptyJobsCta = (
-    <div className="space-y-6 rounded-lg border border-dashed p-8 text-center">
-      <p className="text-base text-muted-foreground">
-        Aucune offre pour l’instant. Choisis comment en ajouter :
-      </p>
-      <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <Button
-          type="button"
-          size="lg"
-          className="h-12 min-w-[14rem] px-8 text-base"
-          onClick={openCsvPicker}
-          disabled={importingCsv}
-          aria-label="Importer mes offres"
-        >
-          <Upload className="mr-2 h-5 w-5" aria-hidden />
-          {importingCsv ? "Import…" : "Importer mes offres"}
+    <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 rounded-app-control border border-app-border-strong bg-app-surface px-4 py-8 text-center">
+      <div className="space-y-2">
+        <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-strong">
+          Aucune offre pour l’instant.
+        </p>
+        <p className="text-base leading-6 text-app-text-subtle">
+          Importe un fichier ou colle une offre pour lancer ta première
+          Correspondance.
+        </p>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button type="button" size="control" className={primaryActionClassName} onClick={() => setPasteOpen(true)}>
+          <ClipboardPaste className="size-4" aria-hidden />
+          Coller une offre
         </Button>
-        <Button
-          type="button"
-          size="lg"
-          variant="secondary"
-          className="h-12 min-w-[14rem] px-8 text-base"
-          onClick={() => router.push("/imports?paste=1")}
-          aria-label="Copier-coller l’offre"
-        >
-          <ClipboardPaste className="mr-2 h-5 w-5" aria-hidden />
-          Copier-coller l’offre
+        <Button type="button" variant="outline" size="control" className={secondaryActionClassName} onClick={openCsvPicker} disabled={importingCsv}>
+          <Upload className="size-4" aria-hidden />
+          Importer mes offres
         </Button>
       </div>
     </div>
   );
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", selectedCount > 0 && "pb-36")}>
       <input
         ref={csvInputRef}
         type="file"
@@ -704,58 +711,78 @@ export function TrackedJobsPage({
         aria-hidden
         onChange={(event) => void handleCsvFileChange(event)}
       />
-      <StickyPageHeader>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Offres</h1>
-            <p className="text-base text-muted-foreground">
-              Importe ou colle des offres, puis analyse le match avec ton CV.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {allowLocalDevTools ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => void seedFakeJobs()}
-                disabled={seedingFakeJobs}
-                aria-label="Ajouter des offres d’emploi de test"
-              >
-                {seedingFakeJobs ? "Fake fill…" : "Fake fill data"}
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              size="sm"
-              onClick={openCsvPicker}
-              disabled={importingCsv}
-              aria-label="Importer mes offres"
-            >
-              <Upload className="mr-2 h-4 w-4" aria-hidden />
-              {importingCsv ? "Import…" : "Importer mes offres"}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-          onClick={() => router.push("/jobs")}
-              aria-label="Copier-coller l’offre"
-            >
-              <ClipboardPaste className="mr-2 h-4 w-4" aria-hidden />
-              Copier-coller l’offre
-            </Button>
-            <PageHelpButton pageId="jobs" />
-          </div>
+
+      <header className="flex flex-wrap items-center gap-8 border-b border-app-border-strong pb-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <h1 className="text-[32px] font-bold leading-10 text-app-text">
+            Mes offres
+          </h1>
+          <p className="text-lg leading-7 tracking-[-0.017em] text-app-text-label">
+            Ajoute des offres, compare-les à ton CV et prépare tes prochaines
+            candidatures.
+          </p>
         </div>
-      </StickyPageHeader>
+        <div className="flex flex-wrap items-center gap-4">
+          {allowLocalDevTools ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="control"
+              className={secondaryActionClassName}
+              onClick={() => void seedFakeJobs()}
+              disabled={seedingFakeJobs}
+              aria-label="Ajouter des offres d’emploi de test"
+            >
+              {seedingFakeJobs ? "Ajout des offres de test…" : "Ajouter des offres de test"}
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            size="control"
+            className={primaryActionClassName}
+            onClick={openCsvPicker}
+            disabled={importingCsv}
+            aria-label="Importer mes offres"
+          >
+            <Upload className="size-4" aria-hidden />
+            {importingCsv ? "Import en cours…" : "Importer mes offres"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="control"
+            className={secondaryActionClassName}
+            onClick={() => setPasteOpen(true)}
+            aria-label="Coller une offre"
+          >
+            <ClipboardPaste className="size-4" aria-hidden />
+            Coller une offre
+          </Button>
+          <PageHelpButton
+            pageId="jobs"
+            label="Aide sur les offres"
+            trigger={(openHelp) => (
+              <button
+                type="button"
+                onClick={openHelp}
+                aria-label="Aide sur les offres"
+                className="flex size-(--app-control-height) shrink-0 items-center justify-center rounded-app-control border-(length:--app-stroke) border-app-border-default bg-app-surface text-app-text transition-colors hover:bg-app-control focus-visible:ring-2 focus-visible:ring-app-text-secondary focus-visible:outline-none"
+              >
+                <CircleHelp className="size-6" aria-hidden />
+              </button>
+            )}
+          />
+        </div>
+      </header>
 
       <JobBulkActions
-        selectedCount={jobs.filter((job) => job.selected).length}
+        selectedCount={selectedCount}
         loading={bulkStatusLoading}
+        analyzeLoading={bulkAnalyzeLoading}
         coverLetterLoading={bulkLoading}
         deleteLoading={bulkDeleteLoading}
         onBulkUpdate={handleBulkStatusUpdate}
+        onBulkAnalyze={handleBulkAnalyze}
         onGenerateCoverLetters={handleBulkGenerateCoverLetters}
         onBulkDelete={handleBulkDelete}
       />
@@ -764,8 +791,8 @@ export function TrackedJobsPage({
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-base">
             <span>
-              Selected: {bulkProgress.total} · Current: {bulkProgress.current} · Success:{" "}
-              {bulkProgress.success} · Failed: {bulkProgress.failed}
+              Sélection : {bulkProgress.total} · Progression : {bulkProgress.current} · Réussites :{" "}
+              {bulkProgress.success} · Échecs : {bulkProgress.failed}
             </span>
             <span className="text-muted-foreground">
               {bulkProgress.currentJob ? `Generating: ${bulkProgress.currentJob}` : "Idle"}
@@ -774,65 +801,95 @@ export function TrackedJobsPage({
         </Card>
       )}
 
-      <JobFiltersBar filters={filters} onChange={setFilters} sources={sources} />
+      {loadError ? (
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-app-control border border-app-warning/40 bg-app-warning/10 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p className="text-base font-medium text-app-text-strong">
+              Les offres n’ont pas pu être chargées.
+            </p>
+            <p className="text-sm leading-6 text-app-text-subtle">{loadError}</p>
+          </div>
+          <Button type="button" variant="outline" size="control" onClick={() => void loadAll()}>
+            <RefreshCw className="size-4" aria-hidden />
+            Réessayer
+          </Button>
+        </div>
+      ) : null}
+
+      <JobFiltersBar filters={filters} onChange={setFilters} sources={sources} contracts={contracts} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold tracking-tight">
-          {loading ? "Offres…" : `Toutes les offres (${jobs.length})`}
+        <h2 className="flex items-center gap-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-app-text">
+          {!loading && <span className="flex min-w-8 h-8 items-center justify-center rounded-app-control bg-app-action px-2 text-lg font-medium text-app-text-inverse">{jobs.length}</span>}
+          {loading ? "Chargement des offres…" : "Liste des offres"}
         </h2>
-        <Button variant="outline" onClick={() => void handleSync()} disabled={syncing}>
-          <RefreshCw className={cn("mr-2 h-4 w-4", syncing && "animate-spin")} />
+        <Button
+          variant="outline"
+          size="control"
+          className={secondaryActionClassName}
+          onClick={() => void handleSync()}
+          disabled={syncing}
+        >
+          <RefreshCw className={cn("size-4", syncing && "animate-spin")} aria-hidden />
           {syncing ? "Synchronisation…" : "Synchroniser"}
         </Button>
       </div>
 
       <Tabs
         value={view}
-        onValueChange={(value) => setView(value as "cards" | "table" | "kanban")}
+        onValueChange={(value) => setView(value as "cards" | "kanban")}
+        className="gap-6"
       >
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-          <TabsList>
-            <TabsTrigger value="cards">
-              <LayoutGrid className="mr-2 h-4 w-4" />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <TabsList variant="section" className="h-auto w-fit max-w-full flex-wrap gap-1">
+            <TabsTrigger
+              value="cards"
+              variant="section"
+              className="h-(--app-control-height) gap-2 px-4"
+            >
+              <LayoutGrid className="size-4" aria-hidden />
               Cartes
             </TabsTrigger>
-            <TabsTrigger value="table">
-              <List className="mr-2 h-4 w-4" />
-              Tableau
-            </TabsTrigger>
-            <TabsTrigger value="kanban">
-              <Columns3 className="mr-2 h-4 w-4" />
-              Suivi
+            <TabsTrigger
+              value="kanban"
+              variant="section"
+              className="h-(--app-control-height) gap-2 px-4"
+            >
+              <Columns3 className="size-4" aria-hidden />
+              Suivi des candidatures
             </TabsTrigger>
           </TabsList>
-          <div className="flex flex-wrap items-center gap-3">
-            <JobFilterMenu filters={filters} onChange={setFilters} />
-            <JobDateFilter filters={filters} onChange={setFilters} />
-          </div>
         </div>
         {jobs.length > 0 && filteredJobs.length !== jobs.length ? (
-          <p className="mb-3 text-base text-muted-foreground">
+          <p className="text-base text-app-text-secondary">
             {filteredJobs.length} offre{filteredJobs.length > 1 ? "s" : ""} affichée
-            {filteredJobs.length > 1 ? "s" : ""} sur {jobs.length} — élargis le filtre Date.
+            {filteredJobs.length > 1 ? "s" : ""} sur {jobs.length} — ajuste tes filtres pour afficher davantage d’offres.
           </p>
         ) : null}
 
         <TabsContent value="cards" className="mt-0">
-          {filteredJobs.length === 0 ? (
+          {loadError ? null : loading ? (
+            <div role="status" aria-live="polite" className="rounded-app-control border border-app-border-strong bg-app-surface px-4 py-8 text-center text-base text-app-text-secondary">Chargement des offres…</div>
+          ) : filteredJobs.length === 0 ? (
             jobs.length > 0 ? (
-              <p className="rounded-lg border border-dashed p-8 text-center text-base text-muted-foreground">
-                Aucune offre ne correspond aux filtres actifs. Élargis le filtre Date.
+              <p className="rounded-app-control border border-app-border-strong bg-app-surface px-4 py-8 text-center text-lg font-medium leading-6 text-app-text-subtle">
+                Aucune offre ne correspond aux filtres actifs. Ajuste tes filtres pour afficher davantage d’offres.
               </p>
             ) : (
               emptyJobsCta
             )
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
               {filteredJobs.map((job) => (
                 <JobCard
                   key={job.id}
                   job={job}
-                  onSelect={(id, selected) => updateJob(id, { selected })}
+                  onSelect={(id, selected) =>
+                    updateJob(id, { selected, selection_only: true })
+                  }
                   onStatusChange={(id, status: JobStatus) => updateJob(id, { status })}
                   onAnalyze={handleAnalyze}
                   onGenerateCoverLetter={handleGenerateCoverLetter}
@@ -847,34 +904,13 @@ export function TrackedJobsPage({
           )}
         </TabsContent>
 
-        <TabsContent value="table" className="mt-0">
-          {filteredJobs.length === 0 ? (
-            jobs.length > 0 ? (
-              <p className="rounded-lg border border-dashed p-8 text-center text-base text-muted-foreground">
-                Aucune offre ne correspond aux filtres actifs. Élargis le filtre Date.
-              </p>
-            ) : (
-              emptyJobsCta
-            )
-          ) : (
-            <JobTable
-              jobs={filteredJobs}
-              onSelect={(id, selected) => updateJob(id, { selected })}
-              onSelectAll={handleSelectAllVisible}
-              onStatusChange={(id, status) => updateJob(id, { status })}
-              onAnalyze={handleAnalyze}
-              onViewCoverLetter={setCoverLetterJob}
-              onOpen={(opened) => router.push(`/jobs/${opened.id}`)}
-              analysisByJobId={analysisByJobId}
-            />
-          )}
-        </TabsContent>
-
         <TabsContent value="kanban" className="mt-0">
-          {filteredJobs.length === 0 ? (
+          {loadError ? null : loading ? (
+            <div role="status" aria-live="polite" className="rounded-app-control border border-app-border-strong bg-app-surface px-4 py-8 text-center text-base text-app-text-secondary">Chargement des offres…</div>
+          ) : filteredJobs.length === 0 ? (
             jobs.length > 0 ? (
-              <p className="rounded-lg border border-dashed p-8 text-center text-base text-muted-foreground">
-                Aucune offre ne correspond aux filtres actifs. Élargis le filtre Date.
+              <p className="rounded-app-control border border-app-border-strong bg-app-surface px-4 py-8 text-center text-lg font-medium leading-6 text-app-text-subtle">
+                Aucune offre ne correspond aux filtres actifs. Ajuste tes filtres pour afficher davantage d’offres.
               </p>
             ) : (
               emptyJobsCta
@@ -897,6 +933,17 @@ export function TrackedJobsPage({
         }}
         onRegenerate={handleGenerateCoverLetter}
         isRegenerating={generatingId === coverLetterJob?.id}
+      />
+
+      <PasteJobDialog
+        open={pasteOpen}
+        onOpenChange={setPasteOpen}
+        onImported={(data) =>
+          ingestImportedJobs(data, {
+            successSingular: "1 offre importée — comparaison avec ton CV…",
+            successPlural: (n) => `${n} offres importées — comparaison avec ton CV…`,
+          })
+        }
       />
     </div>
   );

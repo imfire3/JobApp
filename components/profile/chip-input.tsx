@@ -125,7 +125,7 @@ export function ChipInput({
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
-            className="flex-1 min-w-[120px] bg-transparent border-none focus-visible:ring-0 placeholder:text-[#A1A1A1] text-sm py-0"
+            className="flex-1 min-w-[120px] bg-transparent border-none placeholder:text-[#A1A1A1] text-sm py-0"
             aria-autocomplete="list"
             aria-expanded={open}
             style={{ width: values.length > 0 ? "auto" : "100%" }}

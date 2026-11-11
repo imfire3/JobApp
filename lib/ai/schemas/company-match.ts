@@ -54,7 +54,7 @@ export function parseCompanyMatch(raw: unknown): CompanyMatchResult {
   return parsed.data
 }
 
-export function calculateCompanyMatchScore(match: CompanyMatchResult): number {
+export function calculateCompanyMatchScore(match: CompanyMatchResult): number | null {
   const weights = {
     roleMatch: 0.30,
     industryMatch: 0.25,
@@ -75,6 +75,27 @@ export function calculateCompanyMatchScore(match: CompanyMatchResult): number {
     }
   }
 
-  if (totalWeight === 0) return 0
+  if (totalWeight === 0) return null
   return Math.round((weightedSum / totalWeight) * 100)
+}
+
+export function getCompanyMatchCoverage(match: CompanyMatchResult): {
+  evaluated: number
+  total: number
+  ratio: number
+} {
+  const keys = [
+    "roleMatch",
+    "industryMatch",
+    "skillsMatch",
+    "locationMatch",
+    "productMaturity",
+    "hiringPotential",
+  ] as const
+  const evaluated = keys.filter((key) => match[key] != null).length
+  return {
+    evaluated,
+    total: keys.length,
+    ratio: evaluated / keys.length,
+  }
 }

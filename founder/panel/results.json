@@ -1,0 +1,182 @@
+{
+ "business": "JobTracker — assistant de candidature (score ATS expliqué, lettre ancrée dans le CV réel, suivi des candidatures)",
+ "seed": 428,
+ "dealt": 20,
+ "answered": 20,
+ "skipped": [],
+ "buys": 3,
+ "passes": 17,
+ "buy_rate": 0.15,
+ "by_segment": [
+  [
+   "Reconversion junior vers le produit (bootcamp, moins de 2 ans)",
+   5,
+   0.2
+  ],
+  [
+   "Product Owner / PM en poste qui cherche à changer",
+   5,
+   0.2
+  ],
+  [
+   "Cadre en transition vers un rôle produit",
+   7,
+   0.14285714285714285
+  ],
+  [
+   "En recherche longue, indemnisation qui se termine",
+   3,
+   0.0
+  ]
+ ],
+ "by_behaviour": [
+  [
+   "Protecteur de ses données",
+   2,
+   0.5
+  ],
+  [
+   "Lit les avis avant de payer",
+   3,
+   0.3333333333333333
+  ],
+  [
+   "Gère tout dans un tableur",
+   4,
+   0.25
+  ],
+  [
+   "Colle chaque offre dans ChatGPT",
+   5,
+   0.0
+  ],
+  [
+   "Utilise déjà un outil de suivi",
+   3,
+   0.0
+  ],
+  [
+   "Compte chaque euro",
+   3,
+   0.0
+  ]
+ ],
+ "by_income": [
+  [
+   "$33,000 to $52,000",
+   7,
+   0.2857142857142857
+  ],
+  [
+   "$52,000 and up",
+   7,
+   0.14285714285714285
+  ],
+  [
+   "under $33,000",
+   6,
+   0.0
+  ]
+ ],
+ "why_not": [
+  [
+   "trust",
+   7,
+   [
+    "Je testerais l'analyse gratuite, mais je ne paie pas 39 € sur la promesse d'un score expliqué : chaque outil me sort déjà un résultat différent. Les relances m'intéressent, mais rien ne me garantit que je tiendrai ce suivi plus à jour que mon tableur.",
+    "39 € pour trois mois sans renouvellement automatique, c'est envisageable, mais je ne confie pas mon vrai CV à un site inconnu. Au mieux, je testerais l'analyse gratuite avec un vieux CV anonymisé avant de payer encore un outil de candidature."
+   ],
+   [
+    "P006",
+    "P007"
+   ]
+  ],
+  [
+   "habit",
+   6,
+   [
+    "J'ai déjà mon réflexe : j'ouvre ChatGPT, je colle l'offre et mon CV, j'ai ma lettre en deux minutes, et ça ne me coûte rien. Payer 39 € pour la même chose, même mieux expliqué, ça veut dire changer une habitude que j'ai déjà et ajouter un outil de plus à ma pile.",
+    "J'ai déjà un tracker gratuit qui fait le suivi, et je n'ai jamais payé pour de l'analyse ATS parce que je n'y crois pas plus que ça. Là le gratuit me donne déjà une analyse complète et une lettre, donc je teste ça et je m'arrête là."
+   ],
+   [
+    "P003",
+    "P004"
+   ]
+  ],
+  [
+   "price",
+   3,
+   [
+    "Je testerais l'analyse et la lettre gratuites, mais je ne sortirais pas 39 € d'un coup pour trois mois. Mon tableur est en retard, oui, mais ça ne suffit pas à me faire payer avant de voir si les conseils servent vraiment mes candidatures produit.",
+    "Avec mes indemnités qui se terminent, je ne sors pas 39 € d'un coup pour trois mois. Je testerais l'analyse et la lettre gratuites, mais pour mes six candidatures je garderais un suivi gratuit et des rappels."
+   ],
+   [
+    "P008",
+    "P010"
+   ]
+  ],
+  [
+   "quality",
+   1,
+   [
+    "Je testerais l'analyse et la lettre gratuites, mais je ne paierais pas juste pour éviter mes copier-coller dans ChatGPT. Ma difficulté, c'est d'avoir une lettre qui sonne comme moi et défend mon parcours produit, pas d'en générer une de plus."
+   ],
+   [
+    "P020"
+   ]
+  ]
+ ],
+ "why_yes": [
+  [
+   "price",
+   1,
+   [
+    "39 € pour trois mois sans reconduction, c'est moins que ce que je claque en un mois de transports, et j'ai déjà une analyse gratuite pour vérifier que le score tient debout avant de payer. Vu que je passe quarante minutes par candidature et que mon tableur est mort depuis trois semaines, ça se teste sans se mettre en danger."
+   ],
+   [
+    "P001"
+   ]
+  ],
+  [
+   "need",
+   1,
+   [
+    "J'ai six candidatures en cours et deux relances oubliées, donc le suivi plus les relances au même endroit vaut déjà le coup pour moi. Le truc qui me décide vraiment, c'est le remboursement si la lettre invente une expérience : ça répond pile à ma trouille que le recruteur repère une lettre fabriquée."
+   ],
+   [
+    "P002"
+   ]
+  ],
+  [
+   "convenience",
+   1,
+   [
+    "J'ai six candidatures ouvertes et j'en ai déjà lâché deux faute de relance — 39 € pour trois mois sans reconduction, c'est moins cher que le temps que je perds à recopier mes expériences dans un tableur. Je teste d'abord l'analyse gratuite, et si le détail ligne par ligne tient ses promesses, je paie une fois."
+   ],
+   [
+    "P005"
+   ]
+  ]
+ ],
+ "flip": [
+  "Que la version gratuite me montre concrètement une différence que je ne peux pas reproduire avec ChatGPT : le même CV face à deux offres, avec le détail ligne par ligne et les mots-clés manquants, et surtout le suivi des relances qui me sorte les deux candidatures que j'ai oubliées sans que je les ressaisisse.",
+  "Voir la lettre écrite sur mon propre CV, avec mes mots et mes chiffres, et qu'elle ne sente pas le ChatGPT — ou voir l'analyse ligne par ligne me sortir quelque chose que mon outil gratuit ne m'avait pas dit.",
+  "Que l'analyse gratuite sur mon CV et une vraie offre produit repère des écarts précis et justifiés que je peux corriger, plutôt que des conseils génériques.",
+  "Pouvoir vérifier avant tout import une politique de confidentialité claire garantissant que mon CV n'est ni réutilisé pour entraîner une IA ni conservé après sa suppression.",
+  "Pouvoir acheter un seul mois à 13 €, sans engagement sur les deux suivants.",
+  "Que l'essai gratuit me permette réellement de préparer une candidature pertinente en dix minutes, sans devoir reprendre toute la lettre.",
+  "Un pass de trois mois à 15 €, sans reconduction, me ferait tenter le coup si l'essai gratuit me paraît pertinent.",
+  "Que l'essai gratuit me montre, sur une vraie offre, des corrections précises et utiles que mon usage habituel de ChatGPT n'avait pas trouvées.",
+  "Que l'essai gratuit m'aide concrètement à valoriser mes projets de bootcamp pour une vraie offre junior, mieux que ma méthode actuelle et sans inventer d'expérience.",
+  "Que l'essai gratuit me permette de préparer une vraie candidature en dix minutes, sans tâtonner, et de programmer sa relance au même endroit.",
+  "Un essai gratuit sur une offre que j'ai choisie qui me montre des recommandations pertinentes, sans déformer mon parcours ni mon objectif.",
+  "Que l'essai gratuit me donne, sur une vraie offre produit que je vise, une lettre précise que je pourrais envoyer presque telle quelle sans avoir honte du ton.",
+  "Que l'essai gratuit sur mon CV et une vraie offre produit fasse ressortir des améliorations précises et justifiées que je n'avais pas obtenues avec ChatGPT.",
+  "Pouvoir tester gratuitement avec un CV anonymisé, sans devoir fournir mes coordonnées personnelles.",
+  "Que l'essai gratuit me permette réellement de préparer une candidature pertinente pour une offre de produit junior en dix minutes, sans rien inventer sur mon expérience.",
+  "Que l'essai gratuit sur une vraie offre produit donne une lettre fidèle à mon parcours de transition, que je pourrais envoyer avec seulement quelques retouches.",
+  "Que l'essai gratuit sur mon CV et une vraie offre produise une lettre assez personnelle et pertinente pour que je l'envoie après seulement quelques retouches."
+ ],
+ "purchases_first_month_per_buyer": 1.0,
+ "price_answers": 20
+}

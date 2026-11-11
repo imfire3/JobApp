@@ -3,6 +3,24 @@ import { describe, it } from "node:test";
 import { parseJobMatchAnalysis } from "./job-match";
 
 describe("parseJobMatchAnalysis", () => {
+  it("derives strengths and explanation from criteria instead of contradictory generated arrays", () => {
+    const parsed = parseJobMatchAnalysis({match_score: 99,
+      score_explanation: "Acquis démontrés : IA et conformité réglementaire.",
+      criteria_assessment: [
+        {id:"ai",label:"Connaissance des cycles de développement IA",weight_percent:50,evidence_level:1,cv_status:"mentioned_only",evidence_from_cv:"Intelligence artificielle",evidence_from_job:"Cycles de développement IA"},
+        {id:"reg",label:"Conformité réglementaire",weight_percent:50,evidence_level:0,cv_status:"not_evidenced",evidence_from_cv:null,evidence_from_job:"Conformité réglementaire"},
+      ], match_reasons:[{title:"Conformité réglementaire",evidence_from_cv:"",evidence_from_job:"Conformité réglementaire",explanation:"Acquis démontré"}],
+      cv_improvements:[{id:"reg",type:"suggestion",action:"Conformité réglementaire",cv_original:"Gestion du backlog produit",reformulation:"Gestion du backlog produit et conformité réglementaire",keywords_added:["conformité réglementaire"],safe:true}],
+    }, {cvText:"Gestion du backlog produit. Intelligence artificielle"})
+    assert.deepEqual(parsed.match_reasons,[])
+    assert.equal(parsed.match_gaps.length,2)
+    assert.doesNotMatch(parsed.score_explanation ?? "",/Acquis démontrés/)
+    assert.equal(parsed.match_score,17) // existing weighted evidence formula, not a target score
+    assert.equal(parsed.cv_improvement_items?.[0].type,"confirmation_required")
+    assert.equal(parsed.cv_improvement_items?.[0].suggested_rewrite,null)
+    assert.match(parsed.cv_improvement_items?.[0].question ?? "",/exigence réglementaire/)
+  });
+
   it("flattens rich v3 objects for UI storage", () => {
     const parsed = parseJobMatchAnalysis({
       status: "ok",
@@ -196,12 +214,11 @@ describe("parseJobMatchAnalysis", () => {
           id: "rec_1",
           section: "expérience professionnelle",
           cv_original: "J’ai géré des projets et des équipes chez Alinea.",
-          reformulation:
-            "J’ai piloté la roadmap produit et le backlog en tant que Product Owner (Scrum).",
-          reason: "Alignement sur le vocabulaire Product Owner du poste.",
-          keywords_added: ["Product Owner", "backlog", "Scrum"],
-          source_offer_requirement: "Pilotage de backlog.",
-          confidence: "medium",
+          reformulation: "J’ai géré des projets et des équipes chez Alinea.",
+          reason: "Déjà aligné avec le poste.",
+          keywords_added: [],
+          source_offer_requirement: "Pilotage d’équipes.",
+          confidence: "high",
           safe: true,
         },
         {
@@ -211,17 +228,17 @@ describe("parseJobMatchAnalysis", () => {
         },
       ],
       cover_letter_angle: "",
-    });
+    }, { cvText: "J’ai géré des projets et des équipes chez Alinea." });
 
     assert.equal(parsed.cv_improvement_items?.length, 2);
     const suggestion = parsed.cv_improvement_items?.[0];
     assert.equal(suggestion?.type, "suggestion");
     assert.equal(suggestion?.safe, true);
     assert.equal(suggestion?.cv_original, "J’ai géré des projets et des équipes chez Alinea.");
-    assert.match(suggestion?.reformulation ?? "", /backlog/);
-    assert.deepEqual(suggestion?.keywords_added, ["Product Owner", "backlog", "Scrum"]);
-    assert.equal(suggestion?.source_offer_requirement, "Pilotage de backlog.");
-    assert.equal(suggestion?.confidence, "medium");
+    assert.match(suggestion?.reformulation ?? "", /Alinea/);
+    assert.deepEqual(suggestion?.keywords_added, []);
+    assert.equal(suggestion?.source_offer_requirement, "Pilotage d’équipes.");
+    assert.equal(suggestion?.confidence, "high");
     assert.match(parsed.cv_improvements[0] ?? "", /expérience professionnelle/);
 
     const confirmation = parsed.cv_improvement_items?.[1];
@@ -265,8 +282,9 @@ describe("parseJobMatchAnalysis", () => {
 
     const item = parsed.cv_improvement_items?.[0];
     assert.equal(item?.safe, false);
-    assert.deepEqual(item?.keywords_added, ["SQL", "bases de données"]);
-    assert.equal(item?.confidence, "high");
+    assert.equal(item?.type, "confirmation_required");
+    assert.equal(item?.suggested_rewrite, null);
+    assert.equal(item?.confidence, "low");
     assert.equal(item?.cv_section, "compétences");
   });
 
@@ -381,10 +399,8 @@ describe("parseJobMatchAnalysis", () => {
     assert.equal(parsed.match_score, 40);
     assert.ok(parsed.keywords_matched.includes("roadmap"));
     assert.equal(parsed.cv_improvement_items?.length, 1);
-    assert.match(
-      parsed.cv_improvement_items?.[0]?.evidence_from_cv ?? "",
-      /conversion/
-    );
+    assert.equal(parsed.cv_improvement_items?.[0]?.type, "confirmation_required");
+    assert.equal(parsed.cv_improvement_items?.[0]?.suggested_rewrite, null);
   });
 
   it("coerces invented gap_type, importance, and recruiter_block_risk", () => {
@@ -469,7 +485,167 @@ describe("parseJobMatchAnalysis", () => {
     });
 
     assert.ok(typeof parsed.match_score === "number");
-    assert.ok(parsed.match_gaps.some((g) => /Data|UX|SQL|research/i.test(g)));
+    // Legacy gaps are no longer a second competing interpretation of criteria.
+    assert.deepEqual(parsed.match_gaps, []);
+    assert.match(parsed.match_reasons[0], /Roadmap/);
     assert.ok(Array.isArray(parsed.keywords_missing));
+  });
+
+  it("recomputes global score from criteria with normalized weights summing to 100", () => {
+    const parsed = parseJobMatchAnalysis({
+      status: "ok",
+      match_score: 53, // should be overridden by criteria computation
+      score_confidence: "medium",
+      score_explanation: "test",
+      limitations: [],
+      job_posting_summary: "PO",
+      criteria_assessment: [
+        {
+          id: "exp-saas",
+          label: "Expérience SaaS B2B",
+          weight_percent: 20,
+          evidence_level: 2,
+          cv_status: "demonstrated",
+          evidence_from_job: "SaaS B2B",
+          evidence_from_cv: "Expérience SaaS B2B",
+          question_to_candidate: null,
+          confirmation_status: "none",
+          recruiter_block_risk: "low",
+        },
+        {
+          id: "po",
+          label: "Product Ownership / Management",
+          weight_percent: 15,
+          evidence_level: 2,
+          cv_status: "demonstrated",
+          evidence_from_job: "PO",
+          evidence_from_cv: "PO",
+          question_to_candidate: null,
+          confirmation_status: "none",
+          recruiter_block_risk: "low",
+        },
+        {
+          id: "backlog",
+          label: "Backlog et Agile",
+          weight_percent: 15,
+          evidence_level: 2,
+          cv_status: "demonstrated",
+          evidence_from_job: "Backlog",
+          evidence_from_cv: "Backlog",
+          question_to_candidate: null,
+          confirmation_status: "none",
+          recruiter_block_risk: "low",
+        },
+        {
+          id: "discovery",
+          label: "Product Discovery et UX",
+          weight_percent: 15,
+          evidence_level: 2,
+          cv_status: "demonstrated",
+          evidence_from_job: "Discovery",
+          evidence_from_cv: "Discovery",
+          question_to_candidate: null,
+          confirmation_status: "none",
+          recruiter_block_risk: "low",
+        },
+        {
+          id: "data",
+          label: "Data et KPI",
+          weight_percent: 15,
+          evidence_level: 2,
+          cv_status: "demonstrated",
+          evidence_from_job: "Data",
+          evidence_from_cv: "Data",
+          question_to_candidate: null,
+          confirmation_status: "none",
+          recruiter_block_risk: "low",
+        },
+        {
+          id: "ia",
+          label: "IA et automatisation",
+          weight_percent: 10,
+          evidence_level: 2,
+          cv_status: "demonstrated",
+          evidence_from_job: "IA",
+          evidence_from_cv: "IA",
+          question_to_candidate: null,
+          confirmation_status: "none",
+          recruiter_block_risk: "low",
+        },
+        {
+          id: "collab",
+          label: "Collaboration pluridisciplinaire",
+          weight_percent: 10,
+          evidence_level: 2,
+          cv_status: "demonstrated",
+          evidence_from_job: "Collab",
+          evidence_from_cv: "Collab",
+          question_to_candidate: null,
+          confirmation_status: "none",
+          recruiter_block_risk: "low",
+        },
+      ],
+      score_breakdown: [],
+      requirements_assessment: [],
+      match_reasons: [],
+      match_gaps: [],
+      keywords_from_job: [],
+      keywords_matched: [],
+      keywords_missing: [],
+      cv_improvements: [],
+      cover_letter_angle: "",
+    });
+    // All level 2 => (2/3)*100 = ~66.67 -> rounds to 67
+    assert.equal(parsed.match_score, 67);
+  });
+
+  it("does not turn nice-to-have into must-have and weights normalize to 100", () => {
+    const parsed = parseJobMatchAnalysis({
+      status: "ok",
+      match_score: 10,
+      score_confidence: "medium",
+      score_explanation: "test",
+      limitations: [],
+      job_posting_summary: "PO",
+      criteria_assessment: [
+        {
+          id: "main",
+          label: "Product Ownership",
+          weight_percent: 60,
+          evidence_level: 3,
+          cv_status: "demonstrated",
+          evidence_from_job: "PO",
+          evidence_from_cv: "PO",
+          question_to_candidate: null,
+          confirmation_status: "none",
+          recruiter_block_risk: "low",
+        },
+        {
+          id: "nice",
+          label: "Compétence appréciée",
+          weight_percent: 40,
+          evidence_level: 0,
+          cv_status: "not_evidenced",
+          evidence_from_job: "Appréciée",
+          evidence_from_cv: null,
+          question_to_candidate: null,
+          confirmation_status: "none",
+          recruiter_block_risk: "low",
+        },
+      ],
+      score_breakdown: [],
+      requirements_assessment: [],
+      match_reasons: [],
+      match_gaps: [],
+      keywords_from_job: [],
+      keywords_matched: [],
+      keywords_missing: [],
+      cv_improvements: [],
+      cover_letter_angle: "",
+    });
+    // 0.6*(3/3)+0.4*0 = 60
+    assert.equal(parsed.match_score, 60);
+    const weights = (parsed.criteria_assessment || []).reduce((s, c) => s + c.weight_percent, 0);
+    assert.ok(Math.abs(weights - 100) < 0.01);
   });
 });

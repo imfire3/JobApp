@@ -48,6 +48,7 @@ async function resetLocalState() {
  * even if a stale session cookie briefly remains.
  */
 export async function GET(request: Request) {
+  if (process.env.NODE_ENV === "production") return new NextResponse(null, { status: 404 })
   await resetLocalState()
 
   const landing = new URL("/", request.url)
@@ -63,6 +64,7 @@ export async function GET(request: Request) {
  * Same clear as GET, JSON response for callers that prefer fetch.
  */
 export async function POST() {
+  if (process.env.NODE_ENV === "production") return new NextResponse(null, { status: 404 })
   await resetLocalState()
 
   const response = NextResponse.json({ ok: true, redirect: "/?lp=1" })

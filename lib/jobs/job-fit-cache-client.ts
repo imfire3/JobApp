@@ -36,6 +36,7 @@ export function isJobFitCacheValidClient(
   cvAnalysis: { cv_content_hash: string; is_stale: boolean } | null,
   currentPromptVersion: string
 ): boolean {
+  if ((job.raw_data?.job_fit as Record<string, unknown> | undefined)?.offer_corrected_at) return false
   if (!hasJobFitResult(job)) return false
   if (!cvAnalysis || cvAnalysis.is_stale) return false
   const meta = readJobFitCacheMeta(job)

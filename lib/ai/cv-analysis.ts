@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import {
   buildCvAnalysisUserPrompt,
   CV_ANALYSIS_PROMPT_VERSION,
-  CV_ANALYSIS_SYSTEM_PROMPT,
+  buildCvAnalysisSystemPrompt,
 } from "@/lib/ai/prompts/cv-analysis";
 import {
   CvAnalysisValidationError,
@@ -33,8 +33,8 @@ export async function analyzeCvForAts(
   const client = getOpenAIClient(options?.apiKey);
   const model = getModel();
   const customPrompt = options?.systemPrompt?.trim();
-  const systemPrompt = customPrompt || CV_ANALYSIS_SYSTEM_PROMPT;
-  const promptVersion = customPrompt ? "custom" : CV_ANALYSIS_PROMPT_VERSION;
+  const systemPrompt = buildCvAnalysisSystemPrompt(customPrompt);
+  const promptVersion = customPrompt ? `${CV_ANALYSIS_PROMPT_VERSION}+custom` : CV_ANALYSIS_PROMPT_VERSION;
 
   let response: OpenAI.Chat.Completions.ChatCompletion;
   try {

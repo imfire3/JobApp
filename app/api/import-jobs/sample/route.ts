@@ -34,7 +34,7 @@ export async function POST() {
   }
 
   const rowsToInsert = parsed.rows.filter((row) => !existingUrls.has(row.url));
-  let imported = 0;
+  const insertedJobs: Array<{ id: string; url: string; title: string; company: string }> = [];
   if (rowsToInsert.length > 0) {
     const scrapedAt = new Date().toISOString();
     const payload = rowsToInsert.map((row) =>
@@ -46,21 +46,38 @@ export async function POST() {
       })
     );
 
-    const { data, error } = await supabase.from("jobs").insert(payload as never).select("id");
+    const { data, error } = await supabase.from("jobs").insert(payload as never).select("id,url,title,company");
     if (error) {
       if (error.code !== "23505") {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
-    } else {
-      imported = data?.length ?? 0;
+    } else if (data) {
+      for (const row of data) {
+        if (typeof row.id === "string") {
+          insertedJobs.push({
+            id: row.id,
+            url: typeof row.url === "string" ? row.url : "",
+            title: typeof row.title === "string" ? row.title : "",
+            company: typeof row.company === "string" ? row.company : "",
+          });
+        }
+      }
     }
   }
 
+  const imported = insertedJobs.length;
+  const jobs = insertedJobs.map((job) => ({
+    ...job,
+    was_duplicate: false,
+    was_updated: false,
+  }));
+
   return NextResponse.json({
-    message: "Sample jobs imported",
+    message: imported === 1 ? "Sample job imported" : "Sample jobs imported",
     total_rows: parsed.totalRows,
     imported,
     duplicates: parsed.totalRows - imported,
     invalid: parsed.invalidRows.filter((row) => row.rowNumber > 0).length,
+    jobs,
   });
 }

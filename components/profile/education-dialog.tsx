@@ -141,7 +141,7 @@ export function EducationDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Mois de début</Label>
+            <Label id="edu-dialog-start-month-label">Mois de début</Label>
             <Select
               value={draft.startMonth || "__none__"}
               onValueChange={(value) =>
@@ -151,7 +151,10 @@ export function EducationDialog({
                 })
               }
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby="edu-dialog-start-month-label"
+              >
                 <SelectValue placeholder="Mois" />
               </SelectTrigger>
               <SelectContent>
@@ -166,7 +169,7 @@ export function EducationDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Année de début</Label>
+            <Label id="edu-dialog-start-year-label">Année de début</Label>
             <Select
               value={draft.startYear || "__none__"}
               onValueChange={(value) =>
@@ -176,7 +179,10 @@ export function EducationDialog({
                 })
               }
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby="edu-dialog-start-year-label"
+              >
                 <SelectValue placeholder="Année" />
               </SelectTrigger>
               <SelectContent>
@@ -193,7 +199,7 @@ export function EducationDialog({
           {!draft.isCurrent ? (
             <>
               <div className="space-y-2">
-                <Label>Mois de fin</Label>
+                <Label id="edu-dialog-end-month-label">Mois de fin</Label>
                 <Select
                   value={draft.endMonth || "__none__"}
                   onValueChange={(value) =>
@@ -203,7 +209,10 @@ export function EducationDialog({
                     })
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger
+                    className="w-full"
+                    aria-labelledby="edu-dialog-end-month-label"
+                  >
                     <SelectValue placeholder="Mois" />
                   </SelectTrigger>
                   <SelectContent>
@@ -218,7 +227,7 @@ export function EducationDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>Année de fin</Label>
+                <Label id="edu-dialog-end-year-label">Année de fin</Label>
                 <Select
                   value={draft.endYear || "__none__"}
                   onValueChange={(value) =>
@@ -228,7 +237,10 @@ export function EducationDialog({
                     })
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger
+                    className="w-full"
+                    aria-labelledby="edu-dialog-end-year-label"
+                  >
                     <SelectValue placeholder="Année" />
                   </SelectTrigger>
                   <SelectContent>

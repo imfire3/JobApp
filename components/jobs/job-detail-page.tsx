@@ -416,7 +416,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-7xl">
+      <div className="w-full min-w-0">
         <Tabs defaultValue="comparatif" className="gap-4">
           <StickyPageHeader className="mb-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -485,7 +485,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
               </div>
             </div>
 
-            <TabsList aria-label="Analyses offre et CV" className="h-auto flex-wrap">
+            <TabsList aria-label="Analyses offre et CV" className="h-auto w-fit max-w-full flex-wrap">
               {ANALYSIS_TABS.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -1288,6 +1288,7 @@ export function JobDetailPage({ jobId }: JobDetailPageProps) {
                 ) : null}
                 {job.cover_letter ? (
                   <Textarea
+                    aria-label="Lettre de motivation"
                     value={job.cover_letter}
                     onChange={(e) =>
                       setJob((prev) =>

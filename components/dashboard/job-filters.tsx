@@ -9,12 +9,21 @@ import { Label } from "@/components/ui/label";
 import { useAnchoredDropdownStyle } from "@/components/ui/use-anchored-dropdown-style";
 import { cn } from "@/lib/utils";
 import { JOB_STATUSES, type JobFilters } from "@/types";
+import { jobStatusLabel } from "@/lib/jobs/status-labels";
 
 interface JobFiltersBarProps {
   filters: JobFilters;
   onChange: (filters: JobFilters) => void;
   sources: string[];
+  contracts?: string[];
 }
+
+/** Figma "Forms/*" styling shared by the Offres filters. */
+const filterLabelClassName =
+  "mb-0 shrink-0 text-base font-medium leading-6 text-app-text-label";
+
+const filterSelectTriggerClassName =
+  "relative flex h-(--app-control-height) w-full items-center justify-between gap-2 rounded-app-control border-(length:--app-stroke) border-app-border-strong bg-app-control px-3 py-3 text-base leading-6 text-app-text outline-none transition-colors select-none hover:border-app-text-muted focus-visible:border-app-text-secondary focus-visible:ring-2 focus-visible:ring-app-text-secondary/40";
 
 export function JobFilterMenu({
   filters,
@@ -90,21 +99,25 @@ export function JobFilterMenu({
 
   return (
     <div className="flex items-center gap-2">
-      <Label className="mb-0 shrink-0">Filtre</Label>
+      <Label id="job-filter-menu-label" className={filterLabelClassName}>
+        Filtres
+      </Label>
       <button
         ref={anchorRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-labelledby="job-filter-menu-label job-filter-menu-value"
         className={cn(
-          "relative flex h-12 w-fit items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 dark:bg-input/30 dark:hover:bg-input/50",
-          open && "bg-accent/40"
+          filterSelectTriggerClassName,
+          "w-fit whitespace-nowrap pr-10",
+          open && "border-app-text-secondary"
         )}
       >
-        <span>
+        <span id="job-filter-menu-value">
           {selected === 0 ? "Tous" : `${selected} actif${selected > 1 ? "s" : ""}`}
         </span>
-        <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2" />
+        <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2" />
       </button>
       {typeof document !== "undefined" && open
         ? createPortal(
@@ -113,10 +126,10 @@ export function JobFilterMenu({
               style={menuStyle ?? undefined}
               className="rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
             >
-              {option("Remote", filters.remote === true, "remote")}
+              {option("Télétravail total", filters.remote === true, "remote")}
               {option("Hybride", filters.hybrid === true, "hybrid")}
               {option(
-                "24 h seulement",
+                "Publiées depuis 24 h",
                 filters.postedWithinHours === 24,
                 "postedWithinHours"
               )}
@@ -126,7 +139,7 @@ export function JobFilterMenu({
                   onClick={clearAll}
                   className="w-full rounded-md px-3 py-2 text-left text-base text-muted-foreground hover:bg-muted"
                 >
-                  Tout effacer
+                  Réinitialiser ces filtres
                 </button>
               </div>
             </div>,
@@ -192,23 +205,26 @@ export function JobDateFilter({
 
   return (
     <div className="flex items-center gap-2">
-      <Label htmlFor="posted-within-days" className="mb-0 shrink-0">
-        Date
+      <Label id="job-date-filter-label" className={filterLabelClassName}>
+        Date de publication
       </Label>
       <button
         ref={anchorRef}
-        id="posted-within-days"
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-labelledby="job-date-filter-label job-date-filter-value"
         className={cn(
-          "relative flex h-12 w-[9.5rem] items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 dark:bg-input/30 dark:hover:bg-input/50",
-          open && "bg-accent/40"
+          filterSelectTriggerClassName,
+          "w-[9.5rem] whitespace-nowrap pr-10",
+          open && "border-app-text-secondary"
         )}
       >
-        <span className="truncate">{selectedLabel}</span>
-        <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2" />
+        <span id="job-date-filter-value" className="truncate">
+          {selectedLabel}
+        </span>
+        <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2" />
       </button>
       {typeof document !== "undefined" && open
         ? createPortal(
@@ -246,12 +262,14 @@ export function JobDateFilter({
 
 function FilterSelect({
   id,
+  labelledById,
   value,
   placeholder,
   options,
   onChange,
 }: {
   id?: string;
+  labelledById?: string;
   value: string;
   placeholder: string;
   options: { value: string; label: string }[];
@@ -296,14 +314,20 @@ function FilterSelect({
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-labelledby={
+          labelledById && id ? `${labelledById} ${id}-value` : undefined
+        }
         className={cn(
-          "relative flex h-12 w-full items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-3 pr-10 pl-4 text-base leading-6 whitespace-nowrap transition-colors outline-none select-none hover:bg-accent/40 dark:bg-input/30 dark:hover:bg-input/50",
-          !selectedLabel && "text-muted-foreground",
-          open && "bg-accent/40"
+          filterSelectTriggerClassName,
+          "pr-10",
+          (!selectedLabel || value === "all" || value === "0") && "text-app-text-muted",
+          open && "border-app-text-secondary"
         )}
       >
-        <span className="truncate">{display}</span>
-        <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2" />
+        <span id={id ? `${id}-value` : undefined} className="truncate">
+          {display}
+        </span>
+        <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2" />
       </button>
       {typeof document !== "undefined" && open
         ? createPortal(
@@ -340,30 +364,223 @@ function FilterSelect({
   );
 }
 
-export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <div className="grid gap-x-4 gap-y-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-          <Field className="xl:col-span-2">
-            <Label htmlFor="search" className="mb-0">
-              Search
-            </Label>
-            <Input
-              id="search"
-              placeholder="Title, company..."
-              value={filters.search ?? ""}
-              onChange={(e) => onChange({ ...filters, search: e.target.value || undefined })}
-            />
-          </Field>
+export function JobFiltersBar({ filters, onChange, sources, contracts = [] }: JobFiltersBarProps) {
+  const [showMore, setShowMore] = useState(false)
 
+  const activeFilters: { key: string; label: string; clear: () => void }[] = []
+  if (filters.search) {
+    activeFilters.push({
+      key: "search",
+      label: `« ${filters.search} »`,
+      clear: () => onChange({ ...filters, search: undefined }),
+    })
+  }
+  if (filters.location) {
+    activeFilters.push({
+      key: "location",
+      label: filters.location,
+      clear: () => onChange({ ...filters, location: undefined }),
+    })
+  }
+  if (filters.status) {
+    activeFilters.push({
+      key: "status",
+      label: jobStatusLabel(filters.status),
+      clear: () => onChange({ ...filters, status: undefined }),
+    })
+  }
+  if (filters.source) {
+    activeFilters.push({
+      key: "source",
+      label: filters.source,
+      clear: () => onChange({ ...filters, source: undefined }),
+    })
+  }
+  if (filters.contractType) {
+    activeFilters.push({
+      key: "contract",
+      label: filters.contractType,
+      clear: () => onChange({ ...filters, contractType: undefined }),
+    })
+  }
+  if (filters.minSalary !== undefined) {
+    activeFilters.push({
+      key: "salary",
+      label: `≥ ${filters.minSalary.toLocaleString("fr-FR")} €`,
+      clear: () => onChange({ ...filters, minSalary: undefined }),
+    })
+  }
+  if (filters.minMatchScore !== undefined) {
+    activeFilters.push({
+      key: "score",
+      label: `Correspondance ≥ ${filters.minMatchScore}`,
+      clear: () => onChange({ ...filters, minMatchScore: undefined }),
+    })
+  }
+  if (filters.remote) {
+    activeFilters.push({
+      key: "remote",
+      label: "Télétravail total",
+      clear: () => onChange({ ...filters, remote: undefined }),
+    })
+  }
+  if (filters.hybrid) {
+    activeFilters.push({
+      key: "hybrid",
+      label: "Hybride",
+      clear: () => onChange({ ...filters, hybrid: undefined }),
+    })
+  }
+  if (filters.postedWithinHours === 24) {
+    activeFilters.push({
+      key: "hours",
+      label: "Publiées depuis 24 h",
+      clear: () => onChange({ ...filters, postedWithinHours: undefined }),
+    })
+  }
+  if (filters.postedWithinDays !== undefined) {
+    activeFilters.push({
+      key: "days",
+      label: `${filters.postedWithinDays} derniers jours`,
+      clear: () => onChange({ ...filters, postedWithinDays: undefined }),
+    })
+  }
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-xl font-semibold leading-7 text-app-text">
+          Filtrer les offres
+        </h2>
+        <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle">
+          Retrouve les offres qui correspondent à tes critères.
+        </p>
+      </div>
+
+      <div className="grid gap-4 rounded-app-control border border-app-border-strong bg-app-surface p-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Field>
+          <Label htmlFor="search" className={filterLabelClassName}>
+            Poste ou entreprise
+          </Label>
+          <Input
+            id="search"
+            variant="control"
+            placeholder="Product Owner, entreprise…"
+            value={filters.search ?? ""}
+            onChange={(e) => onChange({ ...filters, search: e.target.value || undefined })}
+          />
+        </Field>
+
+        <Field>
+          <Label htmlFor="filter-location" className={filterLabelClassName}>
+            Lieu
+          </Label>
+          <Input
+            id="filter-location"
+            variant="control"
+            placeholder="Marseille, Aix-en-Provence…"
+            value={filters.location ?? ""}
+            onChange={(e) =>
+              onChange({ ...filters, location: e.target.value || undefined })
+            }
+          />
+        </Field>
+
+        <Field>
+          <Label id="filter-status-label" className={filterLabelClassName}>
+            Statut
+          </Label>
+          <FilterSelect
+            id="filter-status"
+            labelledById="filter-status-label"
+            value={filters.status ?? "all"}
+            placeholder="Tous les statuts"
+            options={[
+              { value: "all", label: "Tous les statuts" },
+              ...JOB_STATUSES.map((s) => ({
+                value: s,
+                label: jobStatusLabel(s),
+              })),
+            ]}
+            onChange={(v) =>
+              onChange({
+                ...filters,
+                status: !v || v === "all" ? undefined : (v as JobFilters["status"]),
+              })
+            }
+          />
+        </Field>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowMore((value) => !value)}
+            aria-expanded={showMore}
+            aria-controls="job-secondary-filters"
+            className={cn(
+              filterSelectTriggerClassName,
+              "w-fit gap-2 whitespace-nowrap px-4 pr-4",
+              showMore && "border-app-text-secondary"
+            )}
+          >
+            Plus de filtres
+            {activeFilters.length > 0 && !showMore ? (
+              <span className="flex min-w-6 items-center justify-center rounded-full bg-app-action px-1.5 text-sm text-app-text-inverse">
+                {activeFilters.length}
+              </span>
+            ) : null}
+            <ChevronDownIcon
+              className={cn("size-4 transition-transform", showMore && "rotate-180")}
+              aria-hidden
+            />
+          </button>
+          {activeFilters.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => onChange({})}
+              className="rounded-[6px] px-2 py-1 text-sm font-medium text-app-text-secondary underline underline-offset-4 hover:text-app-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-text-secondary"
+            >
+              Réinitialiser les filtres
+            </button>
+          ) : null}
+        </div>
+        {activeFilters.length > 0 ? (
+          <ul className="flex flex-wrap gap-2" aria-label="Filtres actifs">
+            {activeFilters.map((filter) => (
+              <li key={filter.key}>
+                <button
+                  type="button"
+                  onClick={filter.clear}
+                  className="inline-flex h-8 items-center gap-1 rounded-app-badge bg-app-control px-2 text-sm font-medium leading-5 text-app-text-strong hover:bg-app-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-text-secondary"
+                  aria-label={`Retirer le filtre ${filter.label}`}
+                >
+                  {filter.label}
+                  <span aria-hidden>×</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
+      {showMore ? (
+        <div
+          id="job-secondary-filters"
+          className="grid gap-4 rounded-app-control border border-app-border-strong bg-app-surface p-4 sm:grid-cols-2 xl:grid-cols-3"
+        >
           <Field>
-            <Label className="mb-0">Source</Label>
+            <Label id="filter-source-label" className={filterLabelClassName}>
+              Source
+            </Label>
             <FilterSelect
               id="filter-source"
+              labelledById="filter-source-label"
               value={filters.source ?? "all"}
-              placeholder="All sources"
+              placeholder="Toutes les sources"
               options={[
-                { value: "all", label: "All sources" },
+                { value: "all", label: "Toutes les sources" },
                 ...sources.map((s) => ({ value: s, label: s })),
               ]}
               onChange={(v) =>
@@ -373,52 +590,31 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
           </Field>
 
           <Field>
-            <Label className="mb-0">Location</Label>
-            <Input
-              placeholder="Paris..."
-              value={filters.location ?? ""}
-              onChange={(e) =>
-                onChange({ ...filters, location: e.target.value || undefined })
-              }
-            />
-          </Field>
-
-          <Field>
-            <Label className="mb-0">Status</Label>
+            <Label id="filter-contract-label" className={filterLabelClassName}>
+              Type de contrat
+            </Label>
             <FilterSelect
-              id="filter-status"
-              value={filters.status ?? "all"}
-              placeholder="All statuses"
+              id="filter-contract"
+              labelledById="filter-contract-label"
+              placeholder="Tous les contrats"
+              value={filters.contractType ?? "all"}
               options={[
-                { value: "all", label: "All statuses" },
-                ...JOB_STATUSES.map((s) => ({
-                  value: s,
-                  label: s.replace(/_/g, " "),
-                })),
+                { value: "all", label: "Tous les contrats" },
+                ...contracts.map((value) => ({ value, label: value })),
               ]}
-              onChange={(v) =>
-                onChange({
-                  ...filters,
-                  status: !v || v === "all" ? undefined : (v as JobFilters["status"]),
-                })
-              }
+              onChange={(value) => onChange({ ...filters, contractType: value === "all" ? undefined : value })}
             />
           </Field>
 
           <Field>
-            <Label className="mb-0">Contract</Label>
+            <Label htmlFor="filter-min-salary" className={filterLabelClassName}>
+              Salaire minimum (€ brut/an)
+            </Label>
             <Input
-              placeholder="CDI, CDD..."
-              value={filters.contractType ?? ""}
-              onChange={(e) => onChange({ ...filters, contractType: e.target.value || undefined })}
-            />
-          </Field>
-
-          <Field>
-            <Label className="mb-0">Min salary</Label>
-            <Input
+              id="filter-min-salary"
+              variant="control"
               type="number"
-              placeholder="55000"
+              placeholder="40 000"
               value={filters.minSalary ?? ""}
               onChange={(e) =>
                 onChange({
@@ -430,16 +626,19 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
           </Field>
 
           <Field>
-            <Label className="mb-0">Min. match score</Label>
+            <Label id="filter-min-match-score-label" className={filterLabelClassName}>
+              Correspondance minimum
+            </Label>
             <FilterSelect
               id="filter-min-match-score"
+              labelledById="filter-min-match-score-label"
               value={filters.minMatchScore?.toString() ?? "0"}
-              placeholder="Any"
+              placeholder="Tous les scores"
               options={[
-                { value: "0", label: "Any" },
-                { value: "50", label: "50%+" },
-                { value: "70", label: "70%+" },
-                { value: "80", label: "80%+" },
+                { value: "0", label: "Tous les scores" },
+                { value: "50", label: "50 / 100 et plus" },
+                { value: "70", label: "70 / 100 et plus" },
+                { value: "80", label: "80 / 100 et plus" },
               ]}
               onChange={(v) =>
                 onChange({
@@ -449,7 +648,16 @@ export function JobFiltersBar({ filters, onChange, sources }: JobFiltersBarProps
               }
             />
           </Field>
+
+          <div className="sm:col-span-2 xl:col-span-1">
+            <JobDateFilter filters={filters} onChange={onChange} />
+          </div>
+
+          <div className="sm:col-span-2 xl:col-span-2">
+            <JobFilterMenu filters={filters} onChange={onChange} />
+          </div>
         </div>
-      </div>
-  );
+      ) : null}
+    </section>
+  )
 }

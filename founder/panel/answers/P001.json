@@ -1,0 +1,13 @@
+{
+  "id": "P001",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "price",
+  "reason": "39 € pour trois mois sans reconduction, c'est moins que ce que je claque en un mois de transports, et j'ai déjà une analyse gratuite pour vérifier que le score tient debout avant de payer. Vu que je passe quarante minutes par candidature et que mon tableur est mort depuis trois semaines, ça se teste sans se mettre en danger.",
+  "objection": "Le vrai problème c'est que je ne crois plus aux scores ATS : si demain votre outil m'annonce 62 % et un autre 81 %, qui dit que le vôtre est le bon ? Le détail ligne par ligne peut très bien être un joli emballage autour du même chiffre inventé, et le remboursement ne couvre que la lettre, pas le score.",
+  "would_change_my_mind": "Voir, sur deux offres réelles que j'ai déjà postulées et dont je connais le résultat, que le détail ligne par ligne pointe les mêmes manques que les recruteurs m'ont reprochés en entretien — là je paie sans discuter.",
+  "price_too_cheap": 9,
+  "price_cheap": 25,
+  "price_expensive": 79,
+  "price_too_expensive": 149
+}

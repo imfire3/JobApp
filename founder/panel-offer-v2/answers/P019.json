@@ -1,0 +1,13 @@
+{
+  "id": "P019",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Je ne paierais pas encore : le suivi pourrait m’aider à reprendre mon tableur, mais la lettre générée par IA me fait craindre un résultat trop reconnaissable pour l’envoyer. À 39 €, j’attendrais d’avoir davantage confiance dans la qualité réelle du pass.",
+  "objection": "J’ai peur que la lettre sonne comme un texte d’IA et desserve ma candidature.",
+  "would_change_my_mind": "Voir un exemple concret de lettre générée à partir d’un CV et d’une offre, qui me paraisse suffisamment naturelle pour être envoyée.",
+  "price_too_cheap": 5,
+  "price_cheap": 15,
+  "price_expensive": 35,
+  "price_too_expensive": 60
+}

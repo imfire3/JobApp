@@ -73,16 +73,30 @@ function ChromeExtensionGate() {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-background">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:rounded-md focus:bg-popover focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-popover-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Aller au contenu principal
+      </a>
       <MobileNav />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="hidden h-full min-h-0 md:block md:shrink-0">
           <Sidebar />
         </div>
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain">
-          <div className="container mx-auto max-w-7xl p-4 pb-8 md:p-6 md:pb-10 lg:p-8 lg:pb-12">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain outline-none"
+        >
+          <div className="w-full min-w-0 p-4 pb-8 md:p-6 md:pb-10 lg:px-12 lg:pt-8 lg:pb-12 xl:px-16">
             {children}
           </div>
         </main>

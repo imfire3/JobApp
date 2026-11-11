@@ -15,8 +15,10 @@ export function normalizeEvidenceText(value: string): string {
 }
 
 /**
- * Returns true when `quote` appears as a verifiable span inside `cvText`
- * (exact normalized substring, or ≥3 significant tokens all present).
+ * Returns true when `quote` appears as a verifiable span inside `cvText`.
+ * - Exact normalized substring → verified.
+ * - Scattered tokens are not a verifiable quote.
+ * Conservative by design: an unverified quote can only yield evidence level ≤ 1.
  */
 export function isVerifiableCvQuote(
   cvText: string,
@@ -30,10 +32,36 @@ export function isVerifiableCvQuote(
   if (!cv || !needle) return false
   if (cv.includes(needle)) return true
 
-  const tokens = needle.split(" ").filter((token) => token.length >= 4)
-  if (tokens.length < 3) return false
-  const hits = tokens.filter((token) => cv.includes(token)).length
-  return hits >= Math.ceil(tokens.length * 0.75)
+  // Scattered words across a CV are not a quote or proof of the same activity.
+  return false
+}
+
+/** Questions are about candidate facts, never a ready-to-apply invented claim. */
+export function questionForRequirement(label: string): string {
+  const key = normalizeEvidenceText(label)
+  if (/\bia\b|intelligence artificielle/.test(key) && /cycle|developpement|projet/.test(key)) {
+    return "As-tu participé à une étape d’un projet IA, par exemple au cadrage, au prototypage ou à la mise en production ? Quel a été ton rôle ?"
+  }
+  if (/reglement|conformite/.test(key)) {
+    return "As-tu déjà contribué à la vérification d’une exigence réglementaire sur un projet ? Si oui, laquelle et qu’as-tu fait concrètement ?"
+  }
+  return `As-tu une expérience concrète liée à « ${label} » ? Précise ton rôle et le contexte.`
+}
+
+/** A practice quote alone cannot prove the duration in a compound requirement. */
+export function hasRequiredDurationEvidence(label: string, quote: string): boolean {
+  const required = normalizeEvidenceText(label).match(/\b(\d+)\s+(?:ans|annees|years)\b/)
+  if (!required) return true
+  const durations = [...normalizeEvidenceText(quote).matchAll(/\b(\d+)\s+(?:ans|annees|years)\b/g)]
+  // Dates can overlap or describe non-product roles. Do not sum them speculatively.
+  return durations.some((match) => Number(match[1]) >= Number(required[1]))
+}
+
+export function isDemonstratedCriterion(item: JobCriterionAssessment): boolean {
+  return item.cv_status === "demonstrated" && item.evidence_level >= 2 &&
+    Boolean(item.evidence_from_cv?.trim()) &&
+    !/^confirm[ée] par le candidat/i.test(item.evidence_from_cv ?? "") &&
+    hasRequiredDurationEvidence(item.label, item.evidence_from_cv ?? "")
 }
 
 function clampLevel(value: number): EvidenceLevel {
@@ -77,11 +105,19 @@ export function enforceCriteriaEvidenceAgainstCv(
       level = 0
     }
 
+    if (cvStatus === "demonstrated" && (level < 2 || !hasRequiredDurationEvidence(item.label, quote ?? ""))) {
+      level = Math.min(level, 1) as EvidenceLevel
+      cvStatus = "mentioned_only"
+    }
+
     return {
       ...item,
       evidence_level: level,
       cv_status: cvStatus,
       evidence_from_cv: quote,
+      question_to_candidate: cvStatus !== "demonstrated"
+        ? item.question_to_candidate || questionForRequirement(item.label)
+        : item.question_to_candidate,
     }
   })
 }

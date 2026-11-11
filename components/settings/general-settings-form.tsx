@@ -143,7 +143,7 @@ export function GeneralSettingsForm() {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label>Theme</Label>
+            <Label id="settings-theme-label">Theme</Label>
             <Select
               value={settings.theme === "system" ? "dark" : settings.theme}
               onValueChange={(value) => {
@@ -152,7 +152,10 @@ export function GeneralSettingsForm() {
                 setTheme(theme);
               }}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby="settings-theme-label"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -162,15 +165,17 @@ export function GeneralSettingsForm() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Timezone</Label>
+            <Label htmlFor="settings-timezone">Timezone</Label>
             <Input
+              id="settings-timezone"
               value={settings.timezone}
               onChange={(e) => setSettings((prev) => ({ ...prev, timezone: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
-            <Label>Default language</Label>
+            <Label htmlFor="settings-default-language">Default language</Label>
             <Input
+              id="settings-default-language"
               value={settings.default_language}
               onChange={(e) =>
                 setSettings((prev) => ({ ...prev, default_language: e.target.value }))
@@ -178,9 +183,10 @@ export function GeneralSettingsForm() {
             />
           </div>
           <div className="flex items-center justify-between rounded-lg border p-3">
-            <Label>Notifications</Label>
+            <Label id="settings-notifications-label">Notifications</Label>
             <Switch
               checked={settings.notifications_enabled}
+              aria-labelledby="settings-notifications-label"
               onCheckedChange={(checked) =>
                 setSettings((prev) => ({ ...prev, notifications_enabled: checked }))
               }
@@ -195,8 +201,11 @@ export function GeneralSettingsForm() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Resume defaults (JSON)</Label>
+            <Label htmlFor="settings-resume-defaults">
+              Resume defaults (JSON)
+            </Label>
             <Textarea
+              id="settings-resume-defaults"
               rows={4}
               className="font-mono text-base"
               value={settings.resume_defaults}
@@ -206,8 +215,11 @@ export function GeneralSettingsForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Cover letter defaults (JSON)</Label>
+            <Label htmlFor="settings-cover-letter-defaults">
+              Cover letter defaults (JSON)
+            </Label>
             <Textarea
+              id="settings-cover-letter-defaults"
               rows={4}
               className="font-mono text-base"
               value={settings.cover_letter_defaults}
@@ -217,8 +229,11 @@ export function GeneralSettingsForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Automation defaults (JSON)</Label>
+            <Label htmlFor="settings-automation-defaults">
+              Automation defaults (JSON)
+            </Label>
             <Textarea
+              id="settings-automation-defaults"
               rows={4}
               className="font-mono text-base"
               value={settings.automation_defaults}

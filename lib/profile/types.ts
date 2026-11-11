@@ -97,6 +97,7 @@ export type CandidateProfileFields = {
   target_roles: string[]
   target_locations: string[]
   desired_salary: number | null
+  desired_salary_max: number | null
   remote_preference: string | null
   preferred_contract_types: string[]
   cv_file_name: string | null

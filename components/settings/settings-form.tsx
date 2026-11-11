@@ -13,7 +13,7 @@ import { CvAnalysisPanel } from "@/components/settings/cv-analysis-panel"
 import { CvExperiencesCard } from "@/components/settings/cv-experiences-card"
 import { PageHelpButton } from "@/components/onboarding/page-help-button"
 import { StickyPageHeader } from "@/components/layout/sticky-page-header"
-import { mergeExperiencesIntoCvText, type CvExperience } from "@/lib/cv/experiences"
+import { mergeExperiencesIntoCvText, parseExperiencesSection, type CvExperience } from "@/lib/cv/experiences"
 import { CandidateProfileForm } from "@/components/profile/candidate-profile-form"
 import {
   Briefcase,
@@ -112,6 +112,7 @@ export function SettingsForm() {
         const text = profile.cv_text ?? ""
         setCvText(text)
         setSavedCvText(text)
+        setExperiences(parseExperiencesSection(text))
         setLastUpdatedAt(profile.updated_at ?? null)
       } catch {
         setCvText("")
@@ -173,7 +174,7 @@ export function SettingsForm() {
       const text = data.profile?.cv_text ?? nextText
       setCvText(text)
       setSavedCvText(text)
-      setExperiences([])
+      setExperiences(parseExperiencesSection(text))
       setLastUpdatedAt(data.profile?.updated_at ?? new Date().toISOString())
       toast.success("Contexte CV enregistré")
       if (text.trim().length >= 200) {
@@ -227,7 +228,7 @@ export function SettingsForm() {
       const text = data.extracted_text ?? ""
       setCvText(text)
       setSavedCvText(text)
-      setExperiences([])
+      setExperiences(parseExperiencesSection(text))
       setLastUpdatedAt(data.profile?.updated_at ?? new Date().toISOString())
       setPdfFile(null)
       setCvTextOpen(true)
@@ -273,7 +274,7 @@ export function SettingsForm() {
     <div className="space-y-8">
       <Tabs value={activeSection} onValueChange={handleSectionChange} className="gap-6">
         <StickyPageHeader>
-          <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2">
               <h1 className="text-3xl font-bold tracking-tight">Profil & CV</h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground">
@@ -282,7 +283,7 @@ export function SettingsForm() {
               </p>
             </div>
             <PageHelpButton pageId="cv" />
-          </header>
+          </div>
 
           <div className="flex flex-wrap items-center gap-2 text-base text-muted-foreground">
             <Badge variant={hasSavedCv ? "secondary" : "outline"}>
@@ -371,7 +372,7 @@ export function SettingsForm() {
                     accept=".pdf,application/pdf"
                     onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
                     className="h-12 text-base sm:flex-1"
-                    aria-label="Choisir un fichier PDF de CV"
+                    aria-label="Import PDF (optionnel)"
                   />
                   <Button
                     type="button"

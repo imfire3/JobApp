@@ -2,8 +2,8 @@ import { hashCvContent } from "@/lib/cv-analysis/hash"
 
 export const CV_EXTRACT_CONTENT_HASH_KEY = "_cv_content_hash" as const
 
-/** Max CV characters sent to the extract LLM (keeps latency low). */
-export const CV_EXTRACT_MAX_CHARS = 14_000
+/** Max CV characters sent to the extract LLM (no practical limit for real CVs). */
+export const CV_EXTRACT_MAX_CHARS = 200_000
 
 export function getStoredCvExtractHash(
   extractedCv: unknown

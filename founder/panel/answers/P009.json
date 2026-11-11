@@ -1,0 +1,13 @@
+{
+  "id": "P009",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "habit",
+  "reason": "J'ai déjà mon suivi gratuit et je n'ai pas envie de reconstruire mon organisation ailleurs. Je testerais l'analyse offerte sur une vraie candidature, mais je ne paierais pas 39 € pour une analyse ATS dont je me passe aujourd'hui.",
+  "objection": "Est-ce que ça me fait vraiment gagner du temps une fois que j'ai vérifié les suggestions et repris la lettre, ou est-ce juste un outil de plus ?",
+  "would_change_my_mind": "Que l'essai gratuit me permette réellement de préparer une candidature pertinente en dix minutes, sans devoir reprendre toute la lettre.",
+  "price_too_cheap": 5,
+  "price_cheap": 15,
+  "price_expensive": 35,
+  "price_too_expensive": 60
+}

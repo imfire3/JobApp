@@ -1,4 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { getSupabaseEnv } from "@/lib/supabase/env";
+import { supabaseFetch } from "@/lib/supabase/fetch";
 import {
   getAuthSecret,
   SESSION_COOKIE,
@@ -10,6 +13,7 @@ function isPublicRoute(pathname: string) {
   return (
     pathname === "/" ||
     pathname.startsWith("/login") ||
+    pathname === "/acces" ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/setup/") ||
     pathname.startsWith("/api/auth/") ||
@@ -52,8 +56,7 @@ function clearSessionCookies(response: NextResponse) {
   response.cookies.delete(ONBOARDING_COOKIE);
 }
 
-export async function updateSession(request: NextRequest) {
-  const localUser = getLocalUser(request);
+function routeRequest(request: NextRequest, authenticated: boolean) {
   const pathname = request.nextUrl.pathname;
   const forceLanding = request.nextUrl.searchParams.get("lp") === "1";
   const isAuthRoute =
@@ -65,7 +68,7 @@ export async function updateSession(request: NextRequest) {
   const onboardingPending = !onboardingDone;
 
   // Reset → LP: always allow the landing page and drop the session cookie.
-  if (pathname === "/" && forceLanding) {
+  if (pathname === "/" && forceLanding && process.env.NODE_ENV !== "production") {
     const url = request.nextUrl.clone();
     url.searchParams.delete("lp");
     const response = NextResponse.redirect(url);
@@ -73,7 +76,7 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  if (localUser) {
+  if (authenticated) {
     if (pathname === "/") {
       const url = request.nextUrl.clone();
       if (onboardingDone) {
@@ -140,4 +143,39 @@ export async function updateSession(request: NextRequest) {
   }
 
   return NextResponse.next({ request });
+}
+
+export async function updateSession(request: NextRequest) {
+  if (process.env.NODE_ENV !== "production") {
+    return routeRequest(request, Boolean(getLocalUser(request)));
+  }
+
+  const { url, anonKey } = getSupabaseEnv();
+  const pathname = request.nextUrl.pathname;
+  if (!url || !anonKey || pathname === "/auth/callback" || pathname.startsWith("/api/auth/")) {
+    return routeRequest(request, false);
+  }
+
+  const pendingCookies = new Map<string, { value: string; options: CookieOptions }>();
+  const pendingHeaders = new Headers();
+  const supabase = createServerClient(url, anonKey, {
+    cookieOptions: { httpOnly: true, secure: true },
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll(cookies, headers) {
+        for (const { name, value, options } of cookies) {
+          request.cookies.set(name, value);
+          pendingCookies.set(name, { value, options });
+        }
+        for (const [name, value] of Object.entries(headers)) pendingHeaders.set(name, value);
+      },
+    },
+    global: { fetch: supabaseFetch },
+  });
+
+  const { data } = await supabase.auth.getClaims();
+  const response = routeRequest(request, Boolean(data?.claims.sub));
+  for (const [name, { value, options }] of pendingCookies) response.cookies.set(name, value, options);
+  pendingHeaders.forEach((value, name) => response.headers.set(name, value));
+  return response;
 }
