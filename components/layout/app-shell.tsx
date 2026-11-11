@@ -73,7 +73,11 @@ function ChromeExtensionGate() {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-background">
       <a
@@ -92,7 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           tabIndex={-1}
           className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain outline-none"
         >
-          <div className="container mx-auto max-w-7xl p-4 pb-8 md:p-6 md:pb-10 lg:p-8 lg:pb-12">
+          <div className="w-full min-w-0 p-4 pb-8 md:p-6 md:pb-10 lg:px-12 lg:pt-8 lg:pb-12 xl:px-16">
             {children}
           </div>
         </main>

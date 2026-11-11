@@ -1,0 +1,13 @@
+{
+  "id": "P013",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "convenience",
+  "reason": "Avec six candidatures, garder le contexte de mon CV et suivre les relances m’éviterait de refaire toujours la même chose ; 39 € pour 90 jours, sans abonnement, me paraît acceptable.",
+  "objection": "Je ne sais pas quelles sont les limites d’usage, et je n’ai pas envie de perdre du temps à apprendre un outil pour découvrir qu’il ne couvre pas mes candidatures.",
+  "would_change_my_mind": "Des limites d’usage trop basses pour traiter mes six candidatures.",
+  "price_too_cheap": 5,
+  "price_cheap": 19,
+  "price_expensive": 59,
+  "price_too_expensive": 79
+}

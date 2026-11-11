@@ -50,6 +50,7 @@ import {
 import {
   parseCompanyMatch,
   calculateCompanyMatchScore,
+  getCompanyMatchCoverage,
   type CompanyMatchResult,
 } from "@/lib/ai/schemas/company-match"
 import { mapOpenAIError, resolveOpenAIApiKey } from "@/lib/openai/api-key"
@@ -236,7 +237,9 @@ export async function scoreCompanyMatch(
   options?: { apiKey?: string | null }
 ): Promise<{
   match: CompanyMatchResult
-  finalScore: number
+  finalScore: number | null
+  coverage: { evaluated: number; total: number; ratio: number }
+  confidence: "high" | "medium" | "low"
   promptVersion: string
 }> {
   let response
@@ -252,9 +255,21 @@ export async function scoreCompanyMatch(
   const content = response.choices[0]?.message?.content
   if (!content) throw new Error("Empty company match from OpenAI")
   const match = parseCompanyMatch(JSON.parse(content))
+  const coverage = getCompanyMatchCoverage(match)
+  const finalScore = calculateCompanyMatchScore(match)
+  const confidence =
+    finalScore == null
+      ? "low"
+      : coverage.ratio >= 0.8 && match.confidence === "high"
+        ? "high"
+        : coverage.ratio >= 0.5
+          ? "medium"
+          : "low"
   return {
     match,
-    finalScore: calculateCompanyMatchScore(match),
+    finalScore,
+    coverage,
+    confidence,
     promptVersion: COMPANY_MATCH_PROMPT_VERSION,
   }
 }

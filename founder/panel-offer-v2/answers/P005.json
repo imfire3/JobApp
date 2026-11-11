@@ -1,0 +1,13 @@
+{
+  "id": "P005",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "convenience",
+  "reason": "J’ai déjà six candidatures en cours et je n’ai pas envie d’apprendre un nouvel outil pour gagner surtout un score et une lettre que je peux faire autrement. À 39 €, je préfère attendre de voir concrètement le parcours.",
+  "objection": "Je ne sais pas combien de temps il faut pour tout prendre en main, et le suivi décrit ne dit pas qu’il me rappellera de relancer mes candidatures.",
+  "would_change_my_mind": "Une démo très courte qui montre que le parcours est immédiatement simple à utiliser, sans configuration ni apprentissage",
+  "price_too_cheap": 5,
+  "price_cheap": 15,
+  "price_expensive": 50,
+  "price_too_expensive": 80
+}

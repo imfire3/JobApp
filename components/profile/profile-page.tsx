@@ -880,7 +880,15 @@ export function ProfilePage() {
               formation et préférences.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              disabled={saving || importingPdf || analyzing || !hasUnsaved}
+              onClick={() => void handleSave()}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {saving ? "Enregistrement…" : "Enregistrer le profil"}
+            </Button>
             <input
               ref={headerPdfInputRef}
               type="file"

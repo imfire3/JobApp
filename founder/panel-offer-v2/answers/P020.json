@@ -1,0 +1,13 @@
+{
+  "id": "P020",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Je passe déjà mes annonces et mon CV dans ChatGPT, donc le score et les mots-clés m'intéressent, mais je ne paierais pas 39 € pour une lettre dont j'aurais peur qu'elle sonne immédiatement comme de l'IA.",
+  "objection": "Qu'est-ce qui rendrait la lettre assez personnelle pour ne pas être repérée comme générée par IA ?",
+  "would_change_my_mind": "Voir une lettre complète générée à partir d'une offre et d'un CV comparables aux miens, qui sonne vraiment personnelle.",
+  "price_too_cheap": 5,
+  "price_cheap": 15,
+  "price_expensive": 40,
+  "price_too_expensive": 60
+}

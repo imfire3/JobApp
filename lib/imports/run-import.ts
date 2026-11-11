@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildJobInsertPayload } from "@/lib/jobs/mapper";
-import type { ParsedImportFile } from "@/lib/imports/jobs-file";
+import type { ImportRow, ParsedImportFile } from "@/lib/imports/jobs-file";
 
 export type AlreadyOnBoardJob = {
   id: string;
@@ -65,7 +65,7 @@ export function buildImportResultMessage(summary: ImportSummary): string {
 export async function importParsedJobs(
   supabase: SupabaseClient,
   userId: string,
-  parsed: ParsedImportFile
+  parsed: ParsedImportFile<ImportRow>
 ): Promise<ImportParsedJobsResult> {
   const urlCandidates = parsed.rows.map((row) => row.url);
   const existingByUrl = new Map<string, AlreadyOnBoardJob>();

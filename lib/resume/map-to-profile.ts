@@ -155,6 +155,7 @@ export function mapParsedResumeToProfileDraft(
     target_roles: [],
     target_locations: [],
     desired_salary: null,
+    desired_salary_max: null,
     remote_preference: null,
     preferred_contract_types: [],
     cv_file_name: null,

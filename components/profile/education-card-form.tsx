@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Pencil, Trash2, AlertCircle } from "lucide-react"
+import { Trash2, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -13,23 +14,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { MONTH_OPTIONS } from "@/lib/cv/experiences"
-import { emptyEducationEntry } from "@/lib/profile/helpers"
+import {
+  MONTH_OPTIONS,
+  formatMonthYear,
+  isMonthYearValid,
+  parseMonthYear,
+} from "@/lib/cv/experiences"
+import {
+  EDUCATION_LEVEL_OPTIONS,
+  emptyEducationEntry,
+} from "@/lib/profile/helpers"
 import type { ProfileEducationEntry } from "@/lib/profile/types"
 import { cn } from "@/lib/utils"
 
-const yearOptions = (() => {
-  const current = new Date().getFullYear()
-  const years: string[] = []
-  for (let year = current + 1; year >= current - 60; year -= 1) {
-    years.push(String(year))
-  }
-  return years
-})()
-
-function formatMonthYear(month: string, year: string): string {
+function formatPeriodMonthYear(month: string, year: string): string {
   const monthLabel = month
     ? MONTH_OPTIONS.find((m) => m.value === month)?.label
     : null
@@ -37,22 +36,19 @@ function formatMonthYear(month: string, year: string): string {
 }
 
 function formatPeriodDisplay(entry: ProfileEducationEntry): string {
-  const start = formatMonthYear(entry.startMonth, entry.startYear)
+  const start = formatPeriodMonthYear(entry.startMonth, entry.startYear)
   const end = entry.isCurrent
     ? "En cours"
-    : formatMonthYear(entry.endMonth, entry.endYear)
+    : formatPeriodMonthYear(entry.endMonth, entry.endYear)
   return [start, end].filter(Boolean).join(" – ")
 }
 
-function isDateValid(startMonth: string, startYear: string, endMonth: string, endYear: string): boolean {
-  if (!startYear || !endYear) return true
-  const sY = Number(startYear)
-  const eY = Number(endYear)
-  if (eY < sY) return false
-  if (eY > sY) return true
-  const sM = Number(startMonth || "01")
-  const eM = Number(endMonth || "12")
-  return eM >= sM
+function compareMonthYear(left: string, right: string) {
+  const a = parseMonthYear(left)
+  const b = parseMonthYear(right)
+  if (a.year !== b.year) return a.year < b.year ? -1 : 1
+  if (a.month === b.month) return 0
+  return a.month < b.month ? -1 : 1
 }
 
 type EducationCardFormProps = {
@@ -72,21 +68,71 @@ export function EducationCardForm({
   )
   const [saving, setSaving] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [startText, setStartText] = useState(() =>
+    initial
+      ? formatMonthYear(initial.startMonth, initial.startYear)
+      : formatMonthYear("", "")
+  )
+  const [endText, setEndText] = useState(() =>
+    initial ? formatMonthYear(initial.endMonth, initial.endYear) : ""
+  )
   const nameRef = useRef<HTMLInputElement>(null)
+
+  const levelOptions = useMemo(() => {
+    if (draft.level && !EDUCATION_LEVEL_OPTIONS.includes(draft.level)) {
+      return [...EDUCATION_LEVEL_OPTIONS, draft.level]
+    }
+    return EDUCATION_LEVEL_OPTIONS
+  }, [draft.level])
 
   useEffect(() => {
     window.requestAnimationFrame(() => nameRef.current?.focus())
   }, [])
 
-  const canSave = useMemo(() => draft.name.trim().length > 0, [draft.name])
+  const canSave = useMemo(() => {
+    if (draft.name.trim().length === 0) return false
+    if (!isMonthYearValid(startText)) return false
+    if (!draft.isCurrent && endText.trim() && !isMonthYearValid(endText)) return false
+    if (
+      !draft.isCurrent &&
+      isMonthYearValid(endText) &&
+      compareMonthYear(endText, startText) < 0
+    ) {
+      return false
+    }
+    return true
+  }, [draft.name, draft.isCurrent, startText, endText])
 
   const dateError = useMemo(() => {
     if (draft.isCurrent) return null
-    if (!isDateValid(draft.startMonth, draft.startYear, draft.endMonth, draft.endYear)) {
+    if (!isMonthYearValid(endText) || !isMonthYearValid(startText)) return null
+    if (compareMonthYear(endText, startText) < 0) {
       return "La date de fin doit être postérieure ou égale à la date de début."
     }
     return null
-  }, [draft.startMonth, draft.startYear, draft.endMonth, draft.endYear, draft.isCurrent])
+  }, [draft.isCurrent, endText, startText])
+
+  const handleStartChange = (value: string) => {
+    setStartText(value)
+    const parsed = parseMonthYear(value)
+    if (!parsed.month || !parsed.year) return
+    setDraft((prev) => ({
+      ...prev,
+      startMonth: parsed.month,
+      startYear: parsed.year,
+    }))
+  }
+
+  const handleEndChange = (value: string) => {
+    setEndText(value)
+    const parsed = parseMonthYear(value)
+    if (!parsed.month || !parsed.year) return
+    setDraft((prev) => ({
+      ...prev,
+      endMonth: parsed.month,
+      endYear: parsed.year,
+    }))
+  }
 
   const handleSave = async () => {
     const errors: Record<string, string> = {}
@@ -128,14 +174,14 @@ export function EducationCardForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="edu-form-name">
-            Diplôme / formation <span className="text-destructive">*</span>
+            Nom <span className="text-destructive">*</span>
           </Label>
           <Input
             ref={nameRef}
             id="edu-form-name"
             value={draft.name}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            placeholder="Master Product Management"
+            placeholder="Ex. : Master UI/UX Design"
             aria-invalid={Boolean(fieldErrors.name)}
             className={cn(fieldErrors.name && "border-destructive")}
           />
@@ -148,171 +194,109 @@ export function EducationCardForm({
         </div>
 
         <div className="space-y-2">
+          <Label id="edu-form-level-label">Niveau</Label>
+          <Select
+            value={draft.level || "__none__"}
+            items={levelOptions.map((level) => ({ value: level, label: level }))}
+            onValueChange={(value) =>
+              setDraft({
+                ...draft,
+                level: !value || value === "__none__" ? "" : value,
+              })
+            }
+          >
+            <SelectTrigger
+              className="w-full"
+              aria-labelledby="edu-form-level-label"
+            >
+              <SelectValue placeholder="Sélectionnez" />
+            </SelectTrigger>
+            <SelectContent>
+              {levelOptions.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {level}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="edu-form-school">École ou organisme</Label>
           <Input
             id="edu-form-school"
             value={draft.school}
             onChange={(e) => setDraft({ ...draft, school: e.target.value })}
-            placeholder="HEC Paris"
+            placeholder="Ex. : Université Paris II"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="edu-form-level">Niveau</Label>
+          <Label htmlFor="edu-form-start">
+            Du <span className="text-destructive">*</span>
+          </Label>
           <Input
-            id="edu-form-level"
-            value={draft.level}
-            onChange={(e) => setDraft({ ...draft, level: e.target.value })}
-            placeholder="Bac+5"
+            id="edu-form-start"
+            value={startText}
+            onChange={(e) => handleStartChange(e.target.value)}
+            placeholder="MM/AAAA"
+            inputMode="numeric"
+            autoComplete="off"
+            aria-invalid={Boolean(fieldErrors.dates)}
           />
         </div>
 
-        <div className="space-y-3 sm:col-span-2">
-          <Label id="edu-form-period-label">Période</Label>
-          <div
-            role="group"
-            aria-labelledby="edu-form-period-label"
-            className="rounded-xl border border-border p-3 space-y-3"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <Label
-                id="edu-form-current-label"
-                className="mb-0 cursor-pointer text-sm"
-              >
-                Formation en cours
-              </Label>
-              <Switch
-                id="edu-form-current"
-                checked={draft.isCurrent}
-                aria-labelledby="edu-form-current-label"
-                onCheckedChange={(checked) => {
-                  const isCurrent = checked === true
-                  setDraft((prev) => ({
-                    ...prev,
-                    isCurrent,
-                    endMonth: isCurrent ? "" : prev.endMonth,
-                    endYear: isCurrent ? "" : prev.endYear,
-                  }))
-                }}
-              />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div
-                role="group"
-                aria-labelledby="edu-form-start-label"
-                className="space-y-2"
-              >
-                <Label id="edu-form-start-label">Début</Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={draft.startMonth || undefined}
-                    onValueChange={(value) =>
-                      setDraft({ ...draft, startMonth: value || "" })
-                    }
-                  >
-                    <SelectTrigger className="w-full" aria-label="Mois de début">
-                      <SelectValue placeholder="Mois" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MONTH_OPTIONS.map((month) => (
-                        <SelectItem key={month.value} value={month.value}>
-                          {month.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={draft.startYear || undefined}
-                    onValueChange={(value) =>
-                      setDraft({ ...draft, startYear: value || "" })
-                    }
-                  >
-                    <SelectTrigger className="w-full" aria-label="Année de début">
-                      <SelectValue placeholder="Année" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {yearOptions.map((year) => (
-                        <SelectItem key={year} value={year}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {!draft.isCurrent ? (
-                <div
-                  role="group"
-                  aria-labelledby="edu-form-end-label"
-                  className="space-y-2"
-                >
-                  <Label id="edu-form-end-label">Fin</Label>
-                  <div className="flex gap-2">
-                    <Select
-                      value={draft.endMonth || undefined}
-                      onValueChange={(value) =>
-                        setDraft({ ...draft, endMonth: value || "" })
-                      }
-                    >
-                      <SelectTrigger className="w-full" aria-label="Mois de fin">
-                        <SelectValue placeholder="Mois" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MONTH_OPTIONS.map((month) => (
-                          <SelectItem key={month.value} value={month.value}>
-                            {month.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={draft.endYear || undefined}
-                      onValueChange={(value) =>
-                        setDraft({ ...draft, endYear: value || "" })
-                      }
-                    >
-                      <SelectTrigger className="w-full" aria-label="Année de fin">
-                        <SelectValue placeholder="Année" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {yearOptions.map((year) => (
-                          <SelectItem key={year} value={year}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center rounded-xl border border-border bg-muted/30 px-4 py-6 text-sm text-muted-foreground">
-                  En cours
-                </div>
-              )}
-            </div>
-
-            {fieldErrors.dates ? (
-              <p className="flex items-center gap-1 text-sm text-destructive">
-                <AlertCircle className="h-3.5 w-3.5" />
-                {fieldErrors.dates}
-              </p>
-            ) : null}
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="edu-form-end">Au</Label>
+          <Input
+            id="edu-form-end"
+            value={draft.isCurrent ? "" : endText}
+            onChange={(e) => handleEndChange(e.target.value)}
+            placeholder="MM/AAAA"
+            inputMode="numeric"
+            autoComplete="off"
+            disabled={draft.isCurrent}
+            aria-invalid={Boolean(fieldErrors.dates)}
+          />
         </div>
+
+        <div className="flex items-center gap-3 sm:col-span-2">
+          <Checkbox
+            id="edu-form-current"
+            checked={draft.isCurrent}
+            onCheckedChange={(checked) => {
+              const isCurrent = checked === true
+              setDraft((prev) => ({
+                ...prev,
+                isCurrent,
+                endMonth: isCurrent ? "" : prev.endMonth,
+                endYear: isCurrent ? "" : prev.endYear,
+              }))
+              if (isCurrent) setEndText("")
+            }}
+          />
+          <Label htmlFor="edu-form-current" className="mb-0 cursor-pointer">
+            J&apos;y étudie toujours
+          </Label>
+        </div>
+
+        {fieldErrors.dates ? (
+          <p className="flex items-center gap-1 text-sm text-destructive sm:col-span-2">
+            <AlertCircle className="h-3.5 w-3.5" />
+            {fieldErrors.dates}
+          </p>
+        ) : null}
 
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="edu-form-desc">Description</Label>
-          <p className="text-sm text-muted-foreground">
-            Précisez votre spécialisation, vos projets marquants ou les distinctions obtenues.
-          </p>
           <Textarea
             id="edu-form-desc"
             value={draft.description}
             onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-            rows={4}
-            placeholder="Spécialisation, projets, mentions…"
+            rows={5}
+            placeholder={
+              "Mes apprentissages\n• Apprendre les outils et techniques de conception industrielle.\n• Gérer le processus de développement d'un produit.\n• Appliquer les théories de la culture du design à un projet de conception de produit."
+            }
           />
         </div>
       </div>

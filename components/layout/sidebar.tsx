@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 import { Briefcase, LogOut, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,17 @@ import { NAV_ITEMS } from "@/components/layout/nav-items";
 export function Sidebar() {
   const pathname = usePathname();
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    if (process.env.NODE_ENV === "production") {
+      try {
+        const response = await fetch("/api/auth/logout", { method: "POST" });
+        if (!response.ok) throw new Error("Logout failed");
+      } catch {
+        toast.error("La déconnexion a échoué. Réessaie dans quelques instants.");
+        return;
+      }
+    }
+
     try {
       for (const key of [
         "jobtracker-theme",
@@ -27,8 +38,7 @@ export function Sidebar() {
     } catch {
       // ignore
     }
-    // Same path as Reset → LP: clear cookies server-side and land on /
-    window.location.assign("/api/auth/reset-local")
+    window.location.assign(process.env.NODE_ENV === "production" ? "/" : "/api/auth/reset-local");
   }
 
   return (

@@ -1,0 +1,13 @@
+{
+  "id": "P006",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Je testerais l'analyse gratuite, mais je ne paie pas 39 € sur la promesse d'un score expliqué : chaque outil me sort déjà un résultat différent. Les relances m'intéressent, mais rien ne me garantit que je tiendrai ce suivi plus à jour que mon tableur.",
+  "objection": "Expliquer un score ligne par ligne ne prouve pas que ses critères correspondent à ceux des recruteurs pour un poste produit.",
+  "would_change_my_mind": "Que l'analyse gratuite sur mon CV et une vraie offre produit repère des écarts précis et justifiés que je peux corriger, plutôt que des conseils génériques.",
+  "price_too_cheap": 5,
+  "price_cheap": 19,
+  "price_expensive": 39,
+  "price_too_expensive": 69
+}

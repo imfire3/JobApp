@@ -1,0 +1,13 @@
+{
+  "id": "P010",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "price",
+  "reason": "Avec mes indemnités qui se terminent, je ne sors pas 39 € d'un coup pour trois mois. Je testerais l'analyse et la lettre gratuites, mais pour mes six candidatures je garderais un suivi gratuit et des rappels.",
+  "objection": "Un score expliqué reste un score : comment savoir si ses conseils sont pertinents quand chaque outil me donne un résultat différent ?",
+  "would_change_my_mind": "Un pass de trois mois à 15 €, sans reconduction, me ferait tenter le coup si l'essai gratuit me paraît pertinent.",
+  "price_too_cheap": 3,
+  "price_cheap": 10,
+  "price_expensive": 20,
+  "price_too_expensive": 30
+}

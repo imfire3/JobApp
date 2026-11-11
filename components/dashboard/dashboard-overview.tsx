@@ -1,165 +1,225 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { KpiCards } from "@/components/dashboard/kpi-cards";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
-import type { DashboardKpis, Job } from "@/types";
-import { computeKpis } from "@/lib/jobs/utils";
+import {
+  Briefcase,
+  CalendarClock,
+  CircleHelp,
+  MailCheck,
+  Send,
+} from "lucide-react";
+import {
+  DashboardKpiCards,
+  type DashboardKpiItem,
+} from "@/components/dashboard/dashboard-kpis";
+import { DashboardRecommendation } from "@/components/dashboard/dashboard-recommendation";
+import { DashboardProfileProgress } from "@/components/dashboard/dashboard-profile-progress";
+import { DashboardTips } from "@/components/dashboard/dashboard-tips";
+import { DashboardJourney } from "@/components/dashboard/dashboard-journey";
+import {
+  DashboardError,
+  DashboardSkeleton,
+} from "@/components/dashboard/dashboard-states";
 import { PageHelpButton } from "@/components/onboarding/page-help-button";
-import { StickyPageHeader } from "@/components/layout/sticky-page-header";
-import { Bot, Clock3, Sparkles } from "lucide-react";
+import type {
+  DashboardApplication,
+  DashboardJob,
+} from "@/lib/dashboard/overview";
+import {
+  buildDashboardTips,
+  computeDashboardStats,
+  computeJourney,
+  computeProfileProgress,
+  pickJourneyHighlight,
+  pickRecommendedJobs,
+} from "@/lib/dashboard/overview";
 
 type DashboardSummaryResponse = {
-  jobs: Job[];
-  last_sync_time: string | null;
-  next_sync_time: string | null;
-  source_health: {
-    connected: number;
-    notConfigured: number;
-    error: number;
+  jobs: DashboardJob[];
+  applications: DashboardApplication[];
+  first_name: string | null;
+  profile: {
+    hasCv: boolean;
+    hasProfileReviewed: boolean;
+    hasTargets: boolean;
   };
-  active_connectors: number;
-  applications_sent?: number;
-  ai_recommendations: string[];
-  recent_activity: Array<{
-    time: string;
-    label: string;
-    message: string;
-    phase: string;
-  }>;
 };
 
 export function DashboardOverview() {
   const [data, setData] = useState<DashboardSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    fetch("/api/dashboard/summary")
-      .then((res) => res.json())
-      .then((payload) => {
-        if (!payload || payload.error || !Array.isArray(payload.jobs)) {
-          setData(null);
-          toast.error(
-            typeof payload?.error === "string"
-              ? payload.error
-              : "Impossible de charger le tableau de bord"
-          );
-          return;
+    const controller = new AbortController();
+    let active = true;
+
+    fetch("/api/dashboard/summary", {
+      signal: controller.signal,
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        const payload: unknown = await response.json().catch(() => null);
+        if (
+          !response.ok ||
+          !payload ||
+          !Array.isArray((payload as DashboardSummaryResponse).jobs) ||
+          !Array.isArray((payload as DashboardSummaryResponse).applications)
+        ) {
+          throw new Error("dashboard");
         }
+        return payload as DashboardSummaryResponse;
+      })
+      .then((payload) => {
+        if (!active) return;
         setData(payload);
       })
       .catch(() => {
+        if (!active || controller.signal.aborted) return;
         setData(null);
-        toast.error("Impossible de charger le tableau de bord");
+        setError(true);
       })
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
-  const kpis: DashboardKpis = useMemo(() => {
-    const base = computeKpis(data?.jobs ?? [], {
-      applicationsSent:
-        typeof data?.applications_sent === "number"
-          ? data.applications_sent
-          : undefined,
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [reloadToken]);
+
+  const model = useMemo(() => {
+    if (!data) return null;
+
+    const stats = computeDashboardStats(data.jobs, data.applications);
+    const profileProgress = computeProfileProgress(data.profile);
+    const journey = computeJourney({
+      hasCv: data.profile.hasCv,
+      offersCount: data.jobs.length,
+      applicationsSent: stats.applicationsSent,
+      responsesCount: stats.responses,
     });
+
     return {
-      ...base,
-      lastSyncTime: data?.last_sync_time ?? null,
-      nextSyncTime: data?.next_sync_time ?? null,
-      sourceHealth: data?.source_health ?? {
-        connected: 0,
-        notConfigured: 0,
-        error: 0,
-      },
+      stats,
+      profileProgress,
+      recommended: pickRecommendedJobs(data.jobs),
+      tips: buildDashboardTips({
+        jobs: data.jobs,
+        applications: data.applications,
+        profilePercent: profileProgress.percent,
+      }),
+      journey,
+      journeyHighlight: pickJourneyHighlight(journey),
     };
   }, [data]);
 
+  function retry() {
+    setLoading(true);
+    setError(false);
+    setReloadToken((value) => value + 1);
+  }
+
+  const firstName = data?.first_name?.trim();
+
+  const kpiItems: DashboardKpiItem[] = model
+    ? [
+        {
+          id: "offers",
+          label: "Offres enregistrées",
+          value: String(model.stats.offers),
+          hint:
+            model.stats.offers === 0
+              ? "Ajoute ta première offre"
+              : `${model.stats.activeOffers} offre${model.stats.activeOffers > 1 ? "s" : ""} active${model.stats.activeOffers > 1 ? "s" : ""}`,
+          icon: Briefcase,
+          href: "/jobs",
+        },
+        {
+          id: "active-applications",
+          label: "Candidatures actives",
+          value: String(model.stats.activeApplications),
+          hint:
+            model.stats.activeApplications === 0
+              ? "Aucune candidature en cours"
+              : `${model.stats.applicationsSent} candidature${model.stats.applicationsSent > 1 ? "s" : ""} envoyée${model.stats.applicationsSent > 1 ? "s" : ""}`,
+          icon: Send,
+          href: "/applications",
+        },
+        {
+          id: "interviews",
+          label: "Entretiens",
+          value: String(model.stats.interviews),
+          hint:
+            model.stats.interviews === 0
+              ? "Aucun entretien programmé"
+              : "Prépare tes prochains entretiens",
+          icon: CalendarClock,
+          href: "/applications",
+        },
+        {
+          id: "responses",
+          label: "Réponses reçues",
+          value: String(model.stats.responses),
+          hint:
+            model.stats.responses === 0
+              ? "Aucune réponse enregistrée"
+              : model.stats.responseRate === null
+                ? "Réponses enregistrées"
+                : `${model.stats.responseRate} % de taux de réponse`,
+          icon: MailCheck,
+          href: "/applications",
+        },
+      ]
+    : [];
+
   return (
-    <div className="space-y-6">
-      <StickyPageHeader>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
-            <p className="text-base text-muted-foreground">
-              Vue d’ensemble de ta recherche et de ton activité récente.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/jobs" className={buttonVariants({})}>
-              Voir mes offres
-            </Link>
-            <PageHelpButton pageId="dashboard" />
-          </div>
+    <div className="-m-4 min-h-full space-y-6 bg-app-canvas p-4 pb-8 md:-m-6 md:p-6 md:pb-10 lg:-mx-12 lg:-mt-8 lg:px-12 lg:pt-8 lg:pb-12 xl:-mx-16 xl:px-16">
+      <header className="flex items-center gap-8 border-b border-app-border-strong pb-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <h1 className="text-[32px] font-bold leading-10 text-app-text">
+            {firstName ? `Bonjour ${firstName} 👋` : "Bonjour 👋"}
+          </h1>
+          <p className="text-sm leading-5 tracking-[-0.017em] text-app-text-label">
+            Voici l’essentiel de ta recherche d’emploi.
+          </p>
         </div>
-      </StickyPageHeader>
+        <PageHelpButton
+          pageId="dashboard"
+          label="Aide sur le tableau de bord"
+          trigger={(openHelp) => (
+            <button
+              type="button"
+              onClick={openHelp}
+              aria-label="Aide sur le tableau de bord"
+              className="flex size-(--app-control-height) shrink-0 items-center justify-center rounded-app-surface border-(length:--app-stroke) border-app-border-default bg-app-surface text-app-text transition-colors hover:border-app-text-secondary hover:bg-app-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-text-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-app-canvas"
+            >
+              <CircleHelp className="size-6" aria-hidden />
+            </button>
+          )}
+        />
+      </header>
 
-      <KpiCards kpis={kpis} />
+      {loading && !model ? (
+        <DashboardSkeleton />
+      ) : error && !model ? (
+        <DashboardError onRetry={retry} />
+      ) : model ? (
+        <>
+          <DashboardTips tips={model.tips} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock3 className="h-4 w-4" />
-              Activité récente
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loading ? (
-              <div className="h-24 animate-pulse rounded-lg bg-muted" />
-            ) : (data?.recent_activity?.length ?? 0) === 0 ? (
-              <p className="text-base text-muted-foreground">
-                Pas encore d’activité. Lance une collecte depuis Offres, Imports ou
-                Sources.
-              </p>
-            ) : (
-              data?.recent_activity.map((item, index) => (
-                <div key={`${item.time}-${index}`} className="rounded-md border p-3 text-base">
-                  <p className="font-medium">
-                    {new Date(item.time).toLocaleTimeString("fr-FR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}{" "}
-                    · {item.label}
-                  </p>
-                  <p className="text-muted-foreground">{item.message}</p>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+          <DashboardKpiCards items={kpiItems} />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bot className="h-4 w-4" />
-              Suggestions IA
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(data?.ai_recommendations ?? []).map((recommendation, index) => (
-              <div key={index} className="rounded-md border p-3 text-base">
-                <p className="flex items-start gap-2">
-                  <Sparkles className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{recommendation}</span>
-                </p>
-              </div>
-            ))}
-            {(data?.jobs?.length ?? 0) > 0 && (
-              <div className="pt-2">
-                <Link
-                  href="/profile-ai"
-                  className={buttonVariants({ variant: "secondary" })}
-                >
-                  Affiner Profil & CV
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          <div className="grid gap-4 xl:h-[370px] xl:grid-cols-[minmax(0,3.075fr)_minmax(0,1fr)]">
+            <DashboardRecommendation jobs={model.recommended} />
+            <DashboardProfileProgress progress={model.profileProgress} />
+          </div>
+
+          <DashboardJourney step={model.journeyHighlight} />
+        </>
+      ) : null}
     </div>
   );
 }

@@ -1,0 +1,222 @@
+[
+ {
+  "id": "P001",
+  "name": "Mira",
+  "age": 33,
+  "segment": "Reconversion junior vers le produit (bootcamp, moins de 2 ans)",
+  "income": 39000,
+  "behaviour": "Gère tout dans un tableur",
+  "behaviour_how": "Un Google Sheet avec les offres, les dates et des statuts qu'il ne met plus à jour depuis trois semaines.",
+  "objection": "Le score ATS est faux : chaque outil me donne un chiffre différent",
+  "habit": "Tu passes quarante minutes par candidature à retoucher ton CV et à réécrire la même lettre"
+ },
+ {
+  "id": "P002",
+  "name": "Sofia",
+  "age": 38,
+  "segment": "Cadre en transition vers un rôle produit",
+  "income": 46000,
+  "behaviour": "Protecteur de ses données",
+  "behaviour_how": "Refuse de créer un compte avec son vrai CV sur un site qu'il ne connaît pas, ou utilise un vieux CV anonymisé.",
+  "objection": "Une lettre générée par IA, un recruteur le repère tout de suite",
+  "habit": "Tu as six candidatures en cours et tu as oublié de relancer deux d'entre elles"
+ },
+ {
+  "id": "P003",
+  "name": "Raj",
+  "age": 40,
+  "segment": "Cadre en transition vers un rôle produit",
+  "income": 44000,
+  "behaviour": "Colle chaque offre dans ChatGPT",
+  "behaviour_how": "Ouvre un onglet ChatGPT, colle l'annonce et son CV, demande une lettre, recommence à chaque offre.",
+  "objection": "ChatGPT me fait déjà ça gratuitement",
+  "habit": "Tu as six candidatures en cours et tu as oublié de relancer deux d'entre elles"
+ },
+ {
+  "id": "P004",
+  "name": "Finn",
+  "age": 36,
+  "segment": "Reconversion junior vers le produit (bootcamp, moins de 2 ans)",
+  "income": 31000,
+  "behaviour": "Utilise déjà un outil de suivi",
+  "behaviour_how": "A un compte gratuit sur Teal, Huntr ou Notion, utilise surtout le tracker et jamais l'analyse ATS payante.",
+  "objection": "Une lettre générée par IA, un recruteur le repère tout de suite",
+  "habit": "Tu as déjà payé un mois d'un outil de CV puis annulé avant le renouvellement"
+ },
+ {
+  "id": "P005",
+  "name": "Rafael",
+  "age": 27,
+  "segment": "Product Owner / PM en poste qui cherche à changer",
+  "income": 69000,
+  "behaviour": "Lit les avis avant de payer",
+  "behaviour_how": "Cherche « arnaque », « remboursement », « résiliation » avant de laisser une carte bancaire.",
+  "objection": "Je n'ai pas le temps d'apprendre un nouvel outil pendant ma recherche",
+  "habit": "Tu as six candidatures en cours et tu as oublié de relancer deux d'entre elles"
+ },
+ {
+  "id": "P006",
+  "name": "Declan",
+  "age": 32,
+  "segment": "Cadre en transition vers un rôle produit",
+  "income": 49000,
+  "behaviour": "Gère tout dans un tableur",
+  "behaviour_how": "Un Google Sheet avec les offres, les dates et des statuts qu'il ne met plus à jour depuis trois semaines.",
+  "objection": "Le score ATS est faux : chaque outil me donne un chiffre différent",
+  "habit": "Tu as six candidatures en cours et tu as oublié de relancer deux d'entre elles"
+ },
+ {
+  "id": "P007",
+  "name": "Celine",
+  "age": 41,
+  "segment": "Cadre en transition vers un rôle produit",
+  "income": 54000,
+  "behaviour": "Protecteur de ses données",
+  "behaviour_how": "Refuse de créer un compte avec son vrai CV sur un site qu'il ne connaît pas, ou utilise un vieux CV anonymisé.",
+  "objection": "Je n'ai pas le temps d'apprendre un nouvel outil pendant ma recherche",
+  "habit": "Tu as déjà payé un mois d'un outil de CV puis annulé avant le renouvellement"
+ },
+ {
+  "id": "P008",
+  "name": "Bilal",
+  "age": 28,
+  "segment": "Product Owner / PM en poste qui cherche à changer",
+  "income": 53000,
+  "behaviour": "Compte chaque euro",
+  "behaviour_how": "Compare les prix, attend les promos, annule systématiquement après le premier mois.",
+  "objection": "Et si ça me fait postuler à côté de ce que je veux vraiment",
+  "habit": "Ton tableur a quarante lignes et la dernière colonne de statut date d'il y a trois semaines"
+ },
+ {
+  "id": "P009",
+  "name": "Malik",
+  "age": 33,
+  "segment": "Product Owner / PM en poste qui cherche à changer",
+  "income": 58000,
+  "behaviour": "Utilise déjà un outil de suivi",
+  "behaviour_how": "A un compte gratuit sur Teal, Huntr ou Notion, utilise surtout le tracker et jamais l'analyse ATS payante.",
+  "objection": "Je n'ai pas le temps d'apprendre un nouvel outil pendant ma recherche",
+  "habit": "Tu as déjà payé un mois d'un outil de CV puis annulé avant le renouvellement"
+ },
+ {
+  "id": "P010",
+  "name": "Grace",
+  "age": 36,
+  "segment": "En recherche longue, indemnisation qui se termine",
+  "income": 23000,
+  "behaviour": "Compte chaque euro",
+  "behaviour_how": "Compare les prix, attend les promos, annule systématiquement après le premier mois.",
+  "objection": "Le score ATS est faux : chaque outil me donne un chiffre différent",
+  "habit": "Tu as six candidatures en cours et tu as oublié de relancer deux d'entre elles"
+ },
+ {
+  "id": "P011",
+  "name": "Theo",
+  "age": 28,
+  "segment": "En recherche longue, indemnisation qui se termine",
+  "income": 24000,
+  "behaviour": "Colle chaque offre dans ChatGPT",
+  "behaviour_how": "Ouvre un onglet ChatGPT, colle l'annonce et son CV, demande une lettre, recommence à chaque offre.",
+  "objection": "ChatGPT me fait déjà ça gratuitement",
+  "habit": "Ton tableur a quarante lignes et la dernière colonne de statut date d'il y a trois semaines"
+ },
+ {
+  "id": "P012",
+  "name": "Ivy",
+  "age": 29,
+  "segment": "Reconversion junior vers le produit (bootcamp, moins de 2 ans)",
+  "income": 30000,
+  "behaviour": "Colle chaque offre dans ChatGPT",
+  "behaviour_how": "Ouvre un onglet ChatGPT, colle l'annonce et son CV, demande une lettre, recommence à chaque offre.",
+  "objection": "Encore un abonnement alors que je n'ai plus de salaire",
+  "habit": "Ton tableur a quarante lignes et la dernière colonne de statut date d'il y a trois semaines"
+ },
+ {
+  "id": "P013",
+  "name": "Pablo",
+  "age": 35,
+  "segment": "Cadre en transition vers un rôle produit",
+  "income": 49000,
+  "behaviour": "Colle chaque offre dans ChatGPT",
+  "behaviour_how": "Ouvre un onglet ChatGPT, colle l'annonce et son CV, demande une lettre, recommence à chaque offre.",
+  "objection": "Je n'ai pas le temps d'apprendre un nouvel outil pendant ma recherche",
+  "habit": "Tu as six candidatures en cours et tu as oublié de relancer deux d'entre elles"
+ },
+ {
+  "id": "P014",
+  "name": "Kenji",
+  "age": 40,
+  "segment": "Product Owner / PM en poste qui cherche à changer",
+  "income": 49000,
+  "behaviour": "Lit les avis avant de payer",
+  "behaviour_how": "Cherche « arnaque », « remboursement », « résiliation » avant de laisser une carte bancaire.",
+  "objection": "Et si ça me fait postuler à côté de ce que je veux vraiment",
+  "habit": "Tu as six candidatures en cours et tu as oublié de relancer deux d'entre elles"
+ },
+ {
+  "id": "P015",
+  "name": "Hugo",
+  "age": 44,
+  "segment": "En recherche longue, indemnisation qui se termine",
+  "income": 26000,
+  "behaviour": "Utilise déjà un outil de suivi",
+  "behaviour_how": "A un compte gratuit sur Teal, Huntr ou Notion, utilise surtout le tracker et jamais l'analyse ATS payante.",
+  "objection": "Une lettre générée par IA, un recruteur le repère tout de suite",
+  "habit": "Ton tableur a quarante lignes et la dernière colonne de statut date d'il y a trois semaines"
+ },
+ {
+  "id": "P016",
+  "name": "Diego",
+  "age": 37,
+  "segment": "Cadre en transition vers un rôle produit",
+  "income": 52000,
+  "behaviour": "Lit les avis avant de payer",
+  "behaviour_how": "Cherche « arnaque », « remboursement », « résiliation » avant de laisser une carte bancaire.",
+  "objection": "ChatGPT me fait déjà ça gratuitement",
+  "habit": "Tu passes quarante minutes par candidature à retoucher ton CV et à réécrire la même lettre"
+ },
+ {
+  "id": "P017",
+  "name": "Jasper",
+  "age": 31,
+  "segment": "Reconversion junior vers le produit (bootcamp, moins de 2 ans)",
+  "income": 33000,
+  "behaviour": "Compte chaque euro",
+  "behaviour_how": "Compare les prix, attend les promos, annule systématiquement après le premier mois.",
+  "objection": "Je ne veux pas donner mon CV et mes données perso à un inconnu",
+  "habit": "Tu passes quarante minutes par candidature à retoucher ton CV et à réécrire la même lettre"
+ },
+ {
+  "id": "P018",
+  "name": "Ethan",
+  "age": 37,
+  "segment": "Reconversion junior vers le produit (bootcamp, moins de 2 ans)",
+  "income": 29000,
+  "behaviour": "Gère tout dans un tableur",
+  "behaviour_how": "Un Google Sheet avec les offres, les dates et des statuts qu'il ne met plus à jour depuis trois semaines.",
+  "objection": "Je n'ai pas le temps d'apprendre un nouvel outil pendant ma recherche",
+  "habit": "Tu as déjà payé un mois d'un outil de CV puis annulé avant le renouvellement"
+ },
+ {
+  "id": "P019",
+  "name": "Nora",
+  "age": 35,
+  "segment": "Cadre en transition vers un rôle produit",
+  "income": 60000,
+  "behaviour": "Gère tout dans un tableur",
+  "behaviour_how": "Un Google Sheet avec les offres, les dates et des statuts qu'il ne met plus à jour depuis trois semaines.",
+  "objection": "Une lettre générée par IA, un recruteur le repère tout de suite",
+  "habit": "Ton tableur a quarante lignes et la dernière colonne de statut date d'il y a trois semaines"
+ },
+ {
+  "id": "P020",
+  "name": "Noor",
+  "age": 38,
+  "segment": "Product Owner / PM en poste qui cherche à changer",
+  "income": 55000,
+  "behaviour": "Colle chaque offre dans ChatGPT",
+  "behaviour_how": "Ouvre un onglet ChatGPT, colle l'annonce et son CV, demande une lettre, recommence à chaque offre.",
+  "objection": "Une lettre générée par IA, un recruteur le repère tout de suite",
+  "habit": "Tu regardes les offres le soir sur LinkedIn et Welcome to the Jungle"
+ }
+]

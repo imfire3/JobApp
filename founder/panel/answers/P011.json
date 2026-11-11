@@ -1,0 +1,13 @@
+{
+  "id": "P011",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "price",
+  "reason": "Avec mes indemnités qui se terminent, je ne mets pas 39 € dans un outil alors que je fais déjà mes lettres gratuitement avec ChatGPT. Mon suivi est en retard, mais ça ne suffit pas à me faire payer un pass de trois mois.",
+  "objection": "Est-ce que ça m'apporte vraiment plus que mon copier-coller dans ChatGPT, ou juste un score ATS de plus à regarder ?",
+  "would_change_my_mind": "Que l'essai gratuit me montre, sur une vraie offre, des corrections précises et utiles que mon usage habituel de ChatGPT n'avait pas trouvées.",
+  "price_too_cheap": 3,
+  "price_cheap": 10,
+  "price_expensive": 20,
+  "price_too_expensive": 35
+}

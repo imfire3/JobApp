@@ -1,4 +1,7 @@
 import * as XLSX from "xlsx";
+import { WEBSITE_PASTE_SOURCE } from "@/lib/jobs/normalize";
+
+export { WEBSITE_PASTE_SOURCE } from "@/lib/jobs/normalize";
 
 export const EXPECTED_IMPORT_COLUMNS = [
   "source",
@@ -11,8 +14,6 @@ export const EXPECTED_IMPORT_COLUMNS = [
   "url",
   "description",
 ] as const;
-
-export const WEBSITE_PASTE_SOURCE = "website_paste";
 
 export type ExpectedImportColumn = (typeof EXPECTED_IMPORT_COLUMNS)[number];
 
@@ -41,9 +42,13 @@ export interface InvalidImportRow {
   errors: string[];
 }
 
-export interface ParsedImportFile {
+export type ImportRow = Omit<ParsedImportRow, "posted_at"> & {
+  posted_at: string | null;
+};
+
+export interface ParsedImportFile<Row extends ImportRow = ParsedImportRow> {
   totalRows: number;
-  rows: ParsedImportRow[];
+  rows: Row[];
   invalidRows: InvalidImportRow[];
 }
 

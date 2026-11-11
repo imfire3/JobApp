@@ -197,7 +197,7 @@ export function CompanyDetailPage({ companyId }: { companyId: string }) {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="w-full min-w-0 space-y-6">
         <Link
           href="/companies"
           className="inline-flex items-center gap-1 text-base text-muted-foreground hover:text-foreground"
@@ -207,7 +207,7 @@ export function CompanyDetailPage({ companyId }: { companyId: string }) {
         </Link>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">{company.name}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {company.website ? (
@@ -286,6 +286,15 @@ export function CompanyDetailPage({ companyId }: { companyId: string }) {
                 </div>
               </div>
             ) : null}
+            {(company.ai_enriched?.sources?.length ?? 0) > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Sources indirectes de l’information</p>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  {company.ai_enriched?.sources?.map((source) => <li key={source} className="break-all">{source}</li>)}
+                </ul>
+                <p className="text-xs text-muted-foreground">Ces sources étayent les informations enrichies ; elles ne sont pas le site de l’entreprise.</p>
+              </div>
+            ) : null}
             {company.match_score != null ? (
               <p className="text-sm text-muted-foreground">
                 Score de match avec ton profil : <Badge>{company.match_score} / 100</Badge>
@@ -312,9 +321,11 @@ export function CompanyDetailPage({ companyId }: { companyId: string }) {
                   <li key={contact.id} className="flex items-start justify-between gap-3 rounded-lg border p-3">
                     <div className="min-w-0">
                       <p className="text-base font-medium">
-                        {contact.name || "Fonction (nom à retrouver)"}
+                        {contact.name && contact.source.toLowerCase() !== "mock" ? contact.name : "Fonction à cibler"}
                       </p>
-                      <p className="text-sm text-muted-foreground">{contact.role_title}</p>
+                      {contact.name && contact.source.toLowerCase() !== "mock" ? <Badge variant="outline">Nom à vérifier avant contact</Badge> : null}
+                      <p className="text-sm text-muted-foreground">{contact.role_title || "Fonction à cibler"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Source du contact : {contact.source || "non précisée"}</p>
                       {contact.relevance_factors.length > 0 ? (
                         <ul className="mt-1 space-y-0.5 text-sm text-muted-foreground">
                           {contact.relevance_factors.map((factor) => (
@@ -331,8 +342,7 @@ export function CompanyDetailPage({ companyId }: { companyId: string }) {
               </ul>
             )}
             <p className="mt-3 text-sm text-muted-foreground">
-              Les contacts « mock » sont des cibles génériques : retrouve le nom du bon
-              interlocuteur avant d’envoyer.
+              Un nom affiché reste à vérifier. Si aucun nom fiable n’est fourni, utilise la fonction à cibler et retrouve la bonne personne avant d’envoyer.
             </p>
           </CardContent>
         </Card>
@@ -449,7 +459,7 @@ export function CompanyDetailPage({ companyId }: { companyId: string }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label id="company-status-label">Statut</Label>
                 <Select

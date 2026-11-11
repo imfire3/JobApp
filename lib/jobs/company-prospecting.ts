@@ -284,42 +284,63 @@ export async function runCompanySearch(input: {
     candidates = results.candidates
     provider = results.provider
 
-    if (queries.length > 0 && candidates.length < 10) {
-      for (const query of queries.slice(0, 5)) {
+    // If we have AI-generated queries, supplement search
+    if (queries.length > 0 && candidates.length < 15) {
+      const { tavilySearch } = await import("@/lib/connectors/companies/tavily")
+      for (const query of queries.slice(0, 8)) {
         try {
-          const extra = await import("@/lib/connectors/companies/tavily").then(
-            (m) => m.tavilySearch(query, { maxResults: 5 })
-          )
+          const extra = await tavilySearch(query, { maxResults: 6 })
           for (const r of extra) {
             const domain = (() => {
               try {
-                return new URL(r.url).hostname.replace(/^www\./, "")
+                return new URL(r.url).hostname.replace(/^www\./, "").toLowerCase()
               } catch {
                 return null
               }
             })()
-            if (domain && !candidates.some((c) => c.domain === domain)) {
-              candidates.push({
-                name: r.title.replace(/[-–|].*$/, "").trim().slice(0, 100),
-                domain,
-                website: `https://${domain}`,
-                sector: criteria.sectors[0] ?? null,
-                size_min: criteria.size_min,
-                size_max: criteria.size_max,
-                headquarters: criteria.locations[0] ?? null,
-                locations: criteria.locations,
-                remote_ok: criteria.remote,
-                description: r.snippet.slice(0, 500),
-                discovery_type: "spontaneous",
-                sourceUrl: r.url,
-                reasons: [`Score web: ${Math.round(r.score * 100)}%`, r.snippet.slice(0, 120)],
-              })
-            }
+            if (!domain) continue
+            // skip common job boards
+            const skip = ["linkedin.com", "glassdoor.fr", "glassdoor.com", "indeed.com", "indeed.fr", "welcometothejungle.com", "hellowork.com", "pappers.fr", "societe.com", "wikipedia.org"]
+            if (skip.some((d) => domain === d || domain.endsWith(`.${d}`))) continue
+            if (candidates.some((c) => c.domain.toLowerCase().replace(/^www\./, "") === domain)) continue
+            const name = r.title
+              .replace(/[-–|].*$/, "")
+              .replace(/\s*[-–]\s*(recrutement|jobs|carrières|offres|emploi).*$/i, "")
+              .trim()
+              .slice(0, 100)
+            if (name.length < 2 || /^(accueil|home)$/i.test(name)) continue
+            candidates.push({
+              name,
+              domain,
+              website: `https://${domain}`,
+              sector: criteria.sectors[0] ?? null,
+              size_min: criteria.size_min,
+              size_max: criteria.size_max,
+              headquarters: criteria.locations[0] ?? null,
+              locations: criteria.locations,
+              remote_ok: criteria.remote,
+              description: (r.snippet || "").slice(0, 500),
+              discovery_type: "spontaneous",
+              sourceUrl: r.url,
+              reasons: [
+                criteria.sectors[0] ? `Secteur: ${criteria.sectors[0]}` : "",
+                `Score web: ${Math.round((r.score || 0) * 100)}%`,
+                (r.snippet || "").slice(0, 120),
+              ].filter(Boolean),
+            })
           }
         } catch {
           // continue
         }
       }
+      // deduplicate
+      const seen = new Set<string>()
+      candidates = candidates.filter((c) => {
+        const key = c.domain.toLowerCase().replace(/^www\./, "")
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
     }
   } else {
     const results = await searchCompanyCandidates(criteria)
@@ -336,14 +357,14 @@ export async function runCompanySearch(input: {
   if (COMPANY_PROVIDER === "tavily") {
     const urlsToExtract = toScore
       .filter((c) => c.website)
-      .slice(0, 10)
+      .slice(0, 15)
       .map((c) => c.website!)
     if (urlsToExtract.length > 0) {
       try {
         const pages = await tavilyExtract(urlsToExtract)
         for (const page of pages) {
           try {
-            const domain = new URL(page.url).hostname.replace(/^www\./, "")
+            const domain = new URL(page.url).hostname.replace(/^www\./, "").toLowerCase()
             extractedPages.set(domain, page)
           } catch { /* skip invalid urls */ }
         }
@@ -359,7 +380,8 @@ export async function runCompanySearch(input: {
     let enrichment: Record<string, unknown>
 
     if (COMPANY_PROVIDER === "tavily" && candidate.website) {
-      const extracted = extractedPages.get(candidate.domain)
+      const domainKey = candidate.domain.toLowerCase().replace(/^www\./, "")
+      const extracted = extractedPages.get(domainKey)
       const extractedContent = extracted?.content ?? ""
 
       try {
@@ -370,24 +392,28 @@ export async function runCompanySearch(input: {
 
         const fullText = [extractedContent, websiteText, careersText].filter(Boolean).join("\n\n")
 
-        if (fullText.length > 200) {
-          const { enrichment: aiEnrichment } = await enrichCompanyText({
-            companyName: candidate.name,
-            websiteText: fullText.slice(0, 12000),
-            careersText: careersText.slice(0, 8000),
-            snippet: candidate.description ?? "",
-          })
-          enrichment = {
-            activity: aiEnrichment.activity,
-            products: aiEnrichment.products,
-            positioning: aiEnrichment.positioning,
-            keywords: aiEnrichment.keywords,
-            sector: aiEnrichment.sector,
-            headquarters: aiEnrichment.headquarters,
-            size_min: aiEnrichment.size_min,
-            size_max: aiEnrichment.size_max,
-            sources: aiEnrichment.sources,
-            extracted_at: new Date().toISOString(),
+        if (fullText.length > 150) {
+          try {
+            const { enrichment: aiEnrichment } = await enrichCompanyText({
+              companyName: candidate.name,
+              websiteText: fullText.slice(0, 12000),
+              careersText: careersText.slice(0, 8000),
+              snippet: candidate.description ?? "",
+            })
+            enrichment = {
+              activity: aiEnrichment.activity,
+              products: aiEnrichment.products,
+              positioning: aiEnrichment.positioning,
+              keywords: aiEnrichment.keywords,
+              sector: aiEnrichment.sector || candidate.sector,
+              headquarters: aiEnrichment.headquarters || candidate.headquarters,
+              size_min: aiEnrichment.size_min,
+              size_max: aiEnrichment.size_max,
+              sources: aiEnrichment.sources,
+              extracted_at: new Date().toISOString(),
+            }
+          } catch {
+            enrichment = mockEnrichment(candidate, reasons)
           }
         } else {
           enrichment = mockEnrichment(candidate, reasons)
@@ -444,7 +470,8 @@ export async function runCompanySearch(input: {
     }
     if (!inserted) return null
 
-    const extractedForCandidate = extractedPages.get(candidate.domain)
+    const domainKeyForExtract = candidate.domain.toLowerCase().replace(/^www\./, "")
+    const extractedForCandidate = extractedPages.get(domainKeyForExtract) ?? extractedPages.get(candidate.domain)
     const contacts = buildContactsForCompany(extractedForCandidate?.content)
     await supabase
       .from("company_contacts")

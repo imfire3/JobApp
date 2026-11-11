@@ -18,12 +18,18 @@ type LanguageEntriesFieldProps = {
   entries: ProfileLanguageEntry[]
   onChange: (entries: ProfileLanguageEntry[]) => void
   className?: string
+  inputClassName?: string
+  inputVariant?: "default" | "control"
+  showEmptyState?: boolean
 }
 
 export function LanguageEntriesField({
   entries,
   onChange,
   className,
+  inputClassName,
+  inputVariant = "default",
+  showEmptyState = true,
 }: LanguageEntriesFieldProps) {
   const [pendingLanguage, setPendingLanguage] = useState<string | null>(null)
   const options = useMemo(
@@ -68,6 +74,8 @@ export function LanguageEntriesField({
         placeholder="Rechercher une langue…"
         allowCustom
         emptyOptionLabel="Choisir une langue"
+        inputClassName={inputClassName}
+        inputVariant={inputVariant}
       />
 
       {pendingLanguage ? (
@@ -102,7 +110,7 @@ export function LanguageEntriesField({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {entries.length === 0 ? (
+        {entries.length === 0 && showEmptyState ? (
           <p className="text-base text-muted-foreground">
             Aucune langue pour l’instant.
           </p>

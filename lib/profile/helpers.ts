@@ -12,6 +12,17 @@ export function emptyExperienceEntry(): ProfileExperienceEntry {
   }
 }
 
+export const EDUCATION_LEVEL_OPTIONS = [
+  "Licence",
+  "Master",
+  "Doctorat",
+  "BTS",
+  "DUT",
+  "Certificat",
+  "MOOC",
+  "Autre",
+]
+
 export function emptyEducationEntry(): ProfileEducationEntry {
   return {
     id: crypto.randomUUID(),

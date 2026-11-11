@@ -54,6 +54,51 @@
   --radius-4xl: calc(var(--radius) * 2.6);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-landing-ink: var(--landing-ink);
+  --color-landing-paper: var(--landing-paper);
+  --color-landing-surface: var(--landing-surface);
+  --color-landing-soft: var(--landing-soft);
+  --color-landing-muted: var(--landing-muted);
+  --color-landing-line: var(--landing-line);
+  --color-landing-night-surface: var(--landing-night-surface);
+  --color-landing-night-muted: var(--landing-night-muted);
+  --color-landing-accent: var(--landing-accent);
+  --color-landing-accent-foreground: var(--landing-accent-foreground);
+  --color-landing-confirm: var(--landing-confirm);
+  /* App surfaces, controls and text — Figma "JobTracker V2" variables. */
+  --color-app-bg: var(--app-bg);
+  --color-app-canvas: var(--app-canvas);
+  --color-app-surface: var(--app-surface);
+  --color-app-surface-raised: var(--app-surface-raised);
+  --color-app-control: var(--app-control);
+  --color-app-border: var(--app-border);
+  --color-app-border-strong: var(--app-border-strong);
+  --color-app-border-default: var(--app-border-default);
+  --color-app-text: var(--app-text);
+  --color-app-text-strong: var(--app-text-strong);
+  --color-app-text-label: var(--app-text-label);
+  --color-app-text-secondary: var(--app-text-secondary);
+  --color-app-text-subtle: var(--app-text-subtle);
+  --color-app-text-muted: var(--app-text-muted);
+  --color-app-text-disabled: var(--app-text-disabled);
+  --color-app-text-inverse: var(--app-text-inverse);
+  --color-app-action: var(--app-action);
+  --color-app-action-hover: var(--app-action-hover);
+  --color-app-action-foreground: var(--app-action-foreground);
+  --color-app-success: var(--app-success);
+  --color-app-warning: var(--app-warning);
+  --color-app-danger: var(--app-danger);
+  --color-app-success-surface: var(--app-success-surface);
+  --color-app-warning-surface: var(--app-warning-surface);
+  --color-app-danger-surface: var(--app-danger-surface);
+  --color-app-match: var(--app-match);
+  --color-app-match-surface: var(--app-match-surface);
+  --radius-app-control: var(--app-radius-control);
+  --radius-app-surface: var(--app-radius-surface);
+  --radius-app-popover: var(--app-radius-popover);
+  --radius-app-date: var(--app-radius-date);
+  --radius-app-badge: var(--app-radius-badge);
+  --shadow-app-popover: var(--app-shadow-popover);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
@@ -118,7 +163,7 @@
   --chart-3: oklch(0.623 0.214 259.815);
   --chart-4: oklch(0.606 0.25 292.717);
   --chart-5: oklch(0.637 0.237 25.331);
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -155,46 +200,84 @@
   --status-rejected-foreground: oklch(0.444 0.177 26.899);
   --status-archived: oklch(0.967 0.003 264.542);
   --status-archived-foreground: oklch(0.446 0.03 256.802);
+  /* Semantic app tokens (light). Dark theme below mirrors the Figma library. */
+  --app-bg: #ffffff;
+  --app-canvas: #ffffff;
+  --app-surface: #ffffff;
+  --app-surface-raised: #fafafa;
+  --app-control: #ffffff;
+  --app-border: #e5e5e5;
+  --app-border-strong: #d4d4d4;
+  --app-border-default: #a3a3a3;
+  --app-text: #171717;
+  --app-text-strong: #0a0a0a;
+  --app-text-label: #262626;
+  --app-text-secondary: #525252;
+  --app-text-subtle: #404040;
+  --app-text-muted: #737373;
+  --app-text-disabled: #a3a3a3;
+  --app-text-inverse: #ffffff;
+  --app-action: #171717;
+  --app-action-hover: #404040;
+  --app-action-foreground: #ffffff;
+  --app-success: #047857;
+  --app-warning: #b45309;
+  --app-danger: #b91c1c;
+  --app-success-surface: rgba(4, 120, 87, 0.08);
+  --app-warning-surface: rgba(180, 83, 9, 0.08);
+  --app-danger-surface: rgba(185, 28, 28, 0.08);
+  --app-match: #2f6f9c;
+  --app-match-surface: rgba(47, 111, 156, 0.12);
+  --app-radius-control: 8px;
+  --app-radius-surface: 8px;
+  --app-radius-popover: 14px;
+  --app-radius-date: 14px;
+  --app-radius-badge: 10px;
+  --app-stroke: 1.25px;
+  --app-control-height: 50px;
+  --app-control-height-sm: 42px;
+  --app-field-gap: 8px;
+  --app-shadow-popover: 0 18px 40px -20px rgb(0 0 0 / 0.55);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #0d0d0d;
+  --foreground: #fafafa;
+  --card: #171717;
+  --card-foreground: #fafafa;
+  --popover: #171717;
+  --popover-foreground: #fafafa;
+  --primary: #ffffff;
+  --primary-foreground: #0a0a0a;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
+  --accent-foreground: #fafafa;
+  --destructive: #f87171;
+  --border: #404040;
+  --input: #525252;
+  --ring: #a3a3a3;
   --chart-1: oklch(0.696 0.17 162.48);
   --chart-2: oklch(0.769 0.188 70.08);
   --chart-3: oklch(0.623 0.214 259.815);
   --chart-4: oklch(0.606 0.25 292.717);
   --chart-5: oklch(0.637 0.237 25.331);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-  --success: oklch(0.765 0.177 163.223);
-  --success-foreground: oklch(0.145 0 0);
-  --warning: oklch(0.828 0.189 84.429);
-  --warning-foreground: oklch(0.145 0 0);
-  --info: oklch(0.707 0.165 254.624);
-  --info-foreground: oklch(0.145 0 0);
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #262626;
+  --sidebar-ring: #a3a3a3;
+  --success: #09e280;
+  --success-foreground: #0a0a0a;
+  --warning: #ff6900;
+  --warning-foreground: #0a0a0a;
+  --info: #60a5fa;
+  --info-foreground: #0a0a0a;
   --status-new: color-mix(in oklab, oklch(0.379 0.146 265.522) 30%, transparent);
   --status-new-foreground: oklch(0.809 0.105 251.813);
   --status-selected: color-mix(in oklab, oklch(0.38 0.189 293.745) 30%, transparent);
@@ -211,6 +294,44 @@
   --status-rejected-foreground: oklch(0.808 0.114 19.571);
   --status-archived: oklch(0.278 0.033 256.848);
   --status-archived-foreground: oklch(0.707 0.022 261.325);
+  /* Figma library values (JobTracker V2 → variables). */
+  --app-bg: #0d0d0d;
+  --app-canvas: #0a0a0a;
+  --app-surface: #171717;
+  --app-surface-raised: #1f1f1f;
+  --app-control: #262626;
+  --app-border: #404040;
+  --app-border-strong: #525252;
+  --app-border-default: #595959;
+  --app-text: #fafafa;
+  --app-text-strong: #ffffff;
+  --app-text-label: #e5e5e5;
+  --app-text-secondary: #a3a3a3;
+  --app-text-subtle: #d4d4d4;
+  --app-text-muted: #737373;
+  --app-text-disabled: #434343;
+  --app-text-inverse: #0a0a0a;
+  --app-action: #ffffff;
+  --app-action-hover: #e5e5e5;
+  --app-action-foreground: #0a0a0a;
+  --app-success: #09e280;
+  --app-warning: #ff6900;
+  --app-danger: #f87171;
+  --app-success-surface: rgba(9, 226, 128, 0.08);
+  --app-warning-surface: rgba(255, 105, 0, 0.08);
+  --app-danger-surface: rgba(248, 113, 113, 0.08);
+  --app-match: #6fafdc;
+  --app-match-surface: rgba(77, 157, 213, 0.15);
+  --app-radius-control: 8px;
+  --app-radius-surface: 8px;
+  --app-radius-popover: 14px;
+  --app-radius-date: 14px;
+  --app-radius-badge: 10px;
+  --app-stroke: 1.25px;
+  --app-control-height: 50px;
+  --app-control-height-sm: 42px;
+  --app-field-gap: 8px;
+  --app-shadow-popover: 0 18px 40px -20px rgb(0 0 0 / 0.55);
 }
 
 @layer base {
@@ -235,6 +356,33 @@
   select,
   textarea {
     touch-action: manipulation;
+  }
+}
+
+/* Landing-only tokens: keep the marketing composition separate from the app theme. */
+.landing-page {
+  color-scheme: light;
+  --landing-ink: #111111;
+  --landing-paper: #eceae6;
+  --landing-surface: #ffffff;
+  --landing-soft: #f5f3ef;
+  --landing-muted: #444444;
+  --landing-line: rgb(17 17 17 / 16%);
+  --landing-night-surface: #171717;
+  --landing-night-muted: #a1a1a1;
+  --landing-accent: #0a0a0a;
+  --landing-accent-foreground: #ffffff;
+  --landing-confirm: #ffb900;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page *,
+  .landing-page *::before,
+  .landing-page *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

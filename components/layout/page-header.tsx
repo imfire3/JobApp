@@ -16,7 +16,7 @@ export const PageHeader = ({ children, className, stickyExtra }: PageHeaderProps
   return (
     <div
       className={cn(
-        "sticky top-14 z-30 -mx-4 mb-6 border-b border-border/80 bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:top-0 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8",
+        "sticky top-14 z-30 -mx-4 mb-6 border-b border-border/80 bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:top-0 md:-mx-6 md:px-6 lg:-mx-12 lg:px-12 xl:-mx-16 xl:px-16",
         className
       )}
     >
@@ -41,7 +41,7 @@ export const StickyFooter = ({ children, className }: StickyFooterProps) => {
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-20 -mx-4 mt-6 border-t border-border/80 bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8",
+        "sticky bottom-0 z-20 -mx-4 mt-6 border-t border-border/80 bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:-mx-6 md:px-6 lg:-mx-12 lg:px-12 xl:-mx-16 xl:px-16",
         className
       )}
     >

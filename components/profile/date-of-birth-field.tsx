@@ -73,6 +73,7 @@ export function DateOfBirthField({
   const monthRef = useRef<HTMLInputElement>(null)
   const yearRef = useRef<HTMLInputElement>(null)
   const anchorRef = useRef<HTMLDivElement>(null)
+  const calendarRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const calendarStyle = useAnchoredDropdownStyle(open, anchorRef, 360, {
@@ -92,16 +93,23 @@ export function DateOfBirthField({
   })
 
   const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (anchorRef.current && !anchorRef.current.contains(event.target as Node)) {
-      setOpen(false)
-    }
+    const target = event.target as Node
+    if (anchorRef.current?.contains(target)) return
+    if (calendarRef.current?.contains(target)) return
+    setOpen(false)
   }, [])
 
   useEffect(() => {
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside)
+    if (!open) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false)
     }
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    document.addEventListener("mousedown", handleClickOutside)
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
   }, [open, handleClickOutside])
 
   useEffect(() => {
@@ -177,10 +185,10 @@ export function DateOfBirthField({
           disabled={disabled}
           value={day}
           onChange={(e) => handleDayChange(e.target.value)}
-          className="w-14 text-center tabular-nums"
+          variant="date" className="w-[50.5px]"
           maxLength={2}
         />
-        <span className="text-muted-foreground" aria-hidden>
+        <span className="text-app-text-muted" aria-hidden>
           /
         </span>
         <Input
@@ -192,10 +200,10 @@ export function DateOfBirthField({
           disabled={disabled}
           value={month}
           onChange={(e) => handleMonthChange(e.target.value)}
-          className="w-14 text-center tabular-nums"
+          variant="date" className="w-[50.5px]"
           maxLength={2}
         />
-        <span className="text-muted-foreground" aria-hidden>
+        <span className="text-app-text-muted" aria-hidden>
           /
         </span>
         <Input
@@ -207,20 +215,20 @@ export function DateOfBirthField({
           disabled={disabled}
           value={year}
           onChange={(e) => handleYearChange(e.target.value)}
-          className="w-20 text-center tabular-nums"
+          variant="date" className="w-[66px]"
           maxLength={4}
         />
         <Button
           type="button"
           variant="outline"
-          size="icon"
+          size="icon-control"
           disabled={disabled}
           aria-label="Ouvrir le calendrier"
           aria-expanded={open}
           onClick={() => setOpen((prev) => !prev)}
-          className="shrink-0"
+          className="shrink-0 text-app-text-subtle"
         >
-          <CalendarDays className="h-4 w-4" />
+          <CalendarDays className="h-5 w-5" />
         </Button>
       </div>
       {error ? (
@@ -232,8 +240,9 @@ export function DateOfBirthField({
       {open && typeof document !== "undefined"
         ? createPortal(
             <div
+              ref={calendarRef}
               style={{ ...calendarStyle, width: 288, maxHeight: undefined }}
-              className="rounded-xl border border-border bg-popover p-3 shadow-lg"
+              className="rounded-app-popover border border-app-border-strong bg-app-surface p-3 shadow-app-popover"
               role="dialog"
               aria-label="Calendrier date de naissance"
             >
@@ -247,7 +256,7 @@ export function DateOfBirthField({
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <p className="text-base font-medium capitalize">
+                <p className="text-base font-medium capitalize text-app-text">
                   {format(cursorMonth, "MMMM yyyy", { locale: fr })}
                 </p>
                 <Button
@@ -260,7 +269,7 @@ export function DateOfBirthField({
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
+              <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs text-app-text-muted">
                 {["L", "M", "M", "J", "V", "S", "D"].map((label, index) => (
                   <span key={`${label}-${index}`}>{label}</span>
                 ))}
@@ -279,10 +288,10 @@ export function DateOfBirthField({
                       className={cn(
                         "h-8 rounded-md text-base tabular-nums transition-colors",
                         inMonth
-                          ? "text-foreground hover:bg-muted"
-                          : "text-muted-foreground/40",
+                          ? "text-foreground hover:bg-app-control"
+                          : "text-app-text-disabled",
                         selected &&
-                          "bg-primary text-primary-foreground hover:bg-primary"
+                          "bg-app-action text-app-action-foreground hover:bg-app-action"
                       )}
                       onClick={() => {
                         const iso = format(dayItem, "yyyy-MM-dd")

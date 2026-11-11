@@ -137,7 +137,7 @@ export function JobKanban({ jobs, loading, onJobsChange }: JobKanbanProps) {
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="flex w-full gap-3 overflow-x-auto pb-1">
       {KANBAN_PIPELINE_COLUMNS.map((column) => {
         const columnJobs = columns[column] ?? []
         const isActive = dropTarget === column
@@ -146,7 +146,7 @@ export function JobKanban({ jobs, loading, onJobsChange }: JobKanbanProps) {
           <section
             key={column}
             className={cn(
-              "flex min-w-[240px] max-w-[300px] flex-1 flex-col rounded-xl border bg-muted/30 p-3 transition-colors",
+              "flex min-w-[240px] flex-1 flex-col rounded-xl border bg-muted/30 p-3 transition-colors",
               isActive && "border-primary bg-primary/5"
             )}
             onDragOver={(event) => {

@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation"
 import { RotateCcw } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 const KNOWN_STORAGE_KEYS = [
   "jobtracker-theme",
@@ -40,19 +39,18 @@ function clearClientStorage() {
 export function ResetToLandingButton() {
   const pathname = usePathname()
 
-  // Hide on the landing page itself
-  if (pathname === "/") return null
+  // Hide on the landing page and onboarding. On narrow app screens, the fixed
+  // pill can cover filter controls and page content, so keep it desktop-only.
+  if (pathname === "/" || pathname.startsWith("/onboarding")) return null
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[100]">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[100] hidden md:block">
       <a
         href="/api/auth/reset-local"
         onClick={() => {
           clearClientStorage()
         }}
-        className={cn(
-          "pointer-events-auto inline-flex h-8 items-center justify-center gap-1.5 rounded-4xl border border-border bg-background px-3 text-base font-medium shadow-lg transition-colors hover:bg-muted"
-        )}
+        className="pointer-events-auto inline-flex h-8 items-center justify-center gap-1.5 rounded-4xl border border-border bg-background px-3 text-base font-medium shadow-lg transition-colors hover:bg-muted"
         aria-label="Réinitialiser et revenir à l’accueil"
       >
         <RotateCcw className="h-3.5 w-3.5" />

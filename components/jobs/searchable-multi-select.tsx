@@ -25,6 +25,9 @@ type SearchableMultiSelectProps = {
   addButtonLabel?: string
   emptyLabel?: string
   className?: string
+  inputClassName?: string
+  inputVariant?: "default" | "control"
+  chipClassName?: string
 }
 
 function toOptions(options: CatalogOption[] | string[]): CatalogOption[] {
@@ -52,6 +55,9 @@ export function SearchableMultiSelect({
   addButtonLabel,
   emptyLabel,
   className,
+  inputClassName,
+  inputVariant = "default",
+  chipClassName,
 }: SearchableMultiSelectProps) {
   const [query, setQuery] = useState("")
   const [open, setOpen] = useState(false)
@@ -170,7 +176,8 @@ export function SearchableMultiSelect({
             onKeyDown={handleKeyDown}
             aria-autocomplete="list"
             aria-expanded={open}
-            className={addButtonLabel ? "flex-1" : undefined}
+            variant={inputVariant}
+            className={cn(addButtonLabel ? "flex-1" : undefined, inputClassName)}
           />
           {addButtonLabel ? (
             <Button
@@ -193,7 +200,7 @@ export function SearchableMultiSelect({
           {values.map((value) => {
             const label = labelFor(catalog, value)
             return (
-              <Badge key={value} variant="chip" className="gap-1.5">
+              <Badge key={value} variant="chip" className={cn("gap-1.5", chipClassName)}>
                 {label}
                 <button
                   type="button"
@@ -223,6 +230,8 @@ type SearchableSelectProps = {
   allowCustom?: boolean
   emptyOptionLabel?: string
   className?: string
+  inputClassName?: string
+  inputVariant?: "default" | "control"
 }
 
 /** Searchable single-select dropdown (filterable list). Portaled outside cards. */
@@ -235,6 +244,8 @@ export function SearchableSelect({
   allowCustom = false,
   emptyOptionLabel = "Choisir…",
   className,
+  inputClassName,
+  inputVariant = "default",
 }: SearchableSelectProps) {
   const [query, setQuery] = useState("")
   const [open, setOpen] = useState(false)
@@ -356,6 +367,8 @@ export function SearchableSelect({
         aria-autocomplete="list"
         aria-expanded={open}
         role="combobox"
+        variant={inputVariant}
+        className={inputClassName}
       />
       {typeof document !== "undefined" && list
         ? createPortal(list, document.body)

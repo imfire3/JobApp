@@ -8,6 +8,7 @@ import {
   loadCandidateProfile,
   runCvProfileExtraction,
 } from "@/lib/profile/extract-service"
+import { isCvExtractCacheHit } from "@/lib/profile/cv-extract-cache"
 import { MIN_CV_PARSE_LENGTH } from "@/lib/resume/types"
 
 /**
@@ -20,7 +21,25 @@ export async function GET() {
   }
 
   try {
-    const profile = await loadCandidateProfile(supabase, user.id)
+    let profile = await loadCandidateProfile(supabase, user.id)
+    // Merge auth user info if profile fields are missing (priority: profile > auth)
+    if (user && typeof user === "object") {
+      const authEmail = (user as any).email || (user as any).user_metadata?.email
+      const authFirst = (user as any).user_metadata?.first_name || (user as any).first_name
+      const authLast = (user as any).user_metadata?.last_name || (user as any).last_name
+      if (!profile.contact_email && authEmail) {
+        profile = { ...profile, contact_email: authEmail }
+      }
+      if (!profile.first_name && authFirst) {
+        profile = { ...profile, first_name: authFirst }
+      }
+      if (!profile.last_name && authLast) {
+        profile = { ...profile, last_name: authLast }
+      }
+      if (!profile.date_of_birth && (user as any).user_metadata?.date_of_birth) {
+        profile = { ...profile, date_of_birth: (user as any).user_metadata.date_of_birth }
+      }
+    }
     return NextResponse.json({ profile })
   } catch (caughtError) {
     const message =
@@ -81,6 +100,7 @@ export async function PUT(request: Request) {
     body.target_roles !== undefined ||
     body.target_locations !== undefined ||
     body.desired_salary !== undefined ||
+    body.desired_salary_max !== undefined ||
     body.remote_preference !== undefined ||
     body.preferred_contract_types !== undefined ||
     body.profile_reviewed !== undefined ||
@@ -154,6 +174,9 @@ export async function PUT(request: Request) {
     if (body.desired_salary !== undefined) {
       upsertPayload.desired_salary = body.desired_salary
     }
+    if (body.desired_salary_max !== undefined) {
+      upsertPayload.desired_salary_max = body.desired_salary_max
+    }
     if (body.remote_preference !== undefined) {
       upsertPayload.remote_preference = body.remote_preference
     }
@@ -185,7 +208,9 @@ export async function PUT(request: Request) {
     }
   }
 
-  // CV text saved without structured fields → fill profile in DB if still empty
+  // CV text saved without structured fields → fill profile in DB.
+  // Signup already sets first/last name, so "empty" cannot rely on names:
+  // compare the saved CV with the last extraction snapshot instead.
   if (
     body.cv_text !== undefined &&
     !hasProfileFields &&
@@ -193,13 +218,19 @@ export async function PUT(request: Request) {
   ) {
     try {
       const current = await loadCandidateProfile(supabase, user.id)
+      const cvText = body.cv_text.trim()
+      const alreadyExtracted = isCvExtractCacheHit(cvText, current.extracted_cv)
       const structurallyEmpty =
-        !String(current.first_name ?? "").trim() &&
-        !String(current.last_name ?? "").trim() &&
+        !String(current.phone ?? "").trim() &&
+        !String(current.date_of_birth ?? "").trim() &&
+        !String(current.current_city ?? "").trim() &&
+        !String(current.current_title ?? "").trim() &&
         (!Array.isArray(current.experience_entries) ||
           current.experience_entries.length === 0) &&
+        (!Array.isArray(current.education_entries) ||
+          current.education_entries.length === 0) &&
         (!Array.isArray(current.skills) || current.skills.length === 0)
-      if (structurallyEmpty) {
+      if (!current.profile_reviewed_at && (!alreadyExtracted || structurallyEmpty)) {
         await runCvProfileExtraction(supabase, user.id, {
           force: true,
           persist: true,

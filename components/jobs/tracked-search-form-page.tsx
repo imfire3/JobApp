@@ -212,7 +212,7 @@ export const TrackedSearchFormPage = ({ searchId }: TrackedSearchFormPageProps) 
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="w-full min-w-0 space-y-6">
       <div className="space-y-2">
         <Link href="/jobs" className={buttonVariants({ variant: "ghost", size: "sm", className: "-ml-2 w-fit" })}>
           <ArrowLeft className="mr-2 h-4 w-4" />

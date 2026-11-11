@@ -27,7 +27,7 @@ describe("POST /api/auth/signup", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: "dev-signup@example.com",
-          password: "password1",
+          password: "Password1!",
         }),
       })
     )
@@ -80,7 +80,7 @@ describe("POST /api/auth/signup", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: "dup@example.com",
-          password: "password1",
+          password: "Password1!",
         }),
       })
     )
@@ -92,10 +92,26 @@ describe("POST /api/auth/signup", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: "dup@example.com",
-          password: "otherpass",
+          password: "Otherpass1!",
         }),
       })
     )
     assert.equal(second.status, 409)
+  })
+
+  it("rejects passwords that fail a strength rule with the exact message", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "no-upper@example.com",
+          password: "lowercase1!",
+        }),
+      })
+    )
+    assert.equal(response.status, 400)
+    const body = (await response.json()) as { error?: string }
+    assert.equal(body.error, "Ajoutez au moins une lettre majuscule.")
   })
 })

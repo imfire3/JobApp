@@ -1,0 +1,13 @@
+{
+  "id": "P014",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Mes deux relances oubliées me donnent envie d'essayer, mais je commencerais par l'analyse gratuite, pas par sortir ma carte. À 39 € les trois mois, le prix ne me bloque pas ; je veux d'abord vérifier les avis et les conditions de remboursement.",
+  "objection": "Est-ce que les recommandations vont respecter le rôle produit que je cherche, ou me pousser à bourrer mon CV de mots-clés pour un poste qui ne me correspond pas ?",
+  "would_change_my_mind": "Un essai gratuit sur une offre que j'ai choisie qui me montre des recommandations pertinentes, sans déformer mon parcours ni mon objectif.",
+  "price_too_cheap": 5,
+  "price_cheap": 19,
+  "price_expensive": 49,
+  "price_too_expensive": 79
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -173,7 +174,7 @@ export function CvAnalysisPanel({
         <div className="flex items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2 text-xl font-semibold text-[#FAFAFA]">
             <Sparkles className="h-5 w-5" />
-            Analyse ATS
+            Analyse du CV
           </CardTitle>
           {analysis ? (
             <span className="text-sm text-[#A1A1A1]">
@@ -183,8 +184,8 @@ export function CvAnalysisPanel({
         </div>
         <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <CardDescription className="text-sm leading-6 text-[#A1A1A1]">
-            Évaluation interne de lisibilité et de fit produit. Ce n&apos;est pas une
-            garantie de passage d&apos;un ATS particulier.
+            Repères sur la lisibilité et le contenu de ton CV. Cette analyse ne
+            garantit pas le passage d’un ATS particulier.
           </CardDescription>
           <Button
             type="button"
@@ -226,14 +227,47 @@ export function CvAnalysisPanel({
               </div>
             )}
 
-            {/* Scores */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-              <ScoreCard label="Global" score={analysis.analysis.overall_score} />
-              <ScoreCard label="Parsing" score={analysis.analysis.parsing_score} />
-              <ScoreCard label="Structure" score={analysis.analysis.structure_score} />
-              <ScoreCard label="Impact" score={analysis.analysis.impact_score} />
-              <ScoreCard label="Mots-clés" score={analysis.analysis.keyword_score} />
+            <div className="space-y-3">
+              <SectionTitle>Les 2 améliorations les plus utiles</SectionTitle>
+              {sortedRecommendations.length === 0 ? (
+                <ResultBox>Aucune amélioration prioritaire n’a été identifiée.</ResultBox>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {sortedRecommendations.slice(0, 2).map((rec) => (
+                    <article key={`priority-${rec.id}`} className="space-y-3 rounded-[10px] border border-[#383838] bg-[#212121] p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="text-base font-semibold text-[#FAFAFA]">{rec.title}</h3>
+                        <Badge variant="outline" className={`shrink-0 ${severityBadgeClass(rec.severity)}`}>
+                          {rec.severity === "high" ? "Priorité haute" : rec.severity === "medium" ? "À améliorer" : "Conseil"}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium uppercase text-[#A1A1A1]">Preuve dans ton CV</p>
+                        <ResultBox>{rec.evidence_from_cv || "Aucune preuve textuelle n’est associée à cette recommandation."}</ResultBox>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium uppercase text-[#A1A1A1]">Action proposée</p>
+                        <ResultBox>{rec.suggested_improvement}</ResultBox>
+                      </div>
+                      <Link href="/profile-ai/optimize" className="inline-flex min-h-10 items-center rounded-md bg-white px-3 text-sm font-medium text-black hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                        Modifier mon CV
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
+
+            <details className="rounded-[10px] border border-[#383838] bg-[#212121] p-4">
+              <summary className="cursor-pointer font-medium text-[#FAFAFA]">Voir les sous-scores détaillés</summary>
+              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                <ScoreCard label="Global CV" score={analysis.analysis.overall_score} />
+                <ScoreCard label="Parsing" score={analysis.analysis.parsing_score} />
+                <ScoreCard label="Structure" score={analysis.analysis.structure_score} />
+                <ScoreCard label="Impact" score={analysis.analysis.impact_score} />
+                <ScoreCard label="Mots-clés" score={analysis.analysis.keyword_score} />
+              </div>
+            </details>
 
             {/* Synthèse recruteur */}
             <div className="space-y-3">
@@ -325,11 +359,11 @@ export function CvAnalysisPanel({
             {/* Recommandations */}
             <div className="space-y-4">
               <SectionTitle>Recommandations</SectionTitle>
-              {sortedRecommendations.length === 0 ? (
-                <p className="text-sm text-[#A1A1A1]">Aucune recommandation.</p>
+              {sortedRecommendations.length <= 2 ? (
+                <p className="text-sm text-[#A1A1A1]">Les recommandations prioritaires sont présentées plus haut.</p>
               ) : (
                 <div className="grid gap-6 md:grid-cols-2">
-                  {sortedRecommendations.map((rec) => (
+                  {sortedRecommendations.slice(2).map((rec) => (
                     <div key={rec.id} className="space-y-3">
                       <div className="flex items-center gap-2">
                         <p className="text-base font-medium text-[#FAFAFA]">{rec.title}</p>
@@ -355,8 +389,10 @@ export function CvAnalysisPanel({
             </div>
 
             {/* Mots-clés produit manquants */}
-            <div className="space-y-3">
-              <SectionTitle>Mots-clés produit manquants</SectionTitle>
+            <details className="rounded-[10px] border border-[#383838] bg-[#212121] p-4">
+              <summary className="cursor-pointer font-medium text-[#FAFAFA]">Voir les mots-clés à vérifier</summary>
+              <div className="mt-3 space-y-3">
+              <SectionTitle>Mots-clés produit absents du CV</SectionTitle>
               {analysis.analysis.missing_product_keywords.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {analysis.analysis.missing_product_keywords.map((keyword) => (
@@ -372,7 +408,8 @@ export function CvAnalysisPanel({
               ) : (
                 <p className="text-sm text-[#A1A1A1]">Aucun signalé</p>
               )}
-            </div>
+              </div>
+            </details>
           </>
         ) : (
           !loading &&

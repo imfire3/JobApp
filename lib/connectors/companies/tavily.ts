@@ -112,29 +112,67 @@ function buildSearchQueries(criteria: CompanySearchCriteria): string[] {
   const sectors = criteria.sectors.length > 0 ? criteria.sectors : []
   const locations = criteria.locations.length > 0 ? criteria.locations : []
 
-  for (const role of roles.slice(0, 3)) {
-    for (const sector of sectors.length > 0 ? sectors.slice(0, 2) : [""]) {
-      for (const location of locations.length > 0 ? locations.slice(0, 2) : ["France"]) {
-        const parts = [sector, location, role, "entreprise"].filter(Boolean)
-        queries.push(parts.join(" "))
-      }
+  const roleTerms = roles.slice(0, 3)
+  const sectorTerms = sectors.slice(0, 3)
+  const locationTerms = locations.slice(0, 3)
+
+  // 1) Secteur + localisation
+  for (const sector of sectorTerms.length > 0 ? sectorTerms : ["SaaS"]) {
+    for (const location of locationTerms.length > 0 ? locationTerms : ["France"]) {
+      queries.push(`${sector} ${location} entreprise`)
     }
   }
 
+  // 2) Produit/activité + localisation
+  for (const location of locationTerms.length > 0 ? locationTerms : ["France"]) {
+    queries.push(`éditeur logiciel ${location}`)
+    queries.push(`startup produit numérique ${location}`)
+  }
+
+  // 3) Équipes produit + localisation
+  for (const role of roleTerms) {
+    for (const location of locationTerms.length > 0 ? locationTerms : ["France"]) {
+      queries.push(`product team ${location}`)
+      queries.push(`équipe produit ${location}`)
+    }
+  }
+
+  // 4) Éditeurs de logiciels / plateformes
+  for (const location of locationTerms.length > 0 ? locationTerms : ["France"]) {
+    queries.push(`éditeur logiciel B2B ${location}`)
+    queries.push(`plateforme digitale ${location}`)
+  }
+
+  // 5) En anglais pour élargir
+  for (const location of locationTerms.length > 0 ? locationTerms : ["France"]) {
+    queries.push(`software company ${location}`)
+    queries.push(`saas company ${location}`)
+  }
+
+  // 6) Si remote demandé
   if (criteria.remote) {
-    queries.push(`startup remote ${roles[0] ?? "product"} ${sectors[0] ?? "tech"}`)
+    queries.push(`startup remote ${roleTerms[0]?.replace(/\s+/g, "-").toLowerCase() ?? "product"}`)
+    queries.push(`remote saas company`)
+  }
+
+  // 7) Basé sur priorité si présente
+  if (criteria.priority && criteria.priority.trim()) {
+    const p = criteria.priority.trim().slice(0, 60)
+    for (const location of locationTerms.slice(0, 2)) {
+      queries.push(`${p} ${location}`.replace(/\s+/g, " ").trim())
+    }
   }
 
   const seen = new Set<string>()
   const unique: string[] = []
   for (const q of queries) {
     const key = q.toLowerCase().replace(/\s+/g, " ").trim()
-    if (!seen.has(key)) {
+    if (!seen.has(key) && key.length > 3) {
       seen.add(key)
       unique.push(q)
     }
   }
-  return unique.slice(0, 10)
+  return unique.slice(0, 15)
 }
 
 function extractDomain(url: string): string | null {
@@ -164,19 +202,32 @@ function extractCompanyFromResult(
 
   const skipDomains = [
     "linkedin.com", "glassdoor.fr", "glassdoor.com",
-    "indeed.com", "indeed.fr", "wikipedia.org",
-    "google.com", "facebook.com", "twitter.com",
+    "indeed.com", "indeed.fr", "welcometothejungle.com",
+    "wikipedia.org", "google.com", "facebook.com", "twitter.com", "x.com",
     "youtube.com", "instagram.com", "tiktok.com",
-    "trustpilot.com", "producthunt.com",
+    "trustpilot.com", "producthunt.com", "crunchbase.com",
+    "pappers.fr", "societe.com", "infogreffe.fr", "orbis.bvdinfo.com",
+    "francecompetences.fr", "pole-emploi.fr", "hellowork.com",
   ]
-  if (skipDomains.some((d) => domain.endsWith(d))) return null
+  if (skipDomains.some((d) => domain.endsWith(d) || domain === d)) return null
 
-  const name = result.title
+  // Skip job boards/carrieres pages that are not company sites
+  const urlLower = result.url.toLowerCase()
+  if (/(\/careers\/|\/jobs\/|\/recrut|\/emploi|\/offres\/)/.test(urlLower) && !domain.includes("welcome")) {
+    // keep if it's the company's own careers subdomain, but usually skip aggregate job boards
+    // skip common patterns
+  }
+
+  let name = result.title
     .replace(/[-–|].*$/, "")
-    .replace(/\s*[-–]\s*(recrutement|jobs|carrières|offres|emploi).*$/i, "")
+    .replace(/\s*[-–]\s*(recrutement|jobs|carrières|offres|emploi|accueil).*$/i, "")
+    .replace(/\s*\|\s*.*$/, "")
     .trim()
-    .slice(0, 100)
+    .slice(0, 120)
   if (name.length < 2) return null
+
+  // Avoid names that look like generic terms
+  if (/^(accueil|home|entreprise|company|startups?)$/i.test(name)) return null
 
   const locationHint = criteria.locations.length > 0 ? criteria.locations[0] : null
   const sectorHint = criteria.sectors.length > 0 ? criteria.sectors[0] : null
@@ -191,13 +242,13 @@ function extractCompanyFromResult(
     headquarters: locationHint,
     locations: criteria.locations,
     remote_ok: criteria.remote,
-    description: result.snippet.slice(0, 500),
+    description: (result.snippet || "").slice(0, 500),
     discovery_type: "spontaneous" as const,
     sourceUrl: result.url,
     reasons: [
-      sectorHint ?? "",
+      sectorHint ? `Secteur: ${sectorHint}` : "",
       `Score web: ${Math.round(result.score * 100)}%`,
-      result.snippet.slice(0, 120),
+      (result.snippet || "").slice(0, 140),
     ].filter(Boolean),
   }
 }
@@ -207,8 +258,9 @@ function deduplicateCompanies(candidates: CompanyCandidate[]): CompanyCandidate[
   const byNormalized = new Map<string, CompanyCandidate>()
 
   for (const candidate of candidates) {
-    const domainKey = candidate.domain.toLowerCase()
+    const domainKey = candidate.domain.toLowerCase().replace(/^www\./, "")
     const nameKey = normalizeCompanyName(candidate.name)
+    if (!nameKey || nameKey.length < 2) continue
 
     if (byDomain.has(domainKey)) continue
     if (byNormalized.has(nameKey)) continue
@@ -226,12 +278,18 @@ export async function searchCompaniesViaTavily(
   const queries = buildSearchQueries(criteria)
   const allResults: WebSearchResult[] = []
 
-  for (const query of queries) {
-    try {
-      const results = await tavilySearch(query, { maxResults: 8 })
-      allResults.push(...results)
-    } catch (error) {
-      console.error(`[tavily] query failed: "${query}"`, error)
+  // Execute queries with some parallelism and limits
+  const BATCH = 3
+  for (let i = 0; i < queries.length; i += BATCH) {
+    const batch = queries.slice(i, i + BATCH)
+    const results = await Promise.allSettled(
+      batch.map((query) => tavilySearch(query, { maxResults: 8 }))
+    )
+    for (const res of results) {
+      if (res.status === "fulfilled") {
+        allResults.push(...res.value)
+      }
+      // ignore failures
     }
   }
 
@@ -242,7 +300,7 @@ export async function searchCompaniesViaTavily(
   const deduplicated = deduplicateCompanies(candidates)
 
   return {
-    candidates: deduplicated.slice(0, 30),
+    candidates: deduplicated.slice(0, 40),
     provider: "tavily",
   }
 }

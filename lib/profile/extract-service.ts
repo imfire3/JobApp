@@ -74,6 +74,8 @@ function mapProfileRow(
     target_locations: asStringArray(row?.target_locations),
     desired_salary:
       typeof row?.desired_salary === "number" ? row.desired_salary : null,
+    desired_salary_max:
+      typeof row?.desired_salary_max === "number" ? row.desired_salary_max : null,
     remote_preference:
       typeof row?.remote_preference === "string" ? row.remote_preference : null,
     preferred_contract_types: preferredContractsFromAiPreferences(aiPreferences),
@@ -194,6 +196,7 @@ function emptyDraftFromProfile(existing: Record<string, unknown>): ProfileDraft 
     target_roles: [],
     target_locations: [],
     desired_salary: null,
+    desired_salary_max: null,
     remote_preference: null,
     preferred_contract_types: [],
     cv_file_name:

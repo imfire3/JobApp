@@ -1,0 +1,13 @@
+{
+  "id": "P005",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "convenience",
+  "reason": "J'ai six candidatures ouvertes et j'en ai déjà lâché deux faute de relance — 39 € pour trois mois sans reconduction, c'est moins cher que le temps que je perds à recopier mes expériences dans un tableur. Je teste d'abord l'analyse gratuite, et si le détail ligne par ligne tient ses promesses, je paie une fois.",
+  "objection": "Mon vrai doute n'est pas le prix, c'est que je vais encore devoir apprendre un outil au milieu de ma recherche, et je ne sais pas du tout ce qu'ils font de mon CV une fois importé.",
+  "would_change_my_mind": "Si l'analyse gratuite me sort un score vague du genre « 72/100 » sans me dire quelle ligne de mon CV pose problème, je referme l'onglet et je retourne à mon document Word. Et si je ne trouve aucun avis indépendant, ni la moindre trace d'une société derrière, je ne laisse pas ma carte.",
+  "price_too_cheap": 5,
+  "price_cheap": 20,
+  "price_expensive": 60,
+  "price_too_expensive": 90
+}

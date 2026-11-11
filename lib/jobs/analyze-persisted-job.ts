@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { JOB_MATCH_PROMPT_VERSION } from "@/lib/ai/prompts/job-match"
 import { hashCvContent } from "@/lib/cv-analysis/hash"
 import { computeAtsOfferScore } from "@/lib/jobs/ats-offer-score"
+import { computeScoreFromCriteria } from "@/lib/jobs/criteria-score"
 import { hashJobContent } from "@/lib/jobs/job-fit-cache"
 import { toJobViewModel } from "@/lib/jobs/mapper"
 import { analyzeJobMatch } from "@/lib/openai/client"
@@ -161,13 +162,25 @@ export async function analyzeAndPersistJob(
     summary: typeof job.summary === "string" ? job.summary : null,
   })
 
+  const criteriaAssessment = analysis.criteria_assessment ?? []
+  const criteriaResult = computeScoreFromCriteria(criteriaAssessment as any)
+  const computedMatchScore =
+    typeof criteriaResult.match_score === "number"
+      ? criteriaResult.match_score
+      : analysis.match_score
+
+  const scoreExplanation =
+    computedMatchScore != null
+      ? `J’ai comparé ton CV avec l’offre ${String(job.title ?? "")} chez ${String(job.company ?? "")}. Correspondance : ${computedMatchScore}/100. ${analysis.score_explanation ?? ""}`
+      : analysis.score_explanation ?? null
+
   const { error: updateError } = await supabase
     .from("jobs")
     .update({
-      ai_match_score: analysis.match_score,
+      ai_match_score: computedMatchScore,
       ai_strengths: analysis.match_reasons,
       ai_gaps: analysis.match_gaps,
-      match_score: analysis.match_score,
+      match_score: computedMatchScore,
       match_reasons: analysis.match_reasons,
       match_gaps: analysis.match_gaps,
       cover_letter_angle: analysis.cover_letter_angle,
@@ -179,13 +192,13 @@ export async function analyzeAndPersistJob(
           keywords_missing: analysis.keywords_missing,
           cv_improvements: analysis.cv_improvements,
           cv_improvement_items: analysis.cv_improvement_items ?? [],
-          criteria_assessment: analysis.criteria_assessment ?? [],
+          criteria_assessment: criteriaAssessment,
           score_breakdown: analysis.score_breakdown ?? [],
           ats_score: ats.ats_score,
           ats_breakdown: ats.ats_breakdown,
           job_posting_summary: analysis.job_posting_summary,
           score_confidence: analysis.score_confidence ?? null,
-          score_explanation: analysis.score_explanation ?? null,
+          score_explanation: scoreExplanation,
           limitations: analysis.limitations ?? [],
           status: analysis.status ?? "ok",
           prompt_version: JOB_MATCH_PROMPT_VERSION,
@@ -202,5 +215,5 @@ export async function analyzeAndPersistJob(
     throw new Error(updateError.message)
   }
 
-  return { analysis, matchScore: analysis.match_score }
+  return { analysis, matchScore: computedMatchScore }
 }

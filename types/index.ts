@@ -206,7 +206,12 @@ export interface JobCriterionAssessment {
 
 export interface JobCriterionConfirmation {
   criterion_id: string;
-  answer: "yes" | "no";
+  /**
+   * `unknown` is stored when the candidate says they cannot confirm yet.
+   * It must never be coerced into `no` (or `yes`) in the CV evidence.
+   */
+  answer: "yes" | "no" | "unknown";
+  /** Free-text example or comment declared by the candidate (never a CV quote). */
   detail?: string | null;
   updated_at: string;
 }
@@ -249,6 +254,11 @@ export interface JobAnalysis {
   job_posting_summary: string;
   status?: "ok" | "partial" | "insufficient_input";
   score_confidence?: "low" | "medium" | "high";
+  /** Share of offer criteria with at least some CV evidence (0–100). */
+  criteria_coverage?: number | null;
+  /** Indicative application priority (distinct from adequacy/confidence; undetermined if preferences/evidence insufficient). */
+  application_priority?: "high" | "medium" | "low" | "undetermined";
+  application_priority_reasons?: string[];
   score_explanation?: string;
   limitations?: string[];
 }
@@ -382,7 +392,8 @@ export interface CompanyCandidate {
 }
 
 /** UI-facing job view model (mapped from JobRecord). */
-export interface Job extends ImportedJob {
+export interface Job extends Omit<ImportedJob, "posted_at"> {
+  posted_at: string | null;
   id: string;
   user_id: string;
   source_key: string;
@@ -456,6 +467,32 @@ export interface Job extends ImportedJob {
   } | null;
   score_explanation?: string | null;
   job_posting_summary?: string | null;
+  /** Candidate answers saved separately from CV evidence (raw_data.job_fit.confirmations). */
+  criterion_confirmations?: JobCriterionConfirmation[] | null;
+  /** Known limitations reported by the analysis (raw_data.job_fit.limitations). */
+  analysis_limitations?: string[] | null;
+  /** Analysis completeness status persisted by `/api/analyze-job`. */
+  analysis_status?: "ok" | "partial" | "insufficient_input" | null;
+  /** Confidence reported by the analysis, capped by criteria coverage server-side. */
+  score_confidence?: "low" | "medium" | "high" | null;
+  /** Share of criteria with at least some CV evidence (0–100). */
+  criteria_coverage?: number | null;
+  application_priority?: "high" | "medium" | "low" | "undetermined" | null;
+  application_priority_reasons?: string[] | null;
+  /** CV-optimize proposals already applied to the adapted CV. */
+  cv_optimize_applied?: string[] | null;
+  /** CV-optimize proposals dismissed by the candidate. */
+  cv_optimize_dismissed?: string[] | null;
+  /** Answers saved for CV-optimize questions (raw_data.job_fit.optimize.answers). */
+  optimize_answers?: Record<
+    string,
+    {
+      answer: "yes" | "no" | "unknown";
+      detail?: string | null;
+      updated_at?: string;
+      answered_at?: string;
+    }
+  > | null;
   /** Cache keys from raw_data.job_fit (optional mapped fields). */
   job_fit_cv_hash?: string | null;
   job_fit_job_hash?: string | null;

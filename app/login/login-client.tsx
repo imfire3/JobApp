@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Briefcase, CheckCircle2, Eye, EyeOff, FileUp } from "lucide-react";
+import { Briefcase, Check, CheckCircle2, Circle, Eye, EyeOff, FileUp, MailCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,10 +14,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { AuthCardShell } from "@/components/auth/auth-card-shell";
 import { CvImportProgress } from "@/components/cv/CvImportProgress";
 import { cn } from "@/lib/utils";
+import {
+  PASSWORD_RULES,
+  passwordRuleFailures,
+} from "@/lib/auth/password-rules";
 
 /** Keep in sync with lib/cv-analysis/service.ts MIN_CV_LENGTH */
 const MIN_CV_LENGTH = 10;
-const MIN_PASSWORD_LENGTH = 8;
 
 const MAX_CV_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 async function readApiJson<T extends Record<string, unknown>>(res: Response): Promise<T> {
@@ -35,7 +38,7 @@ async function readApiJson<T extends Record<string, unknown>>(res: Response): Pr
   }
 }
 
-type Mode = "login" | "signup" | "cv";
+type Mode = "login" | "signup" | "cv" | "confirm" | "forgot";
 
 function initialMode(
   searchParams: URLSearchParams,
@@ -57,41 +60,72 @@ function PasswordField({
   label,
   value,
   onChange,
+  onBlur,
   autoComplete,
   enterKeyHint,
   required = true,
-  minLength = MIN_PASSWORD_LENGTH,
+  minLength,
+  placeholder = "**********",
+  showErrors = false,
+  describedBy,
+  invalid: invalidProp = false,
+  error,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   autoComplete: string;
   enterKeyHint?: "go" | "next" | "done";
   required?: boolean;
   minLength?: number;
+  placeholder?: string;
+  showErrors?: boolean;
+  describedBy?: string;
+  invalid?: boolean;
+  error?: string | null;
 }) {
   const [visible, setVisible] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  const revealErrors = touched || showErrors;
+  const visibleError = error && revealErrors ? error : null;
+  const isInvalid = invalidProp || Boolean(visibleError);
+  const errorId = `${id}-error`;
+  const describedByValue =
+    [
+      describedBy ?? null,
+      visibleError ? errorId : null,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="text-sm font-medium leading-5 text-[#fafafa]">{label}</Label>
       <div className="relative">
         <Input
           id={id}
           type={visible ? "text" : "password"}
           autoComplete={autoComplete}
           enterKeyHint={enterKeyHint}
-          placeholder="**********"
+          placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={() => {
+            setTouched(true);
+            onBlur?.();
+          }}
           required={required}
           minLength={minLength}
-          className="pr-11"
+          aria-invalid={isInvalid || undefined}
+          aria-describedby={describedByValue}
+          className="h-11 rounded-[6px] border-[#404040] bg-[#262626] px-3 pr-11 text-sm text-[#fafafa] placeholder:text-[#737373] focus-visible:border-[#737373] focus-visible:ring-1 focus-visible:ring-[#a3a3a3] dark:bg-[#262626]"
         />
         <button
           type="button"
-          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted-foreground transition hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[#737373] transition-colors hover:text-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a3a3a3]"
           onClick={() => setVisible((prev) => !prev)}
           aria-label={visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
           tabIndex={0}
@@ -103,14 +137,69 @@ function PasswordField({
           )}
         </button>
       </div>
+      {visibleError && (
+        <p id={errorId} role="alert" className="text-sm leading-5 text-destructive">
+          {visibleError}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PasswordRequirements({
+  id,
+  value,
+  revealErrors,
+}: {
+  id: string;
+  value: string;
+  revealErrors: boolean;
+}) {
+  const showFailures = value.length > 0 && revealErrors;
+
+  return (
+    <div id={id} className="space-y-1.5">
+      <p className="text-sm leading-5 text-[#a3a3a3]">
+        Votre mot de passe doit respecter les conditions suivantes :
+      </p>
+      <ul className="space-y-1">
+        {PASSWORD_RULES.map((rule) => {
+          const pass = value.length > 0 && rule.test(value);
+          const fail = showFailures && !pass;
+          return (
+            <li
+              key={rule.id}
+              className={cn(
+                "flex items-start gap-2 text-sm leading-5",
+                fail
+                  ? "text-destructive"
+                  : pass
+                    ? "text-success"
+                : "text-[#a3a3a3]"
+              )}
+            >
+              {fail ? (
+                <X className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              ) : pass ? (
+                <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              ) : (
+                <Circle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              )}
+              <span>{fail ? rule.error : rule.help}</span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
 
 export default function LoginPageClient({
   allowSelfSignup = false,
+  hostedSignup = false,
 }: {
   allowSelfSignup?: boolean
+  hostedSignup?: boolean
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -123,9 +212,13 @@ export default function LoginPageClient({
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [signupAttempted, setSignupAttempted] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [confirmationEmail, setConfirmationEmail] = useState("");
+  const [resending, setResending] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   const [cvText, setCvText] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -138,8 +231,64 @@ export default function LoginPageClient({
   const lastParsedPasteRef = useRef("");
 
   const canSubmitCv = !parsingCv && !loading && cvReady;
+  const revealPasswordErrors = passwordTouched || signupAttempted;
 
   const wantsCv = searchParams.get("cv") === "1"
+  const authError = searchParams.get("error")
+  const justConfirmed = searchParams.get("confirmed") === "1"
+
+  async function handleResendConfirmation() {
+    const email = (confirmationEmail || identifier).trim()
+    if (!email) {
+      toast.error("Renseigne l’adresse e-mail du compte.")
+      return
+    }
+    setResending(true)
+    try {
+      const response = await fetch("/api/auth/resend-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string
+        message?: string
+      }
+      if (!response.ok) throw new Error(payload.error ?? "Envoi impossible")
+      toast.success(payload.message ?? "E-mail de confirmation renvoyé.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Envoi impossible")
+    } finally {
+      setResending(false)
+    }
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (!identifier.trim()) {
+      document.getElementById("forgot-identifier")?.focus()
+      return
+    }
+    setLoading(true)
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: identifier.trim() }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string
+        message?: string
+      }
+      if (!response.ok) throw new Error(payload.error ?? "Envoi impossible")
+      setForgotSent(true)
+      toast.success(payload.message ?? "E-mail de réinitialisation envoyé.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Envoi impossible")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -163,6 +312,10 @@ export default function LoginPageClient({
           }
           if (wantsCv && allowSelfSignup) {
             setMode("signup");
+          } else if (wantsCv) {
+            // Direct link to CV import without a session: ask the visitor to
+            // sign in first, then the login handler resumes at the CV step.
+            setMode("login");
           }
           return;
         }
@@ -209,6 +362,32 @@ export default function LoginPageClient({
     };
   }, [router, wantsCv, allowSelfSignup]);
 
+  function startImportTimeline(options?: { paste?: boolean }) {
+    const startedAt = Date.now();
+    const uploadMs = options?.paste ? 0 : 2000;
+    const apply = () => {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < uploadMs) {
+        setImportStep("upload");
+        setImportMessage("Réception de ton fichier…");
+      } else if (elapsed < 6000) {
+        setImportStep("extract");
+        setImportMessage("Lecture et extraction du texte…");
+      } else if (elapsed < 18000) {
+        setImportStep("analyze");
+        setImportMessage("Analyse de tes expériences et compétences…");
+      } else {
+        setImportStep("save");
+        setImportMessage(
+          `Création de ton profil… (${Math.round(elapsed / 1000)}s)`
+        );
+      }
+    };
+    apply();
+    const timer = window.setInterval(apply, 800);
+    return () => window.clearInterval(timer);
+  }
+
   async function handleFileChange(file: File | null) {
     if (!file) {
       setPdfFile(null);
@@ -242,6 +421,7 @@ export default function LoginPageClient({
     setImportStep("upload");
     setImportMessage("Réception de ton fichier…");
     setParsingCv(true);
+    const clearTimeline = startImportTimeline();
 
     try {
       let res: Response | undefined;
@@ -322,14 +502,8 @@ export default function LoginPageClient({
         throw new Error(data.error ?? "Impossible d'extraire le texte du CV");
       }
 
-      setImportStep("extract");
-      setImportMessage("Lecture et extraction du texte…");
-
       const text = (data.extracted_text ?? "").trim();
       setCvText(text);
-
-      setImportStep("analyze");
-      setImportMessage("Analyse de tes expériences et compétences…");
 
       const ready =
         Boolean(data.profile_filled) || text.length >= MIN_CV_LENGTH;
@@ -339,10 +513,10 @@ export default function LoginPageClient({
         );
       }
 
-      setImportStep("save");
-      setImportMessage("Création de ton profil…");
-
-      await saveCvOnly();
+      // /api/profile/import-cv already persisted cv_text + structured profile
+      // server-side. Do NOT call saveCvOnly() here: it closes over this render's
+      // stale state (pdfFile/cvText are still null/empty) and would throw
+      // "Ajoute au moins X caractères" even though the import succeeded.
 
       setImportStep("done");
       setImportMessage("Profil prêt ! Redirection…");
@@ -364,6 +538,7 @@ export default function LoginPageClient({
         error instanceof Error ? error.message : "Échec de l'extraction PDF"
       );
     } finally {
+      clearTimeline();
       setParsingCv(false);
     }
   }
@@ -378,6 +553,7 @@ export default function LoginPageClient({
 
     setParsingCv(true);
     setCvReady(false);
+    const clearTimeline = startImportTimeline({ paste: true });
     try {
       const res = await fetch("/api/profile", {
         method: "PUT",
@@ -388,13 +564,20 @@ export default function LoginPageClient({
       if (!res.ok) throw new Error(data.error ?? "Analyse du CV échouée");
       lastParsedPasteRef.current = trimmed;
       setCvReady(true);
+      setImportStep("done");
+      setImportMessage("CV analysé !");
       toast.success("CV analysé — tu peux continuer");
     } catch (error) {
       setCvReady(false);
+      setImportStep("error");
+      setImportMessage(
+        error instanceof Error ? error.message : "Analyse du CV échouée"
+      );
       toast.error(
         error instanceof Error ? error.message : "Analyse du CV échouée"
       );
     } finally {
+      clearTimeline();
       setParsingCv(false);
     }
   }
@@ -402,6 +585,8 @@ export default function LoginPageClient({
   function handlePasteTextChange(value: string) {
     setCvText(value);
     setCvReady(false);
+    setImportStep("idle");
+    setImportMessage("");
     if (pasteParseTimerRef.current) {
       window.clearTimeout(pasteParseTimerRef.current);
     }
@@ -452,7 +637,30 @@ export default function LoginPageClient({
     }
 
     if (cvText.trim().length < MIN_CV_LENGTH) {
-      throw new Error(`Ajoute au moins ${MIN_CV_LENGTH} caractères de CV`);
+      // Ne bloque jamais si le CV existe déjà côté serveur (état local perdu
+      // après un rechargement / navigation). Seul vrai cas bloquant : rien nulle part.
+      try {
+        const statusRes = await fetch("/api/onboarding", { cache: "no-store" });
+        const status = await readApiJson<{
+          has_cv?: boolean;
+          has_profile_reviewed?: boolean;
+          step?: string;
+        }>(statusRes);
+        if (
+          statusRes.ok &&
+          (status.has_cv ||
+            status.has_profile_reviewed ||
+            status.step === "profile" ||
+            status.step === "done")
+        ) {
+          return;
+        }
+      } catch {
+        // On retombe sur le message d'erreur ci-dessous.
+      }
+      throw new Error(
+        "Importe un fichier PDF ou colle le texte de ton CV pour continuer"
+      );
     }
     const res = await fetch("/api/profile", {
       method: "PUT",
@@ -465,8 +673,13 @@ export default function LoginPageClient({
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
+    setSignupAttempted(true);
+    if (passwordRuleFailures(password).length > 0) {
+      document.getElementById("signup-password")?.focus();
+      return;
+    }
     if (password !== passwordConfirm) {
-      toast.error("Les mots de passe ne correspondent pas");
+      document.getElementById("signup-password-confirm")?.focus();
       return;
     }
     setLoading(true);
@@ -474,18 +687,28 @@ export default function LoginPageClient({
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password, first_name: firstName, last_name: lastName, date_of_birth: dateOfBirth }),
+        body: JSON.stringify({ identifier, password, first_name: firstName, last_name: lastName }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
         error?: string;
+        confirmation_required?: boolean;
+        email?: string;
       };
       if (!response.ok) {
         throw new Error(payload.error ?? "Inscription échouée");
       }
 
-      toast.success("Compte créé");
       setPassword("");
       setPasswordConfirm("");
+
+      if (payload.confirmation_required) {
+        setConfirmationEmail(payload.email ?? identifier);
+        setMode("confirm");
+        toast.success("Compte créé — confirme ton adresse e-mail");
+        return;
+      }
+
+      toast.success("Compte créé");
       setMode("cv");
       // Small delay to ensure session cookie is set before navigation
       setTimeout(() => {
@@ -499,42 +722,18 @@ export default function LoginPageClient({
     }
   }
 
-  /** Localhost only: fill + create a disposable test account. */
-  async function handleFakeFillSignup() {
+  function handleFakeFillSignup() {
     if (!allowSelfSignup) return
     const stamp = Date.now().toString(36)
-    const fakeEmail = `dev+${stamp}@jobapp.local`
-    const fakePassword = "password1"
-    setIdentifier(fakeEmail)
+    const fakePassword = "Password1!"
+    setIdentifier(`dev+${stamp}@jobapp.local`)
     setPassword(fakePassword)
     setPasswordConfirm(fakePassword)
-    setLoading(true)
-    try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier: fakeEmail,
-          password: fakePassword,
-        }),
-      })
-      const payload = (await response.json().catch(() => ({}))) as {
-        error?: string
-      }
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Inscription échouée")
-      }
-      toast.success("Compte test créé")
-      setPassword("")
-      setPasswordConfirm("")
-      setMode("cv")
-      router.replace("/login?cv=1")
-      toast.message("Importe ton CV pour continuer")
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Inscription échouée")
-    } finally {
-      setLoading(false)
-    }
+    setFirstName("Jean")
+    setLastName("Dupont")
+    setPasswordTouched(false)
+    setSignupAttempted(false)
+    toast.message("Données de test renseignées. Vérifie-les avant de créer le compte.")
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -546,8 +745,12 @@ export default function LoginPageClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password }),
       });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; code?: string };
       if (!response.ok) {
+        if (payload.code === "email_not_confirmed") {
+          setConfirmationEmail(identifier.trim());
+          setMode("confirm");
+        }
         throw new Error(payload.error ?? "Connexion échouée");
       }
 
@@ -609,9 +812,7 @@ export default function LoginPageClient({
   const description =
     mode === "cv"
       ? "Ensuite on analyse ton profil, puis tu arrives sur le dashboard."
-      : mode === "signup"
-        ? "Crée ton compte, puis importe ton CV."
-        : "Suis tes offres PO/PM, score les matches et génère des lettres.";
+      : "Suis tes offres PO/PM, score les matches et génère des lettres.";
 
   if (mode === "cv") {
     return (
@@ -630,8 +831,9 @@ export default function LoginPageClient({
                   Importe ton CV
                 </h1>
                 <p className="text-base leading-6 text-muted-foreground">
-                  Ensuite on analyse ton profil, puis tu arrives sur le
-                  dashboard.
+                  Ton CV sert de base aux analyses, aux Correspondances et aux
+                  lettres. Importe un fichier ou colle son texte — tu pourras
+                  vérifier le profil juste après.
                 </p>
               </div>
 
@@ -726,12 +928,12 @@ export default function LoginPageClient({
                           />
                         )}
                         <span className="break-all text-lg font-semibold leading-6 text-foreground">
-                          {pdfFile ? pdfFile.name : "Importer un fichier PDF"}
+                          {pdfFile ? pdfFile.name : "Importer un fichier PDF ou une image"}
                         </span>
                         <span className="text-base leading-6 text-muted-foreground">
                           {pdfFile
                             ? `${formatFileSize(pdfFile.size)} · Appuie pour changer`
-                            : "CV au format PDF ou image"}
+                            : "PDF, PNG, JPEG ou WebP · 25 Mo maximum"}
                         </span>
                         {cvReady && pdfFile ? (
                           <span className="mt-1 text-base font-medium text-primary">
@@ -754,7 +956,7 @@ export default function LoginPageClient({
                           className="w-full max-w-md border-0 bg-transparent"
                         />
                       </div>
-                    ) : (cvText.trim().length > 0 && !cvReady && cvTab === "paste" ? (
+                    ) : (cvText.trim().length > 0 && !cvReady && cvTab === "paste" && importStep !== "error" && importStep !== "done" ? (
                       <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/80 p-4 backdrop-blur-[1px]">
                         <CvImportProgress
                           active
@@ -788,6 +990,39 @@ export default function LoginPageClient({
                 </TabsContent>
               </Tabs>
 
+              {importStep === "error" ? (
+                <div className="space-y-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4" role="alert">
+                  <p className="text-base font-medium leading-6 text-foreground">
+                    L’import n’a pas abouti.
+                  </p>
+                  <p className="text-base leading-6 text-muted-foreground">
+                    {importMessage || "Vérifie ton fichier ou colle le texte de ton CV."}
+                  </p>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Réessayer avec un fichier
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                      onClick={() => {
+                        setCvTab("paste")
+                        setImportStep("idle")
+                        setImportMessage("")
+                      }}
+                    >
+                      Coller le texte du CV
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
               <Button
                 type="submit"
                 size="lg"
@@ -808,23 +1043,23 @@ export default function LoginPageClient({
       return null
     }
     return (
-      <AuthCardShell>
-        <Card className="w-full text-base shadow-lg">
-          <CardHeader className="space-y-4 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <Briefcase className="h-8 w-8" />
+      <AuthCardShell className="!max-w-[500px]">
+        <Card className="w-full rounded-[8px] border-[#404040] bg-[#171717] p-6 text-base text-[#fafafa] shadow-none">
+          <CardHeader className="gap-3 px-0 pt-0 text-center">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-[8px] bg-white text-[#0a0a0a]">
+              <Briefcase className="size-6" aria-hidden />
             </div>
-            <CardTitle className="text-3xl leading-8 tracking-tight">
+            <CardTitle className="text-xl font-medium leading-6 tracking-tight text-[#fafafa]">
               {title}
             </CardTitle>
-            <CardDescription className="text-base leading-6">
+            <CardDescription className="text-sm leading-5 text-[#a3a3a3]">
               {description}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSignup} className="space-y-6">
+          <CardContent className="px-0 pb-0">
+            <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signup-identifier">Email</Label>
+                <Label htmlFor="signup-identifier" className="text-sm font-medium leading-5 text-[#fafafa]">Email</Label>
                 <Input
                   id="signup-identifier"
                   type="email"
@@ -834,12 +1069,13 @@ export default function LoginPageClient({
                   placeholder="monemail@gmail.com"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
+                  className="h-11 rounded-[6px] border-[#404040] bg-[#262626] px-3 text-sm text-[#fafafa] placeholder:text-[#737373] focus-visible:border-[#737373] focus-visible:ring-1 focus-visible:ring-[#a3a3a3] dark:bg-[#262626]"
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-first-name">Prénom</Label>
+                  <Label htmlFor="signup-first-name" className="text-sm font-medium leading-5 text-[#fafafa]">Prénom</Label>
                   <Input
                     id="signup-first-name"
                     type="text"
@@ -848,11 +1084,12 @@ export default function LoginPageClient({
                     placeholder="Prénom"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
+                    className="h-11 rounded-[6px] border-[#404040] bg-[#262626] px-3 text-sm text-[#fafafa] placeholder:text-[#737373] focus-visible:border-[#737373] focus-visible:ring-1 focus-visible:ring-[#a3a3a3] dark:bg-[#262626]"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-last-name">Nom</Label>
+                  <Label htmlFor="signup-last-name" className="text-sm font-medium leading-5 text-[#fafafa]">Nom</Label>
                   <Input
                     id="signup-last-name"
                     type="text"
@@ -861,72 +1098,72 @@ export default function LoginPageClient({
                     placeholder="Nom"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
+                    className="h-11 rounded-[6px] border-[#404040] bg-[#262626] px-3 text-sm text-[#fafafa] placeholder:text-[#737373] focus-visible:border-[#737373] focus-visible:ring-1 focus-visible:ring-[#a3a3a3] dark:bg-[#262626]"
                     required
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="signup-date-of-birth">Date de naissance</Label>
-                <Input
-                  id="signup-date-of-birth"
-                  type="date"
-                  autoComplete="bday"
-                  enterKeyHint="next"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  required
-                  max={new Date().toISOString().split("T")[0]}
-                />
-              </div>
               <PasswordField
                 id="signup-password"
                 label="Mot de passe"
+                placeholder="Saisissez votre mot de passe"
                 value={password}
                 onChange={setPassword}
+                onBlur={() => setPasswordTouched(true)}
                 autoComplete="new-password"
                 enterKeyHint="next"
-                minLength={MIN_PASSWORD_LENGTH}
+                showErrors={signupAttempted}
+                describedBy="signup-password-requirements"
+                invalid={
+                  revealPasswordErrors && passwordRuleFailures(password).length > 0
+                }
               />
               <PasswordField
                 id="signup-password-confirm"
                 label="Confirmer le mot de passe"
+                placeholder="Confirmez votre mot de passe"
                 value={passwordConfirm}
                 onChange={setPasswordConfirm}
                 autoComplete="new-password"
                 enterKeyHint="go"
-                minLength={MIN_PASSWORD_LENGTH}
+                showErrors={signupAttempted}
+                error={
+                  passwordConfirm.length > 0 && password !== passwordConfirm
+                    ? "Les mots de passe ne correspondent pas."
+                    : null
+                }
               />
-              <p className="text-base leading-6 text-muted-foreground">
-                Au moins {MIN_PASSWORD_LENGTH} caractères. Les deux champs doivent
-                être identiques.
-              </p>
-              <div className="relative z-10 space-y-3 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  className="relative z-10 w-full"
-                  disabled={loading}
-                  onClick={() => void handleFakeFillSignup()}
-                  aria-label="Remplir avec des données de test"
-                >
-                  Fake fill data
-                </Button>
+              <PasswordRequirements
+                id="signup-password-requirements"
+                value={password}
+                revealErrors={revealPasswordErrors}
+              />
+              <div className="pt-1">
+                {!hostedSignup ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mb-3 h-11 w-full rounded-[6px] border-[#525252] bg-[#262626] text-sm font-medium text-[#d4d4d4] hover:bg-[#333] hover:text-white"
+                    disabled={loading}
+                    onClick={handleFakeFillSignup}
+                  >
+                    Fake fill data
+                  </Button>
+                ) : null}
                 <Button
                   type="submit"
-                  size="lg"
-                  className="relative z-10 w-full"
+                  className="h-12 w-full rounded-[6px] bg-white text-sm font-medium text-[#0a0a0a] hover:bg-[#e5e5e5] focus-visible:ring-[#a3a3a3]"
                   disabled={loading}
                 >
                   {loading ? "Patiente…" : "Créer mon compte"}
                 </Button>
               </div>
             </form>
-            <p className="mt-6 text-center text-base leading-6 text-muted-foreground">
+            <p className="mt-4 text-center text-sm leading-5 text-[#a3a3a3]">
               Déjà un compte ?{" "}
               <Link
                 href="/login"
-                className="underline underline-offset-4 hover:text-foreground"
+                className="text-[#d4d4d4] underline underline-offset-4 hover:text-white focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a3a3a3]"
                 tabIndex={0}
                 onClick={(e) => {
                   e.preventDefault()
@@ -943,24 +1180,170 @@ export default function LoginPageClient({
     )
   }
 
+  if (mode === "confirm") {
+    return (
+      <AuthCardShell className="!max-w-[500px]">
+        <Card className="w-full rounded-[8px] border-[#404040] bg-[#171717] p-6 text-base text-[#fafafa] shadow-none">
+          <CardHeader className="gap-3 px-0 pt-0 text-center">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-[8px] bg-white text-[#0a0a0a]">
+              <MailCheck className="size-6" aria-hidden />
+            </div>
+            <CardTitle className="text-xl font-medium leading-6 tracking-tight text-[#fafafa]">
+              Vérifie ta boîte mail
+            </CardTitle>
+            <CardDescription className="text-sm leading-5 text-[#a3a3a3]">
+              Un lien de confirmation a été envoyé à{" "}
+              <span className="font-medium text-[#fafafa]">
+                {confirmationEmail || identifier || "ton adresse"}
+              </span>
+              . Ouvre-le pour activer ton compte, puis importe ton CV.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 px-0 pb-0">
+            <p className="text-sm leading-5 text-[#a3a3a3]">
+              Le lien expire au bout d’un moment. Si tu ne le trouves pas,
+              vérifie les indésirables ou renvoie-le.
+            </p>
+            <Button
+              type="button"
+              className="h-12 w-full rounded-[6px] bg-white text-sm font-medium text-[#0a0a0a] hover:bg-[#e5e5e5]"
+              onClick={() => void handleResendConfirmation()}
+              disabled={resending}
+            >
+              {resending ? "Envoi…" : "Renvoyer l’e-mail de confirmation"}
+            </Button>
+            <Link
+              href="/login"
+              className="block text-center text-sm text-[#d4d4d4] underline underline-offset-4 hover:text-white"
+              onClick={(e) => {
+                e.preventDefault()
+                setMode("login")
+                router.replace("/login")
+              }}
+            >
+              Retour à la connexion
+            </Link>
+          </CardContent>
+        </Card>
+      </AuthCardShell>
+    )
+  }
+
+  if (mode === "forgot") {
+    return (
+      <AuthCardShell className="!max-w-[500px]">
+        <Card className="w-full rounded-[8px] border-[#404040] bg-[#171717] p-6 text-base text-[#fafafa] shadow-none">
+          <CardHeader className="gap-3 px-0 pt-0 text-center">
+            <CardTitle className="text-xl font-medium leading-6 tracking-tight text-[#fafafa]">
+              Récupérer mon mot de passe
+            </CardTitle>
+            <CardDescription className="text-sm leading-5 text-[#a3a3a3]">
+              Indique l’adresse de ton compte. Tu recevras un lien pour définir
+              un nouveau mot de passe.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 px-0 pb-0">
+            {forgotSent ? (
+              <p className="rounded-[6px] border border-[#404040] bg-[#262626] p-3 text-sm leading-5 text-[#d4d4d4]">
+                Si un compte existe pour cette adresse, un e-mail vient d’être
+                envoyé. Pense à vérifier les indésirables.
+              </p>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-identifier" className="text-sm font-medium leading-5 text-[#fafafa]">
+                    Email
+                  </Label>
+                  <Input
+                    id="forgot-identifier"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="h-11 rounded-[6px] border-[#404040] bg-[#262626] px-3 text-sm text-[#fafafa] placeholder:text-[#737373] focus-visible:border-[#737373] focus-visible:ring-1 focus-visible:ring-[#a3a3a3] dark:bg-[#262626]"
+                    required
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="h-12 w-full rounded-[6px] bg-white text-sm font-medium text-[#0a0a0a] hover:bg-[#e5e5e5]"
+                  disabled={loading}
+                >
+                  {loading ? "Envoi…" : "Envoyer le lien"}
+                </Button>
+              </form>
+            )}
+            <Link
+              href="/login"
+              className="block text-center text-sm text-[#d4d4d4] underline underline-offset-4 hover:text-white"
+              onClick={(e) => {
+                e.preventDefault()
+                setMode("login")
+                router.replace("/login")
+              }}
+            >
+              Retour à la connexion
+            </Link>
+          </CardContent>
+        </Card>
+      </AuthCardShell>
+    )
+  }
+
   return (
-    <AuthCardShell>
-      <Card className="w-full text-base shadow-lg">
-        <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-            <Briefcase className="h-8 w-8" />
+    <AuthCardShell className="!max-w-[500px]">
+      <Card className="w-full rounded-[8px] border-[#404040] bg-[#171717] p-6 text-base text-[#fafafa] shadow-none">
+        <CardHeader className="gap-3 px-0 pt-0 text-center">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-[8px] bg-white text-[#0a0a0a]">
+            <Briefcase className="size-6" aria-hidden />
           </div>
-          <CardTitle className="text-3xl leading-8 tracking-tight">
+          <CardTitle className="text-xl font-medium leading-6 tracking-tight text-[#fafafa]">
             {title}
           </CardTitle>
-          <CardDescription className="text-base leading-6">
+          <CardDescription className="text-sm leading-5 text-[#a3a3a3]">
             {description}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-6">
+        <CardContent className="px-0 pb-0">
+          {justConfirmed ? (
+            <p
+              role="status"
+              className="mb-4 rounded-[6px] border border-[#166534] bg-[#052e16] px-3 py-2 text-sm leading-5 text-[#bbf7d0]"
+            >
+              Adresse confirmée. Connecte-toi pour importer ton CV.
+            </p>
+          ) : null}
+          {authError === "lien-expire" ? (
+            <div
+              role="alert"
+              className="mb-4 space-y-2 rounded-[6px] border border-[#7f1d1d] bg-[#2a0a0a] px-3 py-2 text-sm leading-5 text-[#fecaca]"
+            >
+              <p>
+                Ce lien est expiré ou a déjà été utilisé. Connecte-toi, ou
+                renvoie un e-mail de confirmation.
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleResendConfirmation()}
+                disabled={resending}
+                className="font-medium underline underline-offset-4 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a3a3a3]"
+              >
+                {resending ? "Envoi…" : "Renvoyer l’e-mail de confirmation"}
+              </button>
+            </div>
+          ) : null}
+          {authError === "auth" && !justConfirmed ? (
+            <p
+              role="alert"
+              className="mb-4 rounded-[6px] border border-[#7f1d1d] bg-[#2a0a0a] px-3 py-2 text-sm leading-5 text-[#fecaca]"
+            >
+              La connexion n’a pas abouti. Réessaie ou demande un nouvel accès.
+            </p>
+          ) : null}
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="identifier">Email or username</Label>
+              <Label htmlFor="identifier" className="text-sm font-medium leading-5 text-[#fafafa]">Email</Label>
               <Input
                 id="identifier"
                 type="text"
@@ -970,35 +1353,48 @@ export default function LoginPageClient({
                 placeholder="monemail@gmail.com"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
+                className="h-11 rounded-[6px] border-[#404040] bg-[#262626] px-3 text-sm text-[#fafafa] placeholder:text-[#737373] focus-visible:border-[#737373] focus-visible:ring-1 focus-visible:ring-[#a3a3a3] dark:bg-[#262626]"
                 required
               />
             </div>
             <PasswordField
               id="password"
-              label="Password"
+              label="Mot de passe"
+              placeholder="Saisissez votre mot de passe"
               value={password}
               onChange={setPassword}
               autoComplete="current-password"
               enterKeyHint="go"
               minLength={1}
             />
-            <div className="relative z-10 pt-2">
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotSent(false)
+                  setMode("forgot")
+                }}
+                className="rounded-sm text-sm text-[#a3a3a3] underline underline-offset-4 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a3a3a3]"
+              >
+                Mot de passe oublié ?
+              </button>
+            </div>
+            <div className="pt-1">
               <Button
                 type="submit"
-                size="lg"
-                className="relative z-10 w-full"
+                className="h-12 w-full rounded-[6px] bg-white text-sm font-medium text-[#0a0a0a] hover:bg-[#e5e5e5] focus-visible:ring-[#a3a3a3]"
                 disabled={loading}
               >
                 {loading ? "Patiente…" : "Se connecter"}
               </Button>
             </div>
           </form>
-          <p className="mt-6 text-center text-base leading-6 text-muted-foreground">
+          <p className="mt-4 text-center text-sm leading-5 text-[#a3a3a3]">
             Pas encore de compte ?{" "}
             {allowSelfSignup ? (
               <Link
                 href="/login?signup=1"
-                className="underline underline-offset-4 hover:text-foreground"
+                className="text-[#d4d4d4] underline underline-offset-4 hover:text-white focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a3a3a3]"
                 tabIndex={0}
                 onClick={(e) => {
                   e.preventDefault()
@@ -1010,11 +1406,11 @@ export default function LoginPageClient({
               </Link>
             ) : (
               <Link
-                href="/"
-                className="underline underline-offset-4 hover:text-foreground"
+                href="/acces"
+                className="text-[#d4d4d4] underline underline-offset-4 hover:text-white focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a3a3a3]"
                 tabIndex={0}
               >
-                Demander un accès démo
+                Demander un accès
               </Link>
             )}
           </p>

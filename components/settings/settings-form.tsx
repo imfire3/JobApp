@@ -13,7 +13,7 @@ import { CvAnalysisPanel } from "@/components/settings/cv-analysis-panel"
 import { CvExperiencesCard } from "@/components/settings/cv-experiences-card"
 import { PageHelpButton } from "@/components/onboarding/page-help-button"
 import { StickyPageHeader } from "@/components/layout/sticky-page-header"
-import { mergeExperiencesIntoCvText, type CvExperience } from "@/lib/cv/experiences"
+import { mergeExperiencesIntoCvText, parseExperiencesSection, type CvExperience } from "@/lib/cv/experiences"
 import { CandidateProfileForm } from "@/components/profile/candidate-profile-form"
 import {
   Briefcase,
@@ -112,6 +112,7 @@ export function SettingsForm() {
         const text = profile.cv_text ?? ""
         setCvText(text)
         setSavedCvText(text)
+        setExperiences(parseExperiencesSection(text))
         setLastUpdatedAt(profile.updated_at ?? null)
       } catch {
         setCvText("")
@@ -173,7 +174,7 @@ export function SettingsForm() {
       const text = data.profile?.cv_text ?? nextText
       setCvText(text)
       setSavedCvText(text)
-      setExperiences([])
+      setExperiences(parseExperiencesSection(text))
       setLastUpdatedAt(data.profile?.updated_at ?? new Date().toISOString())
       toast.success("Contexte CV enregistré")
       if (text.trim().length >= 200) {
@@ -227,7 +228,7 @@ export function SettingsForm() {
       const text = data.extracted_text ?? ""
       setCvText(text)
       setSavedCvText(text)
-      setExperiences([])
+      setExperiences(parseExperiencesSection(text))
       setLastUpdatedAt(data.profile?.updated_at ?? new Date().toISOString())
       setPdfFile(null)
       setCvTextOpen(true)

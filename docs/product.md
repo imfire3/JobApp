@@ -28,6 +28,15 @@ Centralize the job-search loop in one product:
 | Recommendations | Actionable improvements (CV or prioritization), not invented experience |
 | Cover letters | Personalized letters grounded in CV + job description |
 
+## Décisions produit maintenues
+
+- L’interface est en français, avec tutoiement; le score s’appelle toujours **Correspondance**.
+- Un score de Correspondance et un statut de candidature sont deux informations distinctes et lisibles sans couleur seule.
+- Les champs de revue du profil peuvent rester vides : le candidat peut poursuivre l’onboarding puis compléter plus tard.
+- L’accès à la version hébergée se fait sur invitation, par adresse e-mail et mot de passe, avec un compte persistant.
+- L’IA prépare une analyse, une suggestion, une lettre ou un message. Elle ne présente pas une supposition comme un fait et n’envoie jamais une candidature ou une prospection à la place du candidat.
+- Les connecteurs, recherches sauvegardées et synchronisations sont des capacités dépendantes de la configuration : ne pas les décrire comme une collecte live universelle sans preuve d’exécution.
+
 ## Canonical user flow
 
 Never ship a feature that contradicts this loop:
@@ -92,6 +101,18 @@ Describe target companies in one sentence
 - **Tracking is the end state** — applied work should remain visible in applications, not only on the board.
 - **Deepen the loop** — prefer improving import → ATS → match → letter → track over unrelated surfaces.
 - **Preserve existing flows** — authentication, imports, selection, and cover letters stay intact unless a task explicitly replaces them.
+
+## UX decisions for the candidate loop
+
+- **Correspondance** is based on the same criterion list for the summary, counts and details. The offer requirement, CV documentation and the candidate’s own confirmation remain separate; “Non documenté dans le CV” is not the same as “Je n’ai pas cette expérience”.
+- CV rewrites remain previews until explicitly applied to the adapted CV. An unchanged score estimate is neutral, and an item still to confirm never becomes an experience added to the CV.
+- **Candidatures** is the primary tracking reference. Status can be changed from the keyboard/touch-accessible pipeline as well as the detail sheet. Letters and applications are always sent manually by the candidate.
+- Offer research and company prospecting are separate paths. Each offer source must state whether it queries a configured live service or filters imported offers. Company identity, company-site links, indirect evidence sources and unverified contact names must not be conflated.
+- CV analysis prioritizes two evidence-backed improvements before sub-scores and keyword details. The word **Correspondance** is reserved for CV ↔ specific offer.
+
+## Hébergement et ouverture des inscriptions
+
+Local self-signup is for development only. Keep hosted signup closed until the Supabase Auth confirmation sender/templates and callback have been verified. To open it, configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, validate the Auth sender and email templates, set the Supabase Site URL and allow the deployed `/auth/callback` redirect, then set `ALLOW_HOSTED_SIGNUP=true`. Show “Demander un accès démo” only when the request endpoint can persist requests (`SUPABASE_SERVICE_ROLE_KEY`).
 
 ## Non-goals
 

@@ -1,0 +1,13 @@
+{
+  "id": "P015",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Je testerais l'analyse gratuite, mais je ne paierais pas sur cette promesse : une lettre sans expérience inventée peut quand même sonner complètement IA. Avec mes indemnités qui se terminent, je garde mon suivi gratuit plutôt que de mettre 39 € dans un outil dont je ne connais pas l'apport.",
+  "objection": "Qu'est-ce qui me garantit que la lettre ne sera pas repérée comme un texte IA, même si tout vient bien de mon CV ?",
+  "would_change_my_mind": "Que l'essai gratuit me donne, sur une vraie offre produit que je vise, une lettre précise que je pourrais envoyer presque telle quelle sans avoir honte du ton.",
+  "price_too_cheap": 5,
+  "price_cheap": 15,
+  "price_expensive": 30,
+  "price_too_expensive": 50
+}

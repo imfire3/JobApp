@@ -65,35 +65,46 @@ export function computeCompanyMatchScore(
   ].join(" ")
   const sectorScore =
     criteria.sectors.length > 0
-      ? Math.round(overlapRatio(criteria.sectors, sectorTerms) * 25)
+      ? Math.round(overlapRatio(criteria.sectors, sectorTerms) * 10)
       : profile && profile.preferredIndustries.length > 0
-        ? Math.round(overlapRatio(profile.preferredIndustries, sectorTerms) * 25)
-        : 15
+        ? Math.round(overlapRatio(profile.preferredIndustries, sectorTerms) * 10)
+        : 10
 
   const skillPool = [...(profile?.skills ?? []), ...(profile?.keywords ?? [])].filter(
     Boolean
   )
-  const keywordPool = [company.keywords.join(" "), company.sector ?? ""].join(" ")
+  const keywordPool = [company.keywords.join(" "), company.sector ?? "", company.name].join(" ")
   const keywordScore =
     skillPool.length > 0
-      ? Math.round(overlapRatio(skillPool.slice(0, 12), keywordPool) * 40)
-      : 20
+      ? Math.round(overlapRatio(skillPool.slice(0, 15), keywordPool) * 25)
+      : 15
 
   const locationHay = [company.headquarters ?? "", ...company.locations].join(" ")
   const locationNeedles =
     criteria.locations.length > 0 ? criteria.locations : (profile?.targetLocations ?? [])
   let locationScore = 10
   if (locationNeedles.length > 0) {
-    locationScore = Math.round(overlapRatio(locationNeedles, locationHay) * 15)
+    locationScore = Math.round(overlapRatio(locationNeedles, locationHay) * 20)
   }
-  if (criteria.remote && !company.remote_ok && !company.locations.includes("Remote France")) {
-    locationScore = Math.min(locationScore, 5)
+  if (criteria.remote && company.remote_ok) {
+    locationScore = Math.min(20, locationScore + 5)
+  } else if (criteria.remote && !company.remote_ok && !/remote/i.test(locationHay)) {
+    locationScore = Math.min(locationScore, 10)
   }
 
-  const roleScore =
-    criteria.roles.length > 0 && profile && profile.targetRoles.length > 0
-      ? Math.round(overlapRatio(profile.targetRoles, criteria.roles.join(" ")) * 15)
-      : 10
+  // Role compatibility - look for product-related signals
+  const roleHay = [company.name, company.sector ?? "", ...company.keywords].join(" ")
+  const roleNeedles = criteria.roles.length > 0 ? criteria.roles : (profile?.targetRoles ?? [])
+  let roleScore = 15
+  if (roleNeedles.length > 0) {
+    roleScore = Math.round(overlapRatio(roleNeedles, roleHay) * 30)
+    // Boost if company looks like product/software company
+    if (/product|software|saas|tech|digital|plateforme/i.test(roleHay)) {
+      roleScore = Math.min(30, roleScore + 5)
+    }
+  } else if (/product|software|saas|tech|digital/i.test(roleHay)) {
+    roleScore = 20
+  }
 
   return Math.max(0, Math.min(100, sectorScore + keywordScore + locationScore + roleScore))
 }

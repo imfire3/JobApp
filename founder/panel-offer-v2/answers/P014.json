@@ -1,0 +1,13 @@
+{
+  "id": "P014",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Le suivi et la comparaison CV/offre répondent à un vrai problème pour moi, mais à 39 € je ne laisserais pas ma carte sans avis vérifiables ni preuve que le score ne m'éloigne pas des postes que je vise.",
+  "objection": "Je ne sais pas si les critères du score sont assez pertinents pour m'aider plutôt que me pousser vers des candidatures à côté de mon objectif.",
+  "would_change_my_mind": "Des avis vérifiables de candidats produit ayant utilisé le pass sur de vraies candidatures.",
+  "price_too_cheap": 5,
+  "price_cheap": 15,
+  "price_expensive": 39,
+  "price_too_expensive": 60
+}

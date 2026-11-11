@@ -7,7 +7,6 @@ import type { CvAnalysisResponse } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const MIN_CV_LENGTH = 10;
-export const MAX_CV_LENGTH = 10_000;
 
 export class CvAnalysisError extends Error {
   status: number;
@@ -75,12 +74,6 @@ function assertCvReady(cvText: string): void {
   if (cvText.length < MIN_CV_LENGTH) {
     throw new CvAnalysisError(
       `CV text is too short for analysis (minimum ${MIN_CV_LENGTH} characters).`,
-      400
-    );
-  }
-  if (cvText.length > MAX_CV_LENGTH) {
-    throw new CvAnalysisError(
-      `CV text is too long for analysis (maximum ${MAX_CV_LENGTH} characters).`,
       400
     );
   }

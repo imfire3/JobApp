@@ -77,15 +77,15 @@ export function JobTable({
                 onClick={(event) => event.stopPropagation()}
               />
             </TableHead>
-            <TableHead className={cellBorder}>Role</TableHead>
-            <TableHead className={cellBorder}>Company</TableHead>
+            <TableHead className={cellBorder}>Poste</TableHead>
+            <TableHead className={cellBorder}>Entreprise</TableHead>
             <TableHead className={cellBorder}>Source</TableHead>
-            <TableHead className={cellBorder}>Location</TableHead>
-            <TableHead className={cellBorder}>Contract</TableHead>
-            <TableHead className={cellBorder}>Salary</TableHead>
-            <TableHead className={cellBorder}>Match</TableHead>
-            <TableHead className={cellBorder}>Posted</TableHead>
-            <TableHead className={cellBorder}>Status</TableHead>
+            <TableHead className={cellBorder}>Lieu</TableHead>
+            <TableHead className={cellBorder}>Contrat</TableHead>
+            <TableHead className={cellBorder}>Salaire</TableHead>
+            <TableHead className={cellBorder}>Adéquation CV</TableHead>
+            <TableHead className={cellBorder}>Publication</TableHead>
+            <TableHead className={cellBorder}>Statut</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>

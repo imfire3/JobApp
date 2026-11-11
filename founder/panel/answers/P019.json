@@ -1,0 +1,13 @@
+{
+  "id": "P019",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Mon tableur est à l'abandon, mais je ne paie pas 39 € juste sur la promesse d'une candidature prête en dix minutes. Pour ma reconversion en produit, je veux surtout éviter une lettre qui sonne artificielle ou qui me présente comme une PM confirmée.",
+  "objection": "Ne rien inventer ne suffit pas : est-ce que la lettre saura expliquer mon passage vers le produit sans sortir les mêmes formules IA que tout le monde ?",
+  "would_change_my_mind": "Que l'essai gratuit sur une vraie offre produit donne une lettre fidèle à mon parcours de transition, que je pourrais envoyer avec seulement quelques retouches.",
+  "price_too_cheap": 5,
+  "price_cheap": 19,
+  "price_expensive": 39,
+  "price_too_expensive": 69
+}

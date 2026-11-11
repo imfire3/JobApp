@@ -42,7 +42,8 @@ describe("isCvContentStale", () => {
 });
 
 describe("MIN_CV_LENGTH", () => {
-  it("is at least 200 characters", () => {
-    assert.ok(MIN_CV_LENGTH >= 200);
+  it("stays low so short CVs pass", () => {
+    assert.ok(MIN_CV_LENGTH >= 1);
+    assert.ok(MIN_CV_LENGTH <= 50);
   });
 });

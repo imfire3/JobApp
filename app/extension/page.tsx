@@ -6,7 +6,7 @@ import { ExtensionHeader } from "@/components/extension/extension-header"
 export default function ExtensionPage() {
   return (
     <AppShell>
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="w-full min-w-0 space-y-6">
         <StickyPageHeader>
           <ExtensionHeader />
         </StickyPageHeader>

@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --import tsx --test $(find lib components \\( -name '*.test.ts' -o -name '*.test.tsx' \\) | sort)",
+    "check:design-tokens": "node scripts/check-design-tokens.mjs",
+    "check:page-layout": "node scripts/check-page-layout.mjs",
     "seed:ats": "tsx scripts/seed-ats-keywords.ts",
     "pack:extension": "rm -f public/downloads/jobtracker-chrome-extension.zip && mkdir -p public/downloads && cd chrome-extension && zip -r ../public/downloads/jobtracker-chrome-extension.zip . -x '*.DS_Store' -x '*README.md'",
     "import:wttj": "tsx scripts/import-wttj-json.ts"

@@ -1,20 +1,33 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ArrowLeft,
-  ExternalLink,
+  ChevronDown,
   FileText,
+  LayoutGrid,
   Loader2,
   Mail,
   MessageSquare,
   Mic,
+  RefreshCw,
+  RotateCcw,
 } from "lucide-react"
 import { toast } from "sonner"
 import { AppShell } from "@/components/layout/app-shell"
 import { StickyPageHeader } from "@/components/layout/sticky-page-header"
+import { PasteJobDialog } from "@/components/jobs/paste-job-dialog"
 import { CoverLetterModal } from "@/components/dashboard/cover-letter-modal"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,10 +40,8 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AnalyzingProgressPanel } from "@/components/jobs/job-scoring-progress"
-import {
-  ImportanceBadge,
-  JobDetailOverview,
-} from "@/components/jobs/lab/job-detail-overview"
+import { JobAnalysisView } from "@/components/jobs/analysis/job-analysis-view"
+import type { AnalysisQuestion } from "@/lib/jobs/job-analysis-model"
 import {
   Table,
   TableBody,
@@ -41,6 +52,11 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import type { CvOptimizeResponse } from "@/lib/ai/schemas/cv-optimize"
+import {
+  insertAfterQuoteOnce,
+  replaceQuoteOnce,
+} from "@/lib/jobs/cv-quote-match"
 import {
   TooltipProvider,
 } from "@/components/ui/tooltip"
@@ -74,7 +90,9 @@ type JobDetailLabPageProps = {
 type LabTab = "overview" | "offer" | "optimize" | "apply"
 
 export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
+  const router = useRouter()
   const [job, setJob] = useState<Job | null>(null)
+  const [correctPasteOpen, setCorrectPasteOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
@@ -82,18 +100,42 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
   const [cvAnalyzing, setCvAnalyzing] = useState(false)
   const [cvAnalysis, setCvAnalysis] = useState<CvAnalysisResponse | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [coverLetterError, setCoverLetterError] = useState<string | null>(null)
   const [coverOpen, setCoverOpen] = useState(false)
   const [tab, setTab] = useState<LabTab>("overview")
   const [ignoredIds, setIgnoredIds] = useState<Set<string>>(new Set())
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set())
   const [draftRewrites, setDraftRewrites] = useState<Record<string, string>>({})
-  const [confirmingId, setConfirmingId] = useState<string | null>(null)
-  const [confirmDetail, setConfirmDetail] = useState("")
-  const [confirmSaving, setConfirmSaving] = useState(false)
   const [optimizePhase, setOptimizePhase] = useState<
     "idle" | "loading" | "success" | "error" | "cached"
   >("idle")
   const autoOptimizeKeyRef = useRef<string | null>(null)
+  const [cvOptimize, setCvOptimize] = useState<CvOptimizeResponse | null>(null)
+  const [cvOptLoading, setCvOptLoading] = useState(false)
+  const [cvOptApplying, setCvOptApplying] = useState(false)
+  const [cvOptRestoring, setCvOptRestoring] = useState(false)
+  const [selectedOptIds, setSelectedOptIds] = useState<Set<string>>(new Set())
+  const [answeringQuestionId, setAnsweringQuestionId] = useState<string | null>(null)
+  const [questionDetail, setQuestionDetail] = useState("")
+  const [editedTexts, setEditedTexts] = useState<Record<string, string>>({})
+  const [cvTextCurrent, setCvTextCurrent] = useState<string>("")
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [hasCv, setHasCv] = useState<boolean | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+  const [unsavedChanges, setUnsavedChanges] = useState(false)
+  const [pendingTab, setPendingTab] = useState<LabTab | null>(null)
+  const [pendingBack, setPendingBack] = useState(false)
+  const [pendingRefresh, setPendingRefresh] = useState(false)
+  const [appliedSuggestionIds, setAppliedSuggestionIds] = useState<Set<string>>(
+    new Set()
+  )
+  const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<
+    Set<string>
+  >(new Set())
+  const [applyingSuggestionId, setApplyingSuggestionId] = useState<
+    string | null
+  >(null)
+  const overviewOptimizeKeyRef = useRef<string | null>(null)
 
   const loadJob = useCallback(async () => {
     setLoading(true)
@@ -133,10 +175,36 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
     }
   }, [])
 
+  const loadProfile = useCallback(async () => {
+    setProfileLoading(true)
+    try {
+      const res = await fetch("/api/profile")
+      const payload = (await res.json()) as {
+        profile?: { cv_text?: string | null }
+        error?: string
+      }
+      if (!res.ok || !payload.profile) {
+        throw new Error(payload.error ?? "Profil indisponible")
+      }
+      const cvText =
+        typeof payload.profile.cv_text === "string"
+          ? payload.profile.cv_text.trim()
+          : ""
+      setHasCv(cvText.length > 0)
+      setCvTextCurrent(cvText)
+    } catch {
+      // Unknown is safer than claiming there is no CV.
+      setHasCv(null)
+    } finally {
+      setProfileLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     void loadJob()
     void loadCvAnalysis()
-  }, [loadJob, loadCvAnalysis])
+    void loadProfile()
+  }, [loadJob, loadCvAnalysis, loadProfile])
 
   async function updateJob(
     updates: Partial<Pick<Job, "status" | "selected" | "cover_letter">>
@@ -185,70 +253,46 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
     }
   }
 
-  async function handleRunCvAnalysis() {
-    setCvAnalyzing(true)
-    try {
-      const res = await fetch("/api/profile/analyze-cv", { method: "POST" })
-      const payload = (await res.json()) as {
-        analysis?: CvAnalysisResponse
-        error?: string
+  const fetchCvOptimize = useCallback(
+    async (force = false) => {
+      setCvOptLoading(true)
+      try {
+        const res = await fetch(`/api/jobs/${jobId}/optimize`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ force }),
+        })
+        const payload = (await res.json()) as { response?: CvOptimizeResponse; error?: string; cached?: boolean; cv_text_current?: string }
+        if (!res.ok || !payload.response) {
+          throw new Error(payload.error ?? "Erreur optimisation CV")
+        }
+        setCvOptimize(payload.response)
+        if (payload.cv_text_current) setCvTextCurrent(payload.cv_text_current)
+        if (payload.cached) setOptimizePhase("cached")
+        else setOptimizePhase("success")
+        const applicable = payload.response.modifications
+          .filter((m) => !m.confirmation_required && m.proposed_text?.trim())
+          .map((m) => m.id)
+        setSelectedOptIds(new Set(applicable))
+        setEditedTexts({})
+      } catch (e) {
+        console.error(e)
+        setOptimizePhase("error")
+      } finally {
+        setCvOptLoading(false)
       }
-      if (!res.ok || !payload.analysis) {
-        throw new Error(payload.error ?? "Analyse CV échouée")
-      }
-      setCvAnalysis(payload.analysis)
-      toast.success("Analyse CV terminée")
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Analyse CV échouée")
-    } finally {
-      setCvAnalyzing(false)
-    }
-  }
-
-  async function handleConfirmCriterion(
-    criterionId: string,
-    answer: "yes" | "no"
-  ) {
-    if (!job) return
-    if (answer === "yes" && !confirmDetail.trim() && confirmingId === criterionId) {
-      toast.message("Ajoute un détail court pour remonter le niveau de preuve.")
-    }
-    setConfirmSaving(true)
-    try {
-      const res = await fetch("/api/analyze-job/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jobId: job.id,
-          criterionId,
-          answer,
-          detail: answer === "yes" ? confirmDetail.trim() || null : null,
-        }),
-      })
-      const payload = (await res.json()) as { job?: Job; error?: string }
-      if (!res.ok || !payload.job) {
-        throw new Error(payload.error ?? "Confirmation échouée")
-      }
-      setJob(payload.job)
-      setConfirmingId(null)
-      setConfirmDetail("")
-      toast.success(
-        answer === "yes" ? "Critère confirmé — score mis à jour" : "Critère marqué comme non"
-      )
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Confirmation échouée"
-      )
-    } finally {
-      setConfirmSaving(false)
-    }
-  }
+    },
+    [jobId],
+  )
 
   // Auto job↔CV analysis when opening Optimiser mon CV (cache-aware).
   useEffect(() => {
     if (tab !== "optimize") return
     if (!job || loading || cvLoading) return
     if (analyzing || cvAnalyzing) return
+    if (!cvOptimize && !cvOptLoading) {
+      void fetchCvOptimize(false)
+    }
 
     if (isJobFitCacheValidClient(job, cvAnalysis, JOB_MATCH_PROMPT_VERSION)) {
       return
@@ -342,6 +386,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
   async function handleGenerateCoverLetter() {
     if (!job) return
     setGenerating(true)
+    setCoverLetterError(null)
     try {
       const res = await fetch("/api/generate-cover-letter", {
         method: "POST",
@@ -367,31 +412,53 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
       setCoverOpen(true)
       toast.success("Lettre générée")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Génération échouée")
+      const message = error instanceof Error ? error.message : "Génération échouée"
+      setCoverLetterError(message)
+      toast.error(message)
     } finally {
       setGenerating(false)
     }
   }
 
-  const optimizeCacheHit = Boolean(
-    job &&
-      isJobFitCacheValidClient(job, cvAnalysis, JOB_MATCH_PROMPT_VERSION)
-  )
-  const optimizeUiPhase: "idle" | "loading" | "success" | "error" | "cached" =
-    analyzing || (optimizePhase === "loading" && !optimizeCacheHit)
-      ? "loading"
-      : optimizePhase === "error"
-        ? "error"
-        : optimizeCacheHit
-          ? "cached"
-          : optimizePhase === "success"
-            ? "success"
-            : "idle"
-
   const optimize = useMemo(
     () => (job ? buildOptimizeBuckets(job, cvAnalysis) : null),
     [job, cvAnalysis]
   )
+
+
+
+  // Fetch real proposal IDs once for the analysis tab (guarded against retry loops).
+  const optimizeJobId = job?.id ?? null
+  const optimizeCvHash = job?.job_fit_cv_hash ?? "none"
+  const optimizeJobHash = job?.job_fit_job_hash ?? "none"
+  const jobHasAnalysisResult = hasJobFitResult(job)
+  useEffect(() => {
+    if (tab !== "overview") return
+    if (!jobHasAnalysisResult) return
+    if (!optimizeJobId || loading || cvLoading || profileLoading) return
+    if (hasCv === false) return
+    if (cvOptimize || cvOptLoading || analyzing || cvAnalyzing) return
+
+    const key = `overview:${optimizeJobId}:${optimizeCvHash}:${optimizeJobHash}`
+    if (overviewOptimizeKeyRef.current === key) return
+    overviewOptimizeKeyRef.current = key
+    void fetchCvOptimize(false)
+  }, [
+    tab,
+    optimizeJobId,
+    optimizeCvHash,
+    optimizeJobHash,
+    jobHasAnalysisResult,
+    loading,
+    cvLoading,
+    profileLoading,
+    hasCv,
+    cvOptimize,
+    cvOptLoading,
+    analyzing,
+    cvAnalyzing,
+    fetchCvOptimize,
+  ])
 
   const projected = job ? projectOptimizedScore(job) : null
   const potentialScore = projected?.projected ?? null
@@ -399,7 +466,265 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
   const missions = job ? offerMissionHints(job) : []
   const skills = job ? offerSkillHints(job) : { hard: [], soft: [] }
 
-  function handleApplySuggestion(id: string, rewrite: string | null) {
+  const handleAnswerQuestion = useCallback(
+    async (questionId: string, answer: "yes" | "no") => {
+      setAnsweringQuestionId(questionId)
+      try {
+        const res = await fetch(`/api/jobs/${jobId}/optimize/answer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question_id: questionId, answer, detail: questionDetail.trim() || null }),
+        })
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}))
+          throw new Error((payload as { error?: string }).error ?? "Erreur")
+        }
+        toast.success(answer === "yes" ? "Confirmation enregistrée" : "Non enregistré")
+        setQuestionDetail("")
+        setAnsweringQuestionId(null)
+        await fetchCvOptimize(true)
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erreur")
+        setAnsweringQuestionId(null)
+      }
+    },
+    [jobId, questionDetail, fetchCvOptimize],
+  )
+
+  const handleDismissProposal = useCallback(
+    async (proposalId: string) => {
+      try {
+        await fetch(`/api/jobs/${jobId}/optimize/dismiss`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proposal_id: proposalId }),
+        })
+        setSelectedOptIds((prev) => {
+          const next = new Set(prev)
+          next.delete(proposalId)
+          return next
+        })
+      } catch (e) {
+        console.error(e)
+      }
+    },
+    [jobId],
+  )
+
+  const handleApplySelected = useCallback(async () => {
+    const ids = Array.from(selectedOptIds)
+    if (ids.length === 0) {
+      toast.message("Aucune modification sélectionnée")
+      return
+    }
+    setCvOptApplying(true)
+    try {
+      const edits = ids
+        .map((id) => ({ proposal_id: id, text: editedTexts[id] || "" }))
+        .filter((e) => e.text?.trim())
+      const res = await fetch(`/api/jobs/${jobId}/optimize/apply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proposal_ids: ids, edits }),
+      })
+      const payload = (await res.json()) as { ok?: boolean; error?: string; cv_text?: string; applied_count?: number; code?: string }
+      if (!res.ok || !payload.ok) {
+        if (payload.code === "cv_changed" || payload.code === "no_change") {
+          toast.error(payload.error ?? "Ton CV a changé depuis l'analyse — relance l'optimisation")
+          await fetchCvOptimize(true)
+          return
+        }
+        throw new Error(payload.error ?? "Application échouée")
+      }
+      toast.success(`CV mis à jour (${payload.applied_count ?? ids.length} modification(s))`)
+      await loadJob()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Application échouée")
+    } finally {
+      setCvOptApplying(false)
+    }
+  }, [jobId, selectedOptIds, loadJob, editedTexts, fetchCvOptimize])
+
+  const handleApplySuggestion = useCallback(
+    async (proposalId: string, text?: string): Promise<boolean> => {
+      setApplyingSuggestionId(proposalId)
+      try {
+        const trimmed = text?.trim()
+        const res = await fetch(`/api/jobs/${jobId}/optimize/apply`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            proposal_ids: [proposalId],
+            edits: trimmed ? [{ proposal_id: proposalId, text: trimmed }] : [],
+          }),
+        })
+        const payload = (await res.json()) as {
+          ok?: boolean
+          error?: string
+          code?: string
+        }
+        if (!res.ok || !payload.ok) {
+          if (payload.code === "cv_changed" || payload.code === "no_change") {
+            toast.error(
+              payload.error ??
+                "Ton CV a changé depuis l’analyse — actualise l’analyse avant d’appliquer."
+            )
+            await loadJob()
+            return false
+          }
+          throw new Error(payload.error ?? "Application échouée")
+        }
+        setAppliedSuggestionIds((previous) => {
+          const next = new Set(previous)
+          next.add(proposalId)
+          return next
+        })
+        toast.success("Suggestion appliquée à ton CV adapté.")
+        await loadJob()
+        return true
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Application échouée"
+        )
+        return false
+      } finally {
+        setApplyingSuggestionId(null)
+      }
+    },
+    [jobId, loadJob]
+  )
+
+  const handleIgnoreSuggestion = useCallback(
+    async (proposalId: string) => {
+      try {
+        const res = await fetch(`/api/jobs/${jobId}/optimize/dismiss`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proposal_id: proposalId }),
+        })
+        if (!res.ok) {
+          const payload = (await res.json().catch(() => ({}))) as {
+            error?: string
+          }
+          throw new Error(payload.error ?? "Impossible d’ignorer la suggestion")
+        }
+        setDismissedSuggestionIds((previous) => {
+          const next = new Set(previous)
+          next.add(proposalId)
+          return next
+        })
+        toast.success("Suggestion ignorée.")
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Action impossible"
+        )
+      }
+    },
+    [jobId]
+  )
+
+  const handleSaveExperienceAnswer = useCallback(
+    async (
+      question: AnalysisQuestion,
+      answer: "yes" | "no" | "unknown",
+      detail: string | null
+    ): Promise<boolean> => {
+      if (!job) return false
+      try {
+        const res =
+          question.origin === "criterion" && question.criterionId
+            ? await fetch("/api/analyze-job/answer", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  jobId: job.id,
+                  criterionId: question.criterionId,
+                  answer,
+                  detail,
+                }),
+              })
+            : await fetch(`/api/jobs/${jobId}/optimize/answer`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  question_id: question.id,
+                  answer,
+                  detail,
+                }),
+              })
+        const payload = (await res.json().catch(() => ({}))) as {
+          job?: Job
+          error?: string
+        }
+        if (!res.ok) {
+          throw new Error(payload.error ?? "Enregistrement impossible")
+        }
+        if (payload.job) setJob(payload.job)
+        else {
+          const jobResponse = await fetch(`/api/jobs/${jobId}`)
+          const jobPayload = (await jobResponse.json()) as { job?: Job }
+          if (jobResponse.ok && jobPayload.job) setJob(jobPayload.job)
+        }
+        if (question.origin === "optimize") {
+          await fetchCvOptimize(false)
+        }
+        return true
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Enregistrement impossible"
+        )
+        return false
+      }
+    },
+    [job, jobId, fetchCvOptimize]
+  )
+
+  const buildPreview = useCallback(() => {
+    if (!cvTextCurrent || !cvOptimize) return cvTextCurrent
+    let result = cvTextCurrent
+    const ids = Array.from(selectedOptIds)
+    for (const id of ids) {
+      const m = cvOptimize.modifications.find((x) => x.id === id)
+      if (!m || m.confirmation_required) continue
+      const proposed = (editedTexts[id]?.trim() || m.proposed_text)?.trim()
+      if (!proposed) continue
+      if ((m.type === "reformulation" || m.type === "reorganisation" || m.type === "alleger") && m.original_text?.trim()) {
+        const replaced = replaceQuoteOnce(result, m.original_text, proposed)
+        if (replaced !== null) result = replaced
+      } else if (m.type === "ajout") {
+        const placement = m.placement || { mode: "replace" }
+        if (placement.mode === "replace" && m.original_text?.trim()) {
+          const replaced = replaceQuoteOnce(result, m.original_text, proposed)
+          if (replaced !== null) result = replaced
+        } else if (placement.mode === "insert_after" && placement.anchor_text?.trim()) {
+          const inserted = insertAfterQuoteOnce(result, placement.anchor_text, proposed)
+          if (inserted !== null) result = inserted
+        }
+      }
+    }
+    return result
+  }, [cvTextCurrent, cvOptimize, selectedOptIds, editedTexts])
+
+  const previewText = previewOpen ? buildPreview() : ""
+
+  const handleRestoreCv = useCallback(async () => {
+    setCvOptRestoring(true)
+    try {
+      const res = await fetch("/api/profile/cv-restore", { method: "POST" })
+      const payload = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Restauration échouée")
+      }
+      toast.success("Version précédente du CV restaurée")
+      await loadJob()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Restauration échouée")
+    } finally {
+      setCvOptRestoring(false)
+    }
+  }, [loadJob])
+
+  function handleApplyLocalSuggestion(id: string, rewrite: string | null) {
     if (!rewrite?.trim()) {
       toast.message("Aucune reformulation sûre à appliquer")
       return
@@ -409,25 +734,63 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
     toast.success("Suggestion appliquée localement (aperçu)")
   }
 
-  function handleApplyAllSafe() {
-    if (!optimize) return
-    const nextApplied = new Set(appliedIds)
-    const nextDrafts = { ...draftRewrites }
-    let count = 0
-    for (const item of optimize.safe) {
-      const rewrite = reformulationOf(item)
-      if (ignoredIds.has(item.id) || !rewrite) continue
-      nextApplied.add(item.id)
-      nextDrafts[item.id] = rewrite
-      count += 1
+  const appliedSuggestionIdSet = useMemo(() => {
+    const next = new Set(job?.cv_optimize_applied ?? [])
+    for (const id of appliedSuggestionIds) next.add(id)
+    return next
+  }, [job?.cv_optimize_applied, appliedSuggestionIds])
+
+  const dismissedSuggestionIdSet = useMemo(() => {
+    const next = new Set(job?.cv_optimize_dismissed ?? [])
+    for (const id of dismissedSuggestionIds) next.add(id)
+    return next
+  }, [job?.cv_optimize_dismissed, dismissedSuggestionIds])
+
+  const requestTabChange = useCallback(
+    (next: LabTab) => {
+      if (next === tab) return
+      if (unsavedChanges) {
+        setPendingTab(next)
+        return
+      }
+      setTab(next)
+    },
+    [tab, unsavedChanges]
+  )
+
+  const requestBack = useCallback(() => {
+    if (unsavedChanges) {
+      setPendingBack(true)
+      return
     }
-    setAppliedIds(nextApplied)
-    setDraftRewrites(nextDrafts)
-    toast.success(
-      count > 0
-        ? `${count} suggestion(s) appliquée(s) localement`
-        : "Aucune suggestion sûre disponible"
-    )
+    router.push("/jobs")
+  }, [router, unsavedChanges])
+
+  const requestAnalyze = () => {
+    if (unsavedChanges) {
+      setPendingRefresh(true)
+      return
+    }
+    void handleAnalyze()
+  }
+
+  const confirmTabChange = () => {
+    setUnsavedChanges(false)
+    if (pendingBack) {
+      setPendingBack(false)
+      setPendingRefresh(false)
+      setPendingTab(null)
+      router.push("/jobs")
+      return
+    }
+    if (pendingRefresh) {
+      setPendingRefresh(false)
+      setPendingTab(null)
+      void handleAnalyze()
+      return
+    }
+    if (pendingTab) setTab(pendingTab)
+    setPendingTab(null)
   }
 
   if (loading) {
@@ -455,258 +818,312 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
     )
   }
 
+  const companyLabel = job.company?.trim() || "Entreprise non précisée"
+  const locationLabel = job.location?.trim() || "Lieu non précisé"
+  const contractLabel = job.contract_type?.trim() || "Contrat non précisé"
+  const sourceLabel = job.source?.trim() || null
+  const roleLabel = job.subcategory?.trim() || job.category?.trim() || null
+  const publishedDate = job.published_at ? new Date(job.published_at) : null
+  const publishedLabel =
+    publishedDate && Number.isFinite(publishedDate.getTime())
+      ? new Intl.DateTimeFormat("fr-FR", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(publishedDate)
+      : typeof job.raw_data?.publication_label === "string" ? job.raw_data.publication_label : null
+  const headerItems = [
+    roleLabel,
+    companyLabel,
+    sourceLabel,
+    locationLabel,
+    contractLabel,
+    publishedLabel,
+  ].filter((item): item is string => Boolean(item))
+
   return (
     <AppShell>
       <TooltipProvider>
-        <div className="mx-auto max-w-[1200px]">
+        {correctPasteOpen ? <PasteJobDialog open onOpenChange={setCorrectPasteOpen}
+          correctionJobId={job.id}
+          initialText={typeof job.raw_data?.pasted_text === "string" ? job.raw_data.pasted_text : job.description ?? ""}
+          onImported={async () => { setCvOptimize(null); await loadJob(); toast.success("Offre corrigée. Actualise son analyse."); }} /> : null}
+        <div>
           <Tabs
             value={tab}
-            onValueChange={(value) => setTab(value as LabTab)}
+            onValueChange={(value) => requestTabChange(value as LabTab)}
             className="gap-4"
           >
             <StickyPageHeader className="mb-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Link
-                      href="/jobs"
-                      className={buttonVariants({ variant: "ghost", size: "sm" })}
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Retour aux offres
-                    </Link>
-                  </div>
-                  <h1 className="text-2xl font-bold tracking-tight">{job.title}</h1>
-                  <p className="text-muted-foreground">{job.company}</p>
-                  <div className="flex flex-wrap gap-2 text-base text-muted-foreground">
-                    <Badge variant="tag">{job.source}</Badge>
-                    {job.location ? <span>{job.location}</span> : null}
-                    {job.contract_type ? (
-                      <Badge variant="tag">{job.contract_type}</Badge>
-                    ) : null}
-                    {job.remote ? <Badge variant="tag">Remote</Badge> : null}
-                    <Badge className={getStatusColor(job.status)} variant="secondary">
-                      {jobStatusLabel(job.status)}
-                    </Badge>
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 space-y-2">
+                  <button
+                    type="button"
+                    onClick={requestBack}
+                    className="inline-flex min-h-6 items-center gap-1.5 rounded-[6px] text-base font-medium text-app-text-secondary transition-colors hover:text-app-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-text-secondary"
+                  >
+                    <ArrowLeft className="h-4 w-4" aria-hidden />
+                    Retour aux offres
+                  </button>
+                  <h1 className="truncate text-[32px] font-bold leading-10 tracking-tight text-app-text">
+                    {job.title}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-2 text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle">
+                    {headerItems.map((part, index) => (
+                      <span key={`${part}-${index}`} className="contents">
+                        {index > 0 ? <span aria-hidden>·</span> : null}
+                        <span>{part}</span>
+                      </span>
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href={job.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="control" onClick={() => setCorrectPasteOpen(true)} disabled={analyzing}>
+                    Corriger l’offre
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="control"
+                    onClick={requestAnalyze}
+                    disabled={analyzing || hasCv === false}
+                    className="text-sm font-medium"
                   >
-                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                    Offre source
-                  </a>
-                  <Select
-                    value={job.status}
-                    onValueChange={(value) => {
-                      if (!value) return
-                      void updateJob({ status: value as JobStatus })
-                    }}
+                    {analyzing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" aria-hidden />
+                    )}
+                    {analyzing ? "Actualisation…" : "Actualiser l’analyse"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="control"
+                    onClick={() => requestTabChange("optimize")}
+                    className="text-sm font-medium"
                   >
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {JOB_STATUSES.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {jobStatusLabel(status)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <LayoutGrid className="h-4 w-4" aria-hidden />
+                    Adapter mon CV
+                  </Button>
                 </div>
               </div>
 
-              <TabsList aria-label="Nouvelle UX détail offre" className="h-auto flex-wrap">
-                <TabsTrigger value="overview">Vue d’ensemble</TabsTrigger>
-                <TabsTrigger value="offer">Offre</TabsTrigger>
-                <TabsTrigger value="optimize">Optimiser mon CV</TabsTrigger>
-                <TabsTrigger value="apply">Candidature</TabsTrigger>
+              <TabsList
+                aria-label="Sections de l’offre"
+                variant="section"
+                className="w-fit max-w-full"
+              >
+                <TabsTrigger value="overview" variant="section" className="h-(--app-control-height) px-4">Analyse</TabsTrigger>
+                <TabsTrigger value="offer" variant="section" className="h-(--app-control-height) px-4">Offre</TabsTrigger>
+                <TabsTrigger value="optimize" variant="section" className="h-(--app-control-height) px-4">Mon CV adapté</TabsTrigger>
+                <TabsTrigger value="apply" variant="section" className="h-(--app-control-height) px-4">Candidature</TabsTrigger>
               </TabsList>
             </StickyPageHeader>
 
             <TabsContent value="overview" className="space-y-4">
-              <JobDetailOverview
+              <JobAnalysisView
                 job={job}
+                cvText={profileLoading ? undefined : cvTextCurrent}
                 analyzing={analyzing}
                 analyzeError={analyzeError}
-                cvAnalyzing={cvAnalyzing}
-                onReAnalyze={() => void handleAnalyze()}
-                onReAnalyzeCv={() => void handleRunCvAnalysis()}
-                onGoOptimize={() => setTab("optimize")}
-                confirmingId={confirmingId}
-                confirmDetail={confirmDetail}
-                confirmSaving={confirmSaving}
-                onOpenConfirm={(criterionId) => {
-                  setConfirmingId(criterionId)
-                  setConfirmDetail("")
-                }}
-                onConfirmDetailChange={setConfirmDetail}
-                onCancelConfirm={() => {
-                  setConfirmingId(null)
-                  setConfirmDetail("")
-                }}
-                onConfirmCriterion={(criterionId, answer) =>
-                  void handleConfirmCriterion(criterionId, answer)
-                }
+                cvLoading={cvLoading || profileLoading}
+                hasCv={hasCv}
+                cvAnalysis={cvAnalysis}
+                cvOptimize={cvOptimize}
+                cvOptLoading={cvOptLoading}
+                appliedIds={appliedSuggestionIdSet}
+                dismissedIds={dismissedSuggestionIdSet}
+                applyingId={applyingSuggestionId}
+                onAnalyze={requestAnalyze}
+                onGoOptimize={() => requestTabChange("optimize")}
+                onAddCv={() => router.push("/profile-ai")}
+                onSaveAnswer={handleSaveExperienceAnswer}
+                onApplySuggestion={handleApplySuggestion}
+                onIgnoreSuggestion={handleIgnoreSuggestion}
+                onDirtyChange={setUnsavedChanges}
               />
             </TabsContent>
 
 
             <TabsContent value="offer" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Résumé du poste</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <Card variant="app">
+                <CardHeader className="gap-4">
+                  <CardTitle className="text-xl font-semibold leading-7 text-app-text-strong">
+                    Résumé du poste
+                  </CardTitle>
                   {job.job_posting_summary ? (
-                    <p className="text-base leading-relaxed text-foreground/90">
+                    <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle">
                       {job.job_posting_summary}
                     </p>
                   ) : (
-                    <p className="text-base text-muted-foreground">
+                    <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-muted">
                       Lance l’analyse pour obtenir un résumé structuré de l’offre.
                     </p>
                   )}
-                </CardContent>
+                </CardHeader>
               </Card>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Missions</CardTitle>
+                <Card variant="app">
+                  <CardHeader className="gap-4">
+                    <CardTitle className="text-xl font-semibold leading-7 text-app-text-strong">
+                      Missions
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent className="space-y-4">
                     {missions.length > 0 ? (
                       missions.map((mission) => (
-                        <p key={mission} className="text-base text-muted-foreground">
-                          • {mission}
-                        </p>
+                        <div
+                          key={mission}
+                          className="flex items-start gap-4 text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle"
+                        >
+                          <span aria-hidden className="shrink-0">
+                            →
+                          </span>
+                          <p className="min-w-0 flex-1">{mission}</p>
+                        </div>
                       ))
                     ) : (
-                      <p className="text-base text-muted-foreground">
+                      <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-muted">
                         Missions non structurées — voir le résumé ou l’offre originale.
                       </p>
                     )}
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Informations</CardTitle>
+                <Card variant="app">
+                  <CardHeader className="gap-4">
+                    <CardTitle className="text-xl font-semibold leading-7 text-app-text-strong">
+                      Compétences recherchées
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-base">
-                    <p>
-                      <span className="text-muted-foreground">Contrat : </span>
-                      {job.contract_type || "—"}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Localisation : </span>
-                      {job.location || "—"}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Remote : </span>
-                      {job.remote ? "Oui" : job.remote_mode || "—"}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Salaire : </span>
-                      {job.salary || "—"}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Expérience min. : </span>
-                      {typeof job.experience_min_years === "number"
-                        ? `${job.experience_min_years} ans`
-                        : "—"}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Langue : </span>
-                      {job.language || "—"}
-                    </p>
+                  <CardContent className="flex flex-wrap gap-2">
+                    {skills.hard.length === 0 ? (
+                      <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-muted">
+                        Aucune compétence structurée — les mots-clés ATS ci-dessous
+                        complètent la lecture.
+                      </p>
+                    ) : (
+                      skills.hard.map((skill) => (
+                        <span
+                          key={skill}
+                          className="inline-flex h-8 items-center rounded-app-control bg-app-success-surface px-2 text-base font-medium leading-6 tracking-[-0.02em] text-app-success"
+                        >
+                          {skill}
+                        </span>
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Compétences recherchées</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
-                  {skills.hard.length === 0 ? (
-                    <p className="text-base text-muted-foreground">
-                      Aucune compétence structurée — les mots-clés ATS ci-dessous
-                      complètent la lecture.
+              {cvOptimize && ((cvOptimize.keywords_report?.present?.length || 0) + (cvOptimize.keywords_report?.to_confirm?.length || 0)) > 0 ? (
+                <Card variant="app">
+                  <CardHeader className="gap-2">
+                    <CardTitle className="text-xl font-semibold leading-7 text-app-text-strong">
+                      Mots-clés de l’offre intégrés
+                    </CardTitle>
+                    <p className="text-base leading-6 text-app-text-subtle">
+                      Termes exacts de l’annonce (présents / intégrés / à confirmer).
                     </p>
-                  ) : (
-                    skills.hard.map((skill) => (
-                      <Badge key={skill} variant="tag">
-                        {skill}
-                      </Badge>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {cvOptimize.keywords_report.present?.map((k, idx) => (
+                      <div key={`p-${idx}`} className="flex items-center justify-between gap-4 rounded-app-control border border-app-border px-3 py-2">
+                        <span className="text-base">{k.term}</span>
+                        <Badge variant="outline">{k.status.replace("_", " ")}</Badge>
+                      </div>
+                    ))}
+                    {cvOptimize.keywords_report.to_confirm?.map((k, idx) => (
+                      <div key={`tc-${idx}`} className="flex items-center justify-between gap-4 rounded-app-control border border-app-warning/40 px-3 py-2">
+                        <span className="text-base">{k.term}</span>
+                        <span className="text-sm text-app-text-subtle">{k.reason}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ) : null}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mots-clés ATS</CardTitle>
-                  <p className="text-base text-muted-foreground">
-                    Importance estimée à partir des absences / présences détectées.
-                    Le nombre d’occurrences n’est pas encore fourni par le backend.
-                  </p>
-                </CardHeader>
-                <CardContent>
+              <section className="space-y-4">
+                <h2 className="text-[22px] font-semibold leading-7 text-app-text">
+                  Mots-clés ATS
+                </h2>
+                <div className="rounded-app-surface border border-app-border bg-app-surface p-4">
                   {keywordRows.length === 0 ? (
-                    <p className="text-base text-muted-foreground">
+                    <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-muted">
                       Analyse l’offre pour extraire les mots-clés ATS.
                     </p>
                   ) : (
-                    <Table>
+                    <Table className="min-w-[640px] text-base">
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Mot-clé</TableHead>
-                          <TableHead>Importance</TableHead>
-                          <TableHead>Occurrences</TableHead>
-                          <TableHead>Présence CV</TableHead>
+                        <TableRow className="border-app-border hover:bg-transparent">
+                          <TableHead className="w-1/4 px-0 py-3 text-base font-normal text-app-text-strong">
+                            Mot-clé
+                          </TableHead>
+                          <TableHead className="w-1/4 px-0 py-3 text-base font-normal text-app-text-strong">
+                            Importance
+                          </TableHead>
+                          <TableHead className="w-1/4 px-0 py-3 text-base font-normal text-app-text-strong">
+                            Occurrences
+                          </TableHead>
+                          <TableHead className="w-1/4 px-0 py-3 text-base font-normal text-app-text-strong">
+                            Présence CV
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {keywordRows.map((row) => (
-                          <TableRow key={row.keyword}>
-                            <TableCell className="font-medium">{row.keyword}</TableCell>
-                            <TableCell>
-                              <ImportanceBadge level={row.importance} />
+                          <TableRow
+                            key={row.keyword}
+                            className="border-app-border hover:bg-transparent"
+                          >
+                            <TableCell className="px-0 py-3 align-middle">
+                              <span className="inline-flex h-8 items-center rounded-app-control bg-app-success-surface px-2 text-base font-medium leading-6 tracking-[-0.02em] text-app-success">
+                                {row.keyword}
+                              </span>
                             </TableCell>
-                            <TableCell className="text-muted-foreground">—</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="outline"
+                            <TableCell className="px-0 py-3 align-middle">
+                              <span className="inline-flex h-8 items-center rounded-app-control bg-app-warning-surface px-2 text-base font-medium leading-6 tracking-[-0.02em] text-app-warning">
+                                {row.importance}
+                              </span>
+                            </TableCell>
+                            <TableCell className="px-0 py-3 align-middle text-app-text-subtle">
+                              {typeof row.occurrences === "number"
+                                ? row.occurrences
+                                : "—"}
+                            </TableCell>
+                            <TableCell className="px-0 py-3 align-middle">
+                              <span
                                 className={cn(
+                                  "inline-flex h-8 items-center rounded-app-control px-2 text-base font-medium leading-6 tracking-[-0.02em]",
                                   row.presence === "Présent" &&
-                                    "border-emerald-500/40 text-emerald-300",
+                                    "bg-app-success-surface text-app-success",
                                   row.presence === "Absent" &&
-                                    "border-orange-500/40 text-orange-200"
+                                    "bg-app-warning-surface text-app-warning",
+                                  row.presence === "Inconnu" &&
+                                    "bg-app-control text-app-text-subtle"
                                 )}
                               >
                                 {row.presence}
-                              </Badge>
+                              </span>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </section>
 
-              <details className="rounded-xl border border-border/70 bg-card p-4">
-                <summary className="cursor-pointer text-base font-medium">
+              <details className="group rounded-app-surface border border-app-border bg-app-surface p-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-strong [&::-webkit-details-marker]:hidden">
                   Afficher l’offre originale
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180"
+                    aria-hidden
+                  />
                 </summary>
-                <pre className="mt-4 max-h-[420px] overflow-auto whitespace-pre-wrap text-base text-muted-foreground">
+                <pre className="mt-4 max-h-[420px] overflow-auto whitespace-pre-wrap text-base leading-6 text-app-text-subtle">
                   {(job.description || job.summary || "").trim() ||
                     "Aucun texte brut importé."}
                 </pre>
@@ -717,11 +1134,13 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               <Card>
                 <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
                   <div>
-                    <CardTitle>Optimiser mon CV pour cette offre</CardTitle>
+                    <CardTitle>Reformulations pour cette offre</CardTitle>
                     <p className="mt-1 text-base text-muted-foreground">
-                      À gauche ta phrase CV — à droite la reformulation pour matcher
-                      la fiche et les mots-clés ATS. Sans inventer de faits.
+                      Comparatif : texte actuel du CV → proposition pour cette offre. Mots-clés exacts intégrés uniquement s’ils sont justifiés.
                     </p>
+                    {cvOptimize?.orientation ? (
+                      <p className="mt-1 text-base text-foreground/90">{cvOptimize.orientation}</p>
+                    ) : null}
                     {optimizePhase === "cached" ? (
                       <p className="mt-1 text-base text-muted-foreground">
                         Analyse déjà à jour — aucun nouvel appel IA.
@@ -734,14 +1153,27 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       size="sm"
                       onClick={() => {
                         autoOptimizeKeyRef.current = null
-                        void handleAnalyze({ force: true })
+                        void fetchCvOptimize(true)
                       }}
-                      disabled={analyzing}
+                      disabled={cvOptLoading}
                     >
-                      {analyzing ? "Analyse…" : "Relancer l’analyse"}
+                      {cvOptLoading ? "Génération…" : "Relancer l’optimisation"}
                     </Button>
-                    <Button size="sm" onClick={handleApplyAllSafe}>
-                      Appliquer toutes les suggestions sûres
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPreviewOpen(true)}
+                      disabled={selectedOptIds.size === 0}
+                    >
+                      Aperçu du CV résultant
+                    </Button>
+                    <Button size="sm" onClick={handleApplySelected} disabled={cvOptApplying || selectedOptIds.size === 0}>
+                      {cvOptApplying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Appliquer {selectedOptIds.size} sélectionnée(s)
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleRestoreCv} disabled={cvOptRestoring}>
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Restaurer la version précédente
                     </Button>
                   </div>
                 </CardHeader>
@@ -797,28 +1229,53 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                   </div>
                   <div className="rounded-xl border border-border/70 p-4">
                     <p className="text-base uppercase text-muted-foreground">
-                      Score estimé après optimisation
+                      Estimation après modifications (indicative, sans gain garanti)
                     </p>
-                    <p className="mt-1 text-3xl font-bold text-emerald-400">
+                    <p className={cn("mt-1 text-3xl font-bold tabular-nums", potentialScore !== null && potentialScore === job.match_score ? "text-muted-foreground" : "text-emerald-400")}>
                       {potentialScore ?? "—"}
                     </p>
                     <p className="mt-1 text-base text-muted-foreground">
-                      Recalcul critères si reformulations sûres (sans inventer).
+                      {potentialScore !== null && potentialScore === job.match_score
+                        ? `Estimation inchangée · ${potentialScore}/100`
+                        : "Projection indicative ; la reformulation ne change pas le score enregistré."}
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
-              {optimize && optimize.toConfirm.length > 0 ? (
+              {((cvOptimize && cvOptimize.questions.length > 0) || (optimize && optimize.toConfirm.length > 0)) ? (
                 <Card className="border-amber-500/30">
                   <CardHeader>
-                    <CardTitle>À confirmer</CardTitle>
+                    <CardTitle>Informations à confirmer</CardTitle>
                     <p className="text-base text-muted-foreground">
-                      À ajouter uniquement si cela correspond réellement à ton expérience.
+                      Questions ciblées, séparées des reformulations. Réponse oui/non + détail si utile.
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {optimize.toConfirm
+                    {cvOptimize?.questions?.map((q) => (
+                      <div key={q.id} className="rounded-xl border border-border/70 p-4">
+                        <p className="font-medium">{q.question}</p>
+                        <p className="mt-1 text-base text-muted-foreground">{q.reason}</p>
+                        <Textarea
+                          className="mt-3"
+                          placeholder="Complément factuel (facultatif)"
+                          value={answeringQuestionId === q.id ? questionDetail : ""}
+                          onChange={(e) => {
+                            setAnsweringQuestionId(q.id)
+                            setQuestionDetail(e.target.value)
+                          }}
+                        />
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button size="sm" onClick={() => void handleAnswerQuestion(q.id, "yes")} disabled={answeringQuestionId === q.id}>
+                            Oui
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => void handleAnswerQuestion(q.id, "no")} disabled={answeringQuestionId === q.id}>
+                            Non
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {optimize?.toConfirm
                       .filter((item) => !ignoredIds.has(item.id))
                       .map((item) => (
                         <div
@@ -857,20 +1314,92 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Reformulations CV ↔ offre</CardTitle>
+                  <CardTitle>Modifications concrètes</CardTitle>
                   <p className="text-base text-muted-foreground">
-                    Chaque carte compare ta phrase actuelle et une version alignée sur
-                    le vocabulaire de l’offre.
+                    Sélectionne les modifications à appliquer. Les propositions nécessitant confirmation sont exclues du CV avant réponse.
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {!optimize ||
+                  {cvOptimize && cvOptimize.modifications.filter((m) => !m.confirmation_required && m.proposed_text?.trim()).length === 0 && (!optimize || optimize.safe.filter((item) => !ignoredIds.has(item.id)).length === 0) ? (
+                    <p className="text-base text-muted-foreground">
+                      {(cvOptLoading || cvLoading || analyzing)
+                        ? "Chargement des suggestions…"
+                        : "Ton CV est déjà bien optimisé."}
+                      {cvOptimize && cvOptimize.questions.length > 0 ? (
+                        <span className="block mt-1">Des informations restent à confirmer (voir « Informations à confirmer »).</span>
+                      ) : null}
+                    </p>
+                  ) : cvOptimize && cvOptimize.modifications.filter((m) => !m.confirmation_required && m.proposed_text?.trim()).length > 0 ? (
+                    cvOptimize.modifications
+                      .filter((m) => !m.confirmation_required && m.proposed_text?.trim())
+                      .map((m, index) => {
+                        const checked = selectedOptIds.has(m.id)
+                        const currentProposed = editedTexts[m.id] ?? m.proposed_text
+                        return (
+                          <div key={m.id} className="overflow-hidden rounded-[18px] border border-border bg-card shadow-sm">
+                            <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border/70 px-4 py-3">
+                              <div className="flex items-start gap-3">
+                                <input
+                                  type="checkbox"
+                                  className="mt-1"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    setSelectedOptIds((prev) => {
+                                      const next = new Set(prev)
+                                      if (e.target.checked) next.add(m.id)
+                                      else next.delete(m.id)
+                                      return next
+                                    })
+                                  }}
+                                />
+                                <div>
+                                  <p className="font-medium">{index + 1}. {m.justification}</p>
+                                  <p className="mt-1 text-sm text-muted-foreground">
+                                    Rubrique : {m.section}
+                                    {(m as any).element_label ? ` — ${(m as any).element_label}` : ""}
+                                    {m.keywords_added?.length ? ` • Mots-clés de l'offre intégrés : ${m.keywords_added.join(", ")}` : ""}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Button size="sm" variant="ghost" onClick={() => setEditedTexts((prev) => ({ ...prev, [m.id]: m.proposed_text }))}>
+                                  Réinitialiser l&apos;édition
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => void handleDismissProposal(m.id)}>
+                                  Refuser
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="grid gap-0 md:grid-cols-2">
+                              <div className="border-border/70 bg-muted/40 p-4 md:border-r">
+                                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Texte actuel</p>
+                                <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">{m.original_text || (m.type === "ajout" ? "— (ajout)" : "—")}</p>
+                                {m.sources?.length ? (
+                                  <p className="mt-2 text-xs text-muted-foreground">Source : {m.sources[0].quote}</p>
+                                ) : null}
+                              </div>
+                              <div className="p-4">
+                                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Proposition pour cette offre</p>
+                                <Textarea
+                                  value={currentProposed}
+                                  onChange={(e) => setEditedTexts((prev) => ({ ...prev, [m.id]: e.target.value }))}
+                                  className="min-h-[120px]"
+                                />
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                  <Badge variant="outline" className="border-emerald-500/40 text-emerald-300">Reformulation concrète</Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                  ) : !optimize ||
                   optimize.safe.filter((item) => !ignoredIds.has(item.id)).length ===
                     0 ? (
                     <p className="text-base text-muted-foreground">
                       {cvLoading || analyzing
                         ? "Chargement des suggestions…"
-                        : "Aucune reformulation sûre pour cette offre. Relance l’analyse de l’offre pour en générer."}
+                        : "Aucune reformulation sûre pour cette offre."}
                     </p>
                   ) : (
                     optimize.safe
@@ -966,7 +1495,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                                     size="sm"
                                     disabled={!rewrite.trim()}
                                     onClick={() =>
-                                      handleApplySuggestion(item.id, rewrite)
+                                      handleApplyLocalSuggestion(item.id, rewrite)
                                     }
                                   >
                                     Appliquer
@@ -991,9 +1520,69 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                   )}
                 </CardContent>
               </Card>
+
+              {previewOpen ? (
+                <Card>
+                  <CardHeader className="flex flex-row items-start justify-between gap-4">
+                    <div>
+                      <CardTitle>Aperçu du CV résultant</CardTitle>
+                      <p className="mt-1 text-base text-muted-foreground">
+                        Prévisualisation basée sur les reformulations sélectionnées et éditées.
+                        Rien n’est enregistré tant que tu n’as pas cliqué sur « Appliquer ».
+                      </p>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(false)}>
+                      Fermer
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      value={previewText}
+                      readOnly
+                      className="min-h-[320px] font-mono text-sm"
+                      aria-label="Aperçu du CV résultant"
+                    />
+                  </CardContent>
+                </Card>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="apply" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Statut de la candidature</CardTitle>
+                  <p className="text-base text-muted-foreground">
+                    Suis l’avancement de cette offre dans ton pipeline.
+                  </p>
+                </CardHeader>
+                <CardContent className="flex flex-wrap items-center gap-3">
+                  <Select
+                    value={job.status}
+                    onValueChange={(value) => {
+                      if (!value) return
+                      void updateJob({ status: value as JobStatus })
+                    }}
+                  >
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {JOB_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {jobStatusLabel(status)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Badge
+                    className={getStatusColor(job.status)}
+                    variant="secondary"
+                  >
+                    {jobStatusLabel(job.status)}
+                  </Badge>
+                </CardContent>
+              </Card>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader>
@@ -1002,8 +1591,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       Lettre de motivation
                     </CardTitle>
                     <p className="text-base text-muted-foreground">
-                      Pack candidature : angle, lettre collable et notes coach
-                      (sans inventer de compétences absentes du CV).
+                      Prépare ta lettre, relis-la et copie-la avant de l’envoyer toi-même. JobTracker n’envoie pas la candidature.
                     </p>
                     {job.cover_letter_angle_briefing ? (
                       <p className="text-base text-muted-foreground whitespace-pre-wrap">
@@ -1026,9 +1614,17 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                           Génération…
                         </>
                       ) : (
-                        "Générer"
+                        job.cover_letter ? "Régénérer la lettre" : "Préparer une lettre"
                       )}
                     </Button>
+                    {coverLetterError ? (
+                      <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                        <p>La lettre n’a pas pu être générée. Le brouillon existant est conservé.</p>
+                        <p className="mt-1 text-muted-foreground">{coverLetterError}</p>
+                        <Button className="mt-2" size="sm" variant="outline" onClick={() => void handleGenerateCoverLetter()} disabled={generating}>Réessayer</Button>
+                      </div>
+                    ) : null}
+                    {job.cover_letter ? <p role="status" className="text-sm text-muted-foreground">Brouillon enregistré — relis-le avant de le copier ou de l’envoyer.</p> : null}
                     {job.cover_letter_subject ? (
                       <p className="text-sm text-muted-foreground">
                         Objet :{" "}
@@ -1073,7 +1669,18 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                           size="sm"
                           onClick={() => setCoverOpen(true)}
                         >
-                          Ouvrir en grand
+                          Relire, modifier et copier
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={job.status === "applied"}
+                          onClick={() => {
+                            if (window.confirm("As-tu envoyé cette candidature toi-même ?")) void updateJob({ status: "applied" })
+                          }}
+                        >
+                          {job.status === "applied" ? "Candidature marquée envoyée" : "J’ai envoyé ma candidature"}
                         </Button>
                       </>
                     ) : null}
@@ -1114,23 +1721,22 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                   </CardContent>
                 </Card>
 
-                <Card className="opacity-90">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Mic className="h-4 w-4" />
-                      Pitch entretien
-                    </CardTitle>
-                    <p className="text-base text-muted-foreground">
-                      Présentation de 30 à 60 secondes expliquant pourquoi ton profil
-                      correspond.
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <Button disabled variant="outline">
-                      Bientôt — API à brancher
-                    </Button>
-                  </CardContent>
-                </Card>
+                {job.status === "interview" ? (
+                  <Card className="opacity-90">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Mic className="h-4 w-4" />
+                        Préparer mon entretien
+                      </CardTitle>
+                      <p className="text-base text-muted-foreground">
+                        Prépare un pitch de 30 à 60 secondes à partir de ton CV et de cette offre.
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <Button disabled variant="outline">Bientôt — API à brancher</Button>
+                    </CardContent>
+                  </Card>
+                ) : null}
               </div>
 
               <Card className="opacity-90">
@@ -1151,6 +1757,44 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               </Card>
             </TabsContent>
           </Tabs>
+
+          <Dialog
+            open={pendingTab !== null || pendingBack || pendingRefresh}
+            onOpenChange={(open) => {
+              if (!open) {
+                setPendingTab(null)
+                setPendingBack(false)
+                setPendingRefresh(false)
+              }
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Modifications non enregistrées</DialogTitle>
+                <DialogDescription>
+                  Ta réponse ou ta formulation en cours n’a pas été enregistrée.
+                  {pendingRefresh
+                    ? " Actualiser l’analyse peut remplacer les données auxquelles elle se rapporte."
+                    : pendingBack
+                      ? " Retourner aux offres la perdra."
+                      : " Quitter cet onglet la perdra."}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPendingTab(null)
+                    setPendingBack(false)
+                    setPendingRefresh(false)
+                  }}
+                >
+                  Rester
+                </Button>
+                <Button onClick={confirmTabChange}>Quitter sans enregistrer</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <CoverLetterModal
             job={coverOpen ? job : null}
