@@ -15,7 +15,6 @@ import {
 import { DashboardRecommendation } from "@/components/dashboard/dashboard-recommendation";
 import { DashboardProfileProgress } from "@/components/dashboard/dashboard-profile-progress";
 import { DashboardTips } from "@/components/dashboard/dashboard-tips";
-import { DashboardJourney } from "@/components/dashboard/dashboard-journey";
 import {
   DashboardError,
   DashboardSkeleton,
@@ -27,10 +26,10 @@ import type {
 } from "@/lib/dashboard/overview";
 import {
   buildDashboardTips,
+  buildUpcomingDeadlines,
   computeDashboardStats,
-  computeJourney,
   computeProfileProgress,
-  pickJourneyHighlight,
+  formatEventDate,
   pickRecommendedJobs,
 } from "@/lib/dashboard/overview";
 
@@ -95,24 +94,22 @@ export function DashboardOverview() {
 
     const stats = computeDashboardStats(data.jobs, data.applications);
     const profileProgress = computeProfileProgress(data.profile);
-    const journey = computeJourney({
-      hasCv: data.profile.hasCv,
-      offersCount: data.jobs.length,
-      applicationsSent: stats.applicationsSent,
-      responsesCount: stats.responses,
-    });
+    const unscoredJobs = data.jobs.filter(
+      (job) => job.match_score === null && job.status !== "archived"
+    ).length;
+    const nextInterview = buildUpcomingDeadlines(data.applications)[0] ?? null;
 
     return {
       stats,
       profileProgress,
+      unscoredJobs,
+      nextInterview,
       recommended: pickRecommendedJobs(data.jobs),
       tips: buildDashboardTips({
         jobs: data.jobs,
         applications: data.applications,
         profilePercent: profileProgress.percent,
       }),
-      journey,
-      journeyHighlight: pickJourneyHighlight(journey),
     };
   }, [data]);
 
@@ -133,18 +130,22 @@ export function DashboardOverview() {
           hint:
             model.stats.offers === 0
               ? "Ajoute ta première offre"
-              : `${model.stats.activeOffers} offre${model.stats.activeOffers > 1 ? "s" : ""} active${model.stats.activeOffers > 1 ? "s" : ""}`,
+              : model.unscoredJobs > 0
+                ? `${model.unscoredJobs} à comparer à ton CV`
+                : "Toutes comparées à ton CV",
           icon: Briefcase,
           href: "/jobs",
         },
         {
-          id: "active-applications",
-          label: "Candidatures actives",
-          value: String(model.stats.activeApplications),
+          id: "applications-sent",
+          label: "Candidatures envoyées",
+          value: String(model.stats.applicationsSent),
           hint:
-            model.stats.activeApplications === 0
-              ? "Aucune candidature en cours"
-              : `${model.stats.applicationsSent} candidature${model.stats.applicationsSent > 1 ? "s" : ""} envoyée${model.stats.applicationsSent > 1 ? "s" : ""}`,
+            model.stats.applicationsSent === 0
+              ? "Marque une offre comme envoyée"
+              : model.stats.activeApplications > 0
+                ? `${model.stats.activeApplications} en cours dans ton suivi`
+                : "Aucune démarche en cours",
           icon: Send,
           href: "/applications",
         },
@@ -152,10 +153,9 @@ export function DashboardOverview() {
           id: "interviews",
           label: "Entretiens",
           value: String(model.stats.interviews),
-          hint:
-            model.stats.interviews === 0
-              ? "Aucun entretien programmé"
-              : "Prépare tes prochains entretiens",
+          hint: model.nextInterview
+            ? `Prochain : ${formatEventDate(model.nextInterview.date)}`
+            : "Aucun entretien programmé",
           icon: CalendarClock,
           href: "/applications",
         },
@@ -164,8 +164,8 @@ export function DashboardOverview() {
           label: "Réponses reçues",
           value: String(model.stats.responses),
           hint:
-            model.stats.responses === 0
-              ? "Aucune réponse enregistrée"
+            model.stats.applicationsSent === 0
+              ? "Après tes premiers envois"
               : model.stats.responseRate === null
                 ? "Réponses enregistrées"
                 : `${model.stats.responseRate} % de taux de réponse`,
@@ -216,8 +216,6 @@ export function DashboardOverview() {
             <DashboardRecommendation jobs={model.recommended} />
             <DashboardProfileProgress progress={model.profileProgress} />
           </div>
-
-          <DashboardJourney step={model.journeyHighlight} />
         </>
       ) : null}
     </div>

@@ -712,17 +712,17 @@ export function TrackedJobsPage({
         onChange={(event) => void handleCsvFileChange(event)}
       />
 
-      <header className="flex flex-wrap items-center gap-8 border-b border-app-border-strong pb-4">
+      <header className="flex flex-wrap items-center gap-4 border-b border-app-border-strong pb-4 sm:gap-8">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <h1 className="text-[32px] font-bold leading-10 text-app-text">
             Mes offres
           </h1>
-          <p className="text-lg leading-7 tracking-[-0.017em] text-app-text-label">
+          <p className="max-w-[70ch] text-base leading-6 text-app-text-label">
             Ajoute des offres, compare-les à ton CV et prépare tes prochaines
             candidatures.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           {allowLocalDevTools ? (
             <Button
               type="button"
@@ -745,7 +745,12 @@ export function TrackedJobsPage({
             aria-label="Importer mes offres"
           >
             <Upload className="size-4" aria-hidden />
-            {importingCsv ? "Import en cours…" : "Importer mes offres"}
+            <span className="sm:hidden">
+              {importingCsv ? "Import…" : "Importer"}
+            </span>
+            <span className="hidden sm:inline">
+              {importingCsv ? "Import en cours…" : "Importer mes offres"}
+            </span>
           </Button>
           <Button
             type="button"
@@ -756,7 +761,8 @@ export function TrackedJobsPage({
             aria-label="Coller une offre"
           >
             <ClipboardPaste className="size-4" aria-hidden />
-            Coller une offre
+            <span className="sm:hidden">Coller</span>
+            <span className="hidden sm:inline">Coller une offre</span>
           </Button>
           <PageHelpButton
             pageId="jobs"
@@ -822,8 +828,8 @@ export function TrackedJobsPage({
       <JobFiltersBar filters={filters} onChange={setFilters} sources={sources} contracts={contracts} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-app-text">
-          {!loading && <span className="flex min-w-8 h-8 items-center justify-center rounded-app-control bg-app-action px-2 text-lg font-medium text-app-text-inverse">{jobs.length}</span>}
+        <h2 className="flex items-center gap-2 text-lg font-semibold leading-7 tracking-[-0.02em] text-app-text">
+          {!loading && <span className="flex h-7 min-w-7 items-center justify-center rounded-app-control bg-app-action px-2 text-base font-medium text-app-text-inverse">{jobs.length}</span>}
           {loading ? "Chargement des offres…" : "Liste des offres"}
         </h2>
         <Button
@@ -864,7 +870,7 @@ export function TrackedJobsPage({
           </TabsList>
         </div>
         {jobs.length > 0 && filteredJobs.length !== jobs.length ? (
-          <p className="text-base text-app-text-secondary">
+          <p className="text-sm leading-5 text-app-text-secondary">
             {filteredJobs.length} offre{filteredJobs.length > 1 ? "s" : ""} affichée
             {filteredJobs.length > 1 ? "s" : ""} sur {jobs.length} — ajuste tes filtres pour afficher davantage d’offres.
           </p>
@@ -882,7 +888,7 @@ export function TrackedJobsPage({
               emptyJobsCta
             )
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {filteredJobs.map((job) => (
                 <JobCard
                   key={job.id}

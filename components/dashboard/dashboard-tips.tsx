@@ -42,23 +42,39 @@ export function DashboardTips({
       <DashboardSectionHeader
         icon={Sparkles}
         title="À faire maintenant"
-        description="Une action concrète, choisie selon tes offres et tes candidatures."
+        description="Commence par la première action, puis avance à ton rythme."
       />
       <ul className="grid flex-1 gap-4 sm:grid-cols-2 @lg:grid-cols-3">
-        {tips.map((tip) => {
+        {tips.map((tip, index) => {
           const Icon = TIP_ICONS[tip.icon];
+          const isPrimary = index === 0;
           return (
             <li key={tip.id} className="min-w-0">
               <Link
                 href={tip.href}
-                className="relative flex h-full flex-col gap-2 rounded-app-surface border border-app-border bg-app-surface p-4 pr-12 transition-colors hover:border-app-border-strong hover:bg-app-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-text-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface"
+                className={cn(
+                  "relative flex h-full flex-col gap-2 rounded-app-surface border bg-app-surface p-4 pr-12 transition-colors hover:bg-app-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-text-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface",
+                  isPrimary
+                    ? "border-app-border-default bg-app-surface-raised hover:border-app-text-secondary"
+                    : "border-app-border hover:border-app-border-strong"
+                )}
               >
                 <span className="flex items-center gap-2">
                   <Icon className="size-5 shrink-0 text-app-text" aria-hidden />
-                  <span className="text-sm font-medium leading-5 tracking-[-0.02em] text-app-text-strong">
+                  <span
+                    className={cn(
+                      "text-sm font-medium leading-5 tracking-[-0.02em] text-app-text-strong",
+                      isPrimary && "text-base leading-6"
+                    )}
+                  >
                     {tip.title}
                   </span>
                 </span>
+                {isPrimary ? (
+                  <span className="w-fit rounded-app-badge bg-app-control px-2 py-0.5 text-xs font-medium leading-5 text-app-text-secondary">
+                    À faire en premier
+                  </span>
+                ) : null}
                 <span className="text-sm leading-6 tracking-[-0.02em] text-app-text-subtle">
                   {tip.description}
                 </span>

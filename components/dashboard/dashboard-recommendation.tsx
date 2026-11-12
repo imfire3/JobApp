@@ -55,7 +55,7 @@ function RecommendedJob({ job }: { job: DashboardJob }) {
     >
       <div className="flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-2 min-w-0 text-sm font-medium leading-5 tracking-[-0.02em] text-app-text-strong">
+          <h3 className="line-clamp-2 min-w-0 text-base font-semibold leading-6 tracking-[-0.02em] text-app-text-strong">
             {job.title}
           </h3>
           {job.match_score !== null ? (
@@ -71,12 +71,12 @@ function RecommendedJob({ job }: { job: DashboardJob }) {
         </p>
       </div>
 
-      <p className="line-clamp-4 flex-1 text-sm leading-6 tracking-[-0.02em] text-app-text-secondary">
+      <p className="line-clamp-3 min-h-[72px] text-sm leading-6 tracking-[-0.02em] text-app-text-secondary">
         {job.description?.trim() ||
           "Ouvre l’offre pour consulter la mission et les prérequis."}
       </p>
 
-      <span className={dashboardCtaClassName}>Voir l’offre</span>
+      <span className={cn(dashboardCtaClassName, "mt-auto")}>Voir l’offre</span>
     </Link>
   );
 }

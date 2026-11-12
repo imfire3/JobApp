@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react";
-import { jobStatusLabel } from "@/lib/jobs/status-labels";
+import { jobStatusLabel, remoteModeLabel } from "@/lib/jobs/status-labels";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -42,17 +42,17 @@ interface JobCardProps {
   analysisProgress?: JobScoringProgress;
 }
 
-/** Figma "Feedback/Badge" — success chip used for offer metadata. */
+/** Figma "Feedback/Badge" — neutral metadata chip used for offer facts. */
 const jobTagClassName =
-  "flex h-8 max-w-full shrink-0 items-center justify-center rounded-app-badge bg-app-success-surface px-2 text-base font-medium leading-6 tracking-[-0.02em] text-app-success";
+  "flex h-6 max-w-full shrink-0 items-center justify-center rounded-app-badge border border-app-border bg-app-control px-2 text-xs font-medium leading-5 tracking-[-0.01em] text-app-text-subtle";
 
 /** Figma match-score chip on Card Jobs. */
 const jobScoreClassName =
-  "flex h-8 shrink-0 items-center justify-center rounded-app-badge bg-app-match-surface px-2 text-base font-medium leading-6 tracking-[-0.02em] tabular-nums text-app-match";
+  "flex h-7 shrink-0 items-center justify-center rounded-app-badge bg-app-match-surface px-2 text-sm font-medium leading-5 tracking-[-0.02em] tabular-nums text-app-match";
 
 /** Figma "Forms/Select" trigger used in the card footer. */
 const jobCardSelectClassName =
-  "flex h-(--app-control-height) min-w-0 flex-1 items-center justify-between gap-2 rounded-app-control border-(length:--app-stroke) border-app-border-strong bg-app-surface px-3 text-base leading-6 transition-colors hover:border-app-text-muted focus-visible:border-app-text-secondary focus-visible:ring-2 focus-visible:ring-app-text-secondary/40 focus-visible:outline-none";
+  "flex h-(--app-control-height) min-w-0 flex-1 items-center justify-between gap-2 rounded-app-control border-(length:--app-stroke) border-app-border-strong bg-app-surface px-3 text-sm leading-5 transition-colors hover:border-app-text-muted focus-visible:border-app-text-secondary focus-visible:ring-2 focus-visible:ring-app-text-secondary/40 focus-visible:outline-none";
 
 export function JobCard({
   job,
@@ -86,7 +86,9 @@ export function JobCard({
     job.contract_type,
     job.posted_at ? formatRelativeDate(job.posted_at) : null,
     job.salary,
-    job.remote_mode && job.remote_mode !== "unknown" ? job.remote_mode : null,
+    job.remote_mode && job.remote_mode !== "unknown"
+      ? remoteModeLabel(job.remote_mode)
+      : null,
     job.experience_level !== null && job.experience_level !== undefined
       ? `${job.experience_level}+ ans`
       : null,
@@ -103,7 +105,10 @@ export function JobCard({
       const lineHeight = Number.parseFloat(getComputedStyle(paragraph).lineHeight);
       if (!Number.isFinite(lineHeight) || lineHeight <= 0) return;
 
-      const nextLineCount = Math.max(1, Math.floor(description.clientHeight / lineHeight));
+      const nextLineCount = Math.min(
+        5,
+        Math.max(1, Math.floor(description.clientHeight / lineHeight))
+      );
       setDescriptionLineCount((current) =>
         current === nextLineCount ? current : nextLineCount
       );
@@ -118,7 +123,7 @@ export function JobCard({
   return (
     <div
       className={cn(
-        "flex flex-col self-start overflow-hidden rounded-app-surface border border-app-border-strong bg-app-surface transition-colors md:h-[404px]",
+        "flex flex-col self-start overflow-hidden rounded-app-surface border border-app-border-strong bg-app-surface transition-colors lg:h-[404px]",
         onOpen && "cursor-pointer hover:border-app-text-muted"
       )}
       role={onOpen ? "link" : undefined}
@@ -137,15 +142,15 @@ export function JobCard({
       }
     >
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-6">
-        <div className="flex items-center gap-2">
+        <div className="flex items-start gap-2">
           <Checkbox
             checked={job.selected}
             onCheckedChange={(checked) => onSelect(job.id, checked === true)}
             onClick={(event) => event.stopPropagation()}
             aria-label={`Sélectionner ${job.title}`}
-            className="border-(length:--app-stroke) border-app-text-muted bg-app-control"
+            className="mt-1 border-(length:--app-stroke) border-app-text-muted bg-app-control"
           />
-          <h3 className="min-w-0 flex-1 truncate text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-strong">
+          <h3 className="line-clamp-2 min-w-0 flex-1 break-words text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-strong">
             {job.title}
           </h3>
           {job.match_score !== null && (
@@ -156,19 +161,16 @@ export function JobCard({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-5 text-app-text-secondary">
+        <div className="flex items-center gap-2 text-sm leading-5 text-app-text-secondary">
           <span className="min-w-0 truncate font-medium text-app-text-strong">
             {job.company || "Entreprise non renseignée"}
           </span>
           {job.location ? (
-            <>
-              <span aria-hidden>·</span>
-              <span className="min-w-0 truncate">{job.location}</span>
-            </>
+            <span className="min-w-0 truncate">
+              <span aria-hidden>· </span>
+              {job.location}
+            </span>
           ) : null}
-          <span className="ml-auto inline-flex h-7 shrink-0 items-center rounded-app-badge bg-app-control px-2 text-sm font-medium leading-5 text-app-text-strong">
-            {jobStatusLabel(job.status)}
-          </span>
         </div>
 
         {tags.length > 0 && (
@@ -197,7 +199,7 @@ export function JobCard({
 
         <div ref={descriptionRef} className="min-h-0 flex-1 overflow-hidden">
           <p
-            className="overflow-hidden text-ellipsis text-base leading-[26px] tracking-[-0.02em] text-app-text-secondary"
+            className="overflow-hidden text-ellipsis text-sm leading-6 text-app-text-secondary"
             style={{
               display: "-webkit-box",
               WebkitBoxOrient: "vertical",
@@ -215,13 +217,13 @@ export function JobCard({
       </div>
 
       <div
-        className="flex items-center gap-4 bg-app-control p-3"
+        className="flex items-center gap-3 bg-app-control p-3"
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
       >
         <DropdownMenu>
           <DropdownMenuTrigger
-            className={cn(jobCardSelectClassName, "text-app-text-muted")}
+            className={cn(jobCardSelectClassName, "flex-none text-app-text-muted")}
           >
             Actions
             <ChevronDown className="size-4 shrink-0" aria-hidden />
@@ -285,7 +287,7 @@ export function JobCard({
         </DropdownMenu>
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="shrink-0 text-base leading-6 text-app-text-strong">Statut</span>
+          <span className="shrink-0 text-sm font-medium leading-5 text-app-text-strong">Statut</span>
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(jobCardSelectClassName, "text-app-text-strong")}

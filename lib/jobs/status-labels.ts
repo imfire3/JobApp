@@ -16,6 +16,19 @@ export function jobStatusLabel(status: JobStatus): string {
   return JOB_STATUS_LABELS[status] ?? status.replace(/_/g, " ")
 }
 
+/** French UI labels for a job's work arrangement (`job.remote_mode`). */
+export const REMOTE_MODE_LABELS: Record<string, string> = {
+  onsite: "Sur site",
+  hybrid: "Hybride",
+  remote: "À distance",
+  unknown: "Non renseigné",
+}
+
+export function remoteModeLabel(mode: string | null | undefined): string | null {
+  if (!mode) return null
+  return REMOTE_MODE_LABELS[mode] ?? mode
+}
+
 /** Kanban pipeline columns (technical status of the column) */
 export const KANBAN_PIPELINE_COLUMNS = [
   "selected",

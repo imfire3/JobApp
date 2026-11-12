@@ -61,10 +61,13 @@ Les valeurs clair/sombre des tokens sont déclarées ensemble dans `app/globals.
 
 - L’onboarding emploie les `Input control`, les onglets `section` et une zone de contenu qui défile avant son pied d’actions : voir `candidate-profile-form.tsx`.
 - Le Dashboard assemble ses cartes via `DashboardSurface`, `DashboardInset` et `dashboardCtaClassName`, au lieu de réintroduire une surface locale.
-- Les filtres Offres utilisent `Input control` et partagent les mêmes hauteur, bordure, focus et couleurs que les autres contrôles.
-- Les badges de `job-card.tsx` séparent la Correspondance (`app-match`) des métadonnées et le statut reste explicite dans le sélecteur.
+- Les filtres Offres utilisent `Input control` et partagent les mêmes hauteur, bordure, focus et couleurs que les autres contrôles. Sur mobile, la recherche reste visible et « Afficher les filtres » déplie Lieu/Statut; les filtres secondaires restent derrière « Plus de filtres ».
+- Les badges de `job-card.tsx` séparent la Correspondance (`app-match`) des métadonnées neutres (`app-control` / `app-text-subtle`). Le statut n’est plus dupliqué en badge : il reste explicite dans le sélecteur du pied de carte. Le mode de travail est libellé en français (« Sur site », « Hybride », « À distance »).
+- La grille des cartes Offres suit la largeur disponible : 1 colonne sous `lg`, 2 à `lg`, 3 à `xl` et 4 à `2xl`; les cartes ne sont à hauteur fixe que lorsque la grille est multi-colonnes (`lg:h-[404px]`).
 - La section « Les attentes de l’offre face à ton CV » suit la référence Figma [`21:17584`](https://www.figma.com/design/oeAbsGSJMspH5kHOxqjf34/JobTracker-V2?node-id=21-17584) : intitulé et badge de statut côte à côte, chevron à droite, puis détail déplié avec l’extrait de l’offre, l’extrait du CV, une conclusion et l’action de précision. Le poids du critère est secondaire et reste dans le détail.
-- L’onglet « Offre » suit la référence Figma [`21:18629`](https://www.figma.com/design/oeAbsGSJMspH5kHOxqjf34/JobTracker-V2?node-id=21-18629) : carte « Résumé du poste », ligne « Missions » / « Compétences recherchées », puis section « Mots-clés ATS » avec tableau (mot-clé, importance, occurrences, présence CV) et accordéon « Afficher l’offre originale ». Les cartes utilisent `Card variant="app"` ; les badges reprennent `app-success-surface` et `app-warning-surface`.
+- L’onglet « Offre » suit la référence Figma [`21:18629`](https://www.figma.com/design/oeAbsGSJMspH5kHOxqjf34/JobTracker-V2?node-id=21-18629) : carte « Résumé du poste », ligne « Missions » / « Compétences recherchées », puis section « Mots-clés ATS » avec tableau (mot-clé, importance, occurrences, présence CV) et accordéon « Afficher l’offre originale ». Les cartes utilisent `Card variant="app"` ; l’importance et la présence gardent `app-warning-surface` / `app-success-surface`, tandis que les mots-clés et compétences eux-mêmes restent neutres (`app-control`) : la couleur ne code que leur statut.
+- L’onglet « Candidature » est séquencé : statut, puis lettre préparée (Relire et copier → Régénérer → « J’ai envoyé ma candidature » avec confirmation). Les cartes « Bientôt — API à brancher » ont été retirées : l’écran ne promet plus d’action indisponible.
+- Sur mobile, les onglets du détail offre passent en grille 2 × 2 pleine largeur afin que « Candidature » reste visible sans défilement horizontal ; dès `sm`, la barre retrouve sa largeur de contenu (`sm:w-fit`).
 
 ## Layout et grille
 
@@ -75,8 +78,16 @@ Les valeurs clair/sombre des tokens sont déclarées ensemble dans `app/globals.
 - **Limites utiles :** une modale, un champ court, un paragraphe d’introduction (`max-w-2xl`/`max-w-3xl`) ou une colonne de tableau peut conserver une largeur interne. Une exception au niveau d’une page entière doit être justifiée par un commentaire.
 - **Vérification :** `npm run check:page-layout` (serveur de dev requis) contrôle l’absence de débordement horizontal sur les pages principales et les pages de détail à 390, 768, 1440 et 1920 px.
 
-### États à fournir
+## Typographie et largeur de lecture
 
+- **Titre de page (`h1`) :** 28–32 px, `font-bold`. Deux lignes maximum sur mobile (`line-clamp-2 break-words`) ; jamais de `truncate` sur le titre d’une offre ou d’un écran.
+- **Titre de section ou de carte :** 18 px (`text-lg font-semibold leading-7`). 20 px seulement si le titre doit primer dans une page dense.
+- **Corps et descriptions :** 14–16 px (`text-sm` / `text-base`), interligne 20–24 px. Les descriptions de page et de carte ne montent pas à 18 px.
+- **Métadonnées courtes :** 12–14 px. 12 px seulement pour un libellé bref (statut, date, source), jamais pour un paragraphe.
+- **Texte long :** `max-w-[70ch]` pour les paragraphes, `max-w-[80ch]` pour le texte brut d’une offre et le bloc d’édition de la lettre (zone de texte, notes du coach, actions). Les grilles de cartes, tableaux et pipeline restent pleine largeur.
+- **Base :** la taille de base de l’application reste 16 px ; on ajuste les composants, pas le `html`/`body`.
+
+### États à fournir
 - **Pleine largeur :** à 390, 768, 1440 et 1920 px, `#main-content` et son conteneur direct occupent toute la largeur restante (`1184 px` à 1440 px, `1664 px` à 1920 px, sidebar de 256 px). La page ne défile jamais horizontalement : `documentElement.scrollWidth = clientWidth`.
 - **Sidebar :** visible à partir de `md` (768 px), remplacée par `MobileNav` en dessous. Il n’existe pas d’état replié : un seul gabarit de 256 px, donc une seule mesure d’alignement à vérifier.
 - **Grille :** `grid gap-4 sm:grid-cols-2 lg:grid-cols-4` ou plus ; les colonnes se replient en une seule sous `sm`. Tableaux et pipelines restent dans leur conteneur (`TableContainer`, rail `overflow-x-auto`) qui défile à leur place.

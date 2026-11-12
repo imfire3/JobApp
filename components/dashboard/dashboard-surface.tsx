@@ -51,7 +51,7 @@ export function DashboardSectionHeader({
     <div className={cn("flex flex-col gap-2", className)}>
       <div className="flex items-center gap-2">
         <Icon className="size-5 shrink-0 text-app-text" aria-hidden />
-        <h2 className="text-base font-semibold leading-6 text-app-text">
+        <h2 className="text-lg font-semibold leading-7 tracking-[-0.02em] text-app-text">
           {title}
         </h2>
       </div>

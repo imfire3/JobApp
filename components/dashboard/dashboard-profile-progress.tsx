@@ -20,7 +20,7 @@ export function DashboardProfileProgress({
     <DashboardSurface className={cn("h-full min-w-0", className)}>
       <DashboardSectionHeader
         icon={UserRound}
-        title="Ton profil est prêt"
+        title={progress.percent === 100 ? "Ton profil est prêt" : "Complète ton profil"}
         description={
           progress.percent === 100
             ? "CV, profil et préférences analysés."

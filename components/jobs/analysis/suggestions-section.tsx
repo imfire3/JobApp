@@ -72,7 +72,7 @@ export function SuggestionsSection({
         <AnalysisEyebrow>Suggestions CV</AnalysisEyebrow>
         <h2
           id="suggestions-title"
-          className="mt-2 text-xl font-semibold tracking-tight text-app-text"
+          className="mt-2 text-lg font-semibold tracking-tight text-app-text"
         >
           Adapte ton CV à cette offre
         </h2>

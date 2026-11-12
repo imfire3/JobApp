@@ -16,7 +16,7 @@ const CARD_CLASSNAME =
 
 export function DashboardKpiCards({ items }: { items: DashboardKpiItem[] }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
       {items.map(({ id, label, value, hint, icon: Icon, href }) => {
         const content = (
           <>
@@ -29,11 +29,11 @@ export function DashboardKpiCards({ items }: { items: DashboardKpiItem[] }) {
                   {label}
                 </span>
               </div>
-              <p className="text-[28px] font-medium leading-7 tabular-nums text-app-text">
+              <p className="text-[28px] font-medium leading-8 tabular-nums text-app-text">
                 {value}
               </p>
             </div>
-            <p className="text-xs leading-5 tracking-[-0.02em] text-app-text-subtle">
+            <p className="text-sm leading-5 tracking-[-0.02em] text-app-text-subtle">
               {hint}
             </p>
           </>

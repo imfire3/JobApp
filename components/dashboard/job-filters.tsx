@@ -20,7 +20,7 @@ interface JobFiltersBarProps {
 
 /** Figma "Forms/*" styling shared by the Offres filters. */
 const filterLabelClassName =
-  "mb-0 shrink-0 text-base font-medium leading-6 text-app-text-label";
+  "mb-0 shrink-0 text-sm font-medium leading-5 text-app-text-label";
 
 const filterSelectTriggerClassName =
   "relative flex h-(--app-control-height) w-full items-center justify-between gap-2 rounded-app-control border-(length:--app-stroke) border-app-border-strong bg-app-control px-3 py-3 text-base leading-6 text-app-text outline-none transition-colors select-none hover:border-app-text-muted focus-visible:border-app-text-secondary focus-visible:ring-2 focus-visible:ring-app-text-secondary/40";
@@ -366,6 +366,7 @@ function FilterSelect({
 
 export function JobFiltersBar({ filters, onChange, sources, contracts = [] }: JobFiltersBarProps) {
   const [showMore, setShowMore] = useState(false)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   const activeFilters: { key: string; label: string; clear: () => void }[] = []
   if (filters.search) {
@@ -448,17 +449,17 @@ export function JobFiltersBar({ filters, onChange, sources, contracts = [] }: Jo
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-semibold leading-7 text-app-text">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-lg font-semibold leading-7 text-app-text">
           Filtrer les offres
         </h2>
-        <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle">
+        <p className="hidden text-sm leading-5 text-app-text-subtle sm:block">
           Retrouve les offres qui correspondent à tes critères.
         </p>
       </div>
 
-      <div className="grid gap-4 rounded-app-control border border-app-border-strong bg-app-surface p-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Field>
+      <div className="grid grid-cols-2 gap-3 rounded-app-control border border-app-border-strong bg-app-surface p-4 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+        <Field className="col-span-2 sm:col-span-1">
           <Label htmlFor="search" className={filterLabelClassName}>
             Poste ou entreprise
           </Label>
@@ -471,49 +472,80 @@ export function JobFiltersBar({ filters, onChange, sources, contracts = [] }: Jo
           />
         </Field>
 
-        <Field>
-          <Label htmlFor="filter-location" className={filterLabelClassName}>
-            Lieu
-          </Label>
-          <Input
-            id="filter-location"
-            variant="control"
-            placeholder="Marseille, Aix-en-Provence…"
-            value={filters.location ?? ""}
-            onChange={(e) =>
-              onChange({ ...filters, location: e.target.value || undefined })
-            }
+        <button
+          type="button"
+          onClick={() => setShowMobileFilters((value) => !value)}
+          aria-expanded={showMobileFilters}
+          aria-controls="job-primary-filters"
+          className={cn(
+            filterSelectTriggerClassName,
+            "col-span-2 h-11 gap-2 font-medium sm:hidden",
+            showMobileFilters && "border-app-text-secondary"
+          )}
+        >
+          {showMobileFilters ? "Masquer les filtres" : "Afficher les filtres"}
+          <ChevronDownIcon
+            className={cn("pointer-events-none size-4", showMobileFilters && "rotate-180")}
+            aria-hidden
           />
-        </Field>
+        </button>
 
-        <Field>
-          <Label id="filter-status-label" className={filterLabelClassName}>
-            Statut
-          </Label>
-          <FilterSelect
-            id="filter-status"
-            labelledById="filter-status-label"
-            value={filters.status ?? "all"}
-            placeholder="Tous les statuts"
-            options={[
-              { value: "all", label: "Tous les statuts" },
-              ...JOB_STATUSES.map((s) => ({
-                value: s,
-                label: jobStatusLabel(s),
-              })),
-            ]}
-            onChange={(v) =>
-              onChange({
-                ...filters,
-                status: !v || v === "all" ? undefined : (v as JobFilters["status"]),
-              })
-            }
-          />
-        </Field>
+        <div
+          id="job-primary-filters"
+          className={cn(
+            "col-span-2 grid grid-cols-2 gap-3 sm:contents",
+            !showMobileFilters && "max-sm:hidden"
+          )}
+        >
+          <Field>
+            <Label htmlFor="filter-location" className={filterLabelClassName}>
+              Lieu
+            </Label>
+            <Input
+              id="filter-location"
+              variant="control"
+              placeholder="Marseille, Aix…"
+              value={filters.location ?? ""}
+              onChange={(e) =>
+                onChange({ ...filters, location: e.target.value || undefined })
+              }
+            />
+          </Field>
+
+          <Field>
+            <Label id="filter-status-label" className={filterLabelClassName}>
+              Statut
+            </Label>
+            <FilterSelect
+              id="filter-status"
+              labelledById="filter-status-label"
+              value={filters.status ?? "all"}
+              placeholder="Tous les statuts"
+              options={[
+                { value: "all", label: "Tous les statuts" },
+                ...JOB_STATUSES.map((s) => ({
+                  value: s,
+                  label: jobStatusLabel(s),
+                })),
+              ]}
+              onChange={(v) =>
+                onChange({
+                  ...filters,
+                  status: !v || v === "all" ? undefined : (v as JobFilters["status"]),
+                })
+              }
+            />
+          </Field>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2",
+            !showMobileFilters && "max-sm:hidden"
+          )}
+        >
           <button
             type="button"
             onClick={() => setShowMore((value) => !value)}

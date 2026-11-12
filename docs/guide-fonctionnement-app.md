@@ -32,7 +32,7 @@ Sur la version hébergée, connecte-toi avec l’adresse e-mail et le mot de pas
 
 **Départ.** `/jobs`, `TrackedJobsPage` : « Importer mes offres », « Coller une offre », outils de développement locaux et synchronisation. Les imports utilisent `/api/import-jobs`, `/api/import-jobs/preview`, `/api/import-jobs/json` et `/api/import-jobs/sample`; les offres sont lues/mises à jour via `/api/jobs` et `/api/jobs/[id]`.
 
-**Fonctionnement.** CSV/Excel/JSON et texte collé sont normalisés avant insertion. Une URL/titre invalide est signalé par le parcours d’import; les doublons utilisateur sont ignorés. La page propose une vue cartes ou suivi, les filtres texte/source/lieu/contrat/statut/salaire/Correspondance, une sélection par case à cocher et des actions groupées.
+**Fonctionnement.** CSV/Excel/JSON et texte collé sont normalisés avant insertion. Une URL/titre invalide est signalé par le parcours d’import; les doublons utilisateur sont ignorés. La page propose une vue cartes ou suivi, les filtres texte/source/lieu/contrat/statut/salaire/Correspondance, une sélection par case à cocher et des actions groupées. Sur mobile, la recherche reste visible, « Afficher les filtres » déplie Lieu et Statut, et les filtres secondaires restent derrière « Plus de filtres ». La carte affiche entreprise, lieu, métadonnées neutres et le statut dans le sélecteur de pied; le titre est limité à deux lignes.
 
 **Coller une offre.** Le navigateur envoie le texte et le lien facultatif en JSON. Le serveur retire les éléments de navigation et de pied de page, lit l’en-tête des annonces Welcome to the Jungle reconnues et peut extraire les autres annonces avec l’IA. Il vérifie les champs extraits dans le texte. Le texte original reste dans `raw_data`. Une date relative sans référence absolue ne devient pas une date de publication.
 
@@ -72,7 +72,7 @@ Une reformulation sans source CV vérifiable, ou ajoutant une expérience régle
 
 **Départ.** Depuis `/jobs`, les actions unitaires/groupées appellent `/api/generate-cover-letter` ou `/api/generate-cover-letter/batch`; le détail offre aussi l’optimisation via `/api/jobs/[id]/optimize*` et `/profile-ai/optimize`.
 
-**Fonctionnement.** Une lettre est construite à partir du CV et de l’offre; elle est affichée dans une modal avant utilisation. L’optimisation prépare des propositions, dont les modifications à confirmer restent séparées des propositions sûres.
+**Fonctionnement.** Une lettre est construite à partir du CV et de l’offre; elle est affichée dans une modal avant utilisation. Dans l’onglet « Candidature », les actions sont séquencées : « Préparer une lettre » (ou « Régénérer »), « Relire et copier », puis « J’ai envoyé ma candidature ». Cette dernière ouvre une confirmation car JobTracker ne peut pas vérifier l’envoi; elle met seulement le statut à jour. L’optimisation prépare des propositions, dont les modifications à confirmer restent séparées des propositions sûres. Les cartes « Bientôt — API à brancher » ont été retirées.
 
 **Conservation.** Les lettres sont enregistrées sur l’offre et dans l’historique `cover_letters`; le statut d’offre peut évoluer vers `cover_generated`. Les propositions d’optimisation et leurs confirmations suivent les routes d’optimisation associées à l’offre.
 

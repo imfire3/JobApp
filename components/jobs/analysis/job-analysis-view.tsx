@@ -131,7 +131,7 @@ function GlobalStateCard({
           <Icon className="h-5 w-5 text-app-text-subtle" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h2 className="text-xl font-semibold tracking-tight text-app-text">
+          <h2 className="text-lg font-semibold tracking-tight text-app-text">
             {title}
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-app-text-secondary">
@@ -164,10 +164,10 @@ function GlobalStateCard({
 function AnalysisIntroCard() {
   return (
     <section className={analysisSurfaceClassName}>
-      <h2 className="text-xl font-semibold leading-7 text-app-text">
+      <h2 className="text-lg font-semibold leading-7 text-app-text">
         Analyse du profil
       </h2>
-      <p className="mt-3 text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle">
+      <p className="mt-3 max-w-[70ch] text-base leading-6 text-app-text-subtle">
         Ce score compare les preuves présentes dans ton CV aux exigences de
         cette offre. Il ne prédit pas une réponse du recruteur.
       </p>
@@ -187,7 +187,7 @@ function SummaryCard({
   return (
     <section className={analysisSurfaceClassName}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-semibold leading-7 text-app-text">
+        <h2 className="text-lg font-semibold leading-7 text-app-text">
           Synthèse des critères
         </h2>
         {summary.demonstratedCount + summary.toClarifyCount > 0 ? (

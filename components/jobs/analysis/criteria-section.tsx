@@ -78,7 +78,7 @@ export function CriteriaSection({
         <div className="min-w-0">
           <h2
             id="analyse-criteres-title"
-            className="text-xl font-semibold leading-7 text-app-text-strong"
+            className="text-lg font-semibold leading-7 text-app-text-strong"
           >
             Les attentes de l’offre face à ton CV
           </h2>
@@ -221,7 +221,7 @@ export function CriteriaSection({
                       <AnalysisNotice
                         tone="info"
                         icon={CircleHelp}
-                        className="w-fit max-w-full items-center rounded-app-control border-app-border bg-app-control px-4 py-4 text-lg font-medium leading-6 tracking-[-0.02em]"
+                        className="w-fit max-w-full items-center rounded-app-control border-app-border bg-app-control px-4 py-4 text-base leading-6"
                       >
                         {CRITERION_CONCLUSIONS[criterion.status]}
                       </AnalysisNotice>
@@ -229,7 +229,7 @@ export function CriteriaSection({
                       <p className="text-sm text-app-text-secondary">Poids dans le score : {criterion.weightPercent} %</p>
                       {criterion.question && canClarify(criterion.id) ? (
                         <div className="flex flex-col gap-4">
-                          <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle">
+                          <p className="text-base leading-6 text-app-text-subtle">
                             {criterion.question}
                           </p>
                           <Button

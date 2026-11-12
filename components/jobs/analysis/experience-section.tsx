@@ -179,7 +179,7 @@ export function ExperienceSection({
       >
         <h2
           id="experience-title"
-          className="mt-2 text-xl font-semibold tracking-tight text-app-text"
+          className="mt-2 text-lg font-semibold tracking-tight text-app-text"
         >
           Tu as traité toutes les questions.
         </h2>
@@ -212,11 +212,11 @@ export function ExperienceSection({
         <div className="min-w-0 flex-1">
           <h2
             id="experience-title"
-            className="text-xl font-semibold leading-7 text-app-text"
+            className="text-lg font-semibold leading-7 text-app-text"
           >
             Précise ton expérience
           </h2>
-          <p className="mt-2 text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle">
+          <p className="mt-2 max-w-[70ch] text-base leading-6 text-app-text-subtle">
             Certaines attentes ne sont pas suffisamment documentées dans ton CV.
             Tes réponses permettront de préparer des suggestions plus
             pertinentes.
@@ -387,7 +387,7 @@ export function ExperienceSection({
             ) : null}
 
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="inline-flex max-w-full items-center gap-3 rounded-app-control border border-app-border bg-app-control px-4 py-4 text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle">
+              <div className="inline-flex max-w-full items-center gap-3 rounded-app-control border border-app-border bg-app-control px-4 py-4 text-base leading-6 text-app-text-subtle">
                 <CircleHelp className="h-5 w-5 shrink-0" aria-hidden />
                 Ta réponse ne modifie pas directement le score
               </div>

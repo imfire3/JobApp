@@ -6,12 +6,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ArrowLeft,
   ChevronDown,
+  CircleCheck,
   FileText,
   LayoutGrid,
   Loader2,
-  Mail,
-  MessageSquare,
-  Mic,
   RefreshCw,
   RotateCcw,
 } from "lucide-react"
@@ -31,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -78,7 +77,7 @@ import {
 } from "@/lib/jobs/job-detail-lab-model"
 import { isJobFitCacheValidClient } from "@/lib/jobs/job-fit-cache-client"
 import { jobStatusLabel } from "@/lib/jobs/status-labels"
-import { getMatchScoreColor, getStatusColor } from "@/lib/jobs/utils"
+import { getMatchScoreColor } from "@/lib/jobs/utils"
 import { cn } from "@/lib/utils"
 import type { CvAnalysisResponse, Job, JobStatus } from "@/types"
 import { JOB_STATUSES } from "@/types"
@@ -88,6 +87,13 @@ type JobDetailLabPageProps = {
 }
 
 type LabTab = "overview" | "offer" | "optimize" | "apply"
+
+/** French labels for `keywords_report.present[].status`. */
+const KEYWORD_STATUS_LABELS: Record<string, string> = {
+  deja_present: "Déjà présent",
+  integre_immédiat: "Intégré",
+  integre_apres_confirmation: "Intégré après confirmation",
+}
 
 export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
   const router = useRouter()
@@ -102,6 +108,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
   const [generating, setGenerating] = useState(false)
   const [coverLetterError, setCoverLetterError] = useState<string | null>(null)
   const [coverOpen, setCoverOpen] = useState(false)
+  const [sentDialogOpen, setSentDialogOpen] = useState(false)
   const [tab, setTab] = useState<LabTab>("overview")
   const [ignoredIds, setIgnoredIds] = useState<Set<string>>(new Set())
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set())
@@ -865,14 +872,14 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                     <ArrowLeft className="h-4 w-4" aria-hidden />
                     Retour aux offres
                   </button>
-                  <h1 className="truncate text-[32px] font-bold leading-10 tracking-tight text-app-text">
+                  <h1 className="line-clamp-2 break-words text-[32px] font-bold leading-10 tracking-tight text-app-text">
                     {job.title}
                   </h1>
-                  <div className="flex flex-wrap items-center gap-2 text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle">
+                  <div className="flex flex-wrap items-center gap-2 text-sm font-medium leading-5 text-app-text-subtle">
                     {headerItems.map((part, index) => (
-                      <span key={`${part}-${index}`} className="contents">
-                        {index > 0 ? <span aria-hidden>·</span> : null}
-                        <span>{part}</span>
+                      <span key={`${part}-${index}`}>
+                        {index > 0 ? <span aria-hidden>·&nbsp;</span> : null}
+                        {part}
                       </span>
                     ))}
                   </div>
@@ -912,12 +919,12 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               <TabsList
                 aria-label="Sections de l’offre"
                 variant="section"
-                className="w-fit max-w-full"
+                className="w-full max-w-full max-sm:grid max-sm:grid-cols-2 sm:w-fit"
               >
-                <TabsTrigger value="overview" variant="section" className="h-(--app-control-height) px-4">Analyse</TabsTrigger>
-                <TabsTrigger value="offer" variant="section" className="h-(--app-control-height) px-4">Offre</TabsTrigger>
-                <TabsTrigger value="optimize" variant="section" className="h-(--app-control-height) px-4">Mon CV adapté</TabsTrigger>
-                <TabsTrigger value="apply" variant="section" className="h-(--app-control-height) px-4">Candidature</TabsTrigger>
+                <TabsTrigger value="overview" variant="section" className="h-(--app-control-height) px-4 max-sm:justify-center">Analyse</TabsTrigger>
+                <TabsTrigger value="offer" variant="section" className="h-(--app-control-height) px-4 max-sm:justify-center">Offre</TabsTrigger>
+                <TabsTrigger value="optimize" variant="section" className="h-(--app-control-height) px-4 max-sm:justify-center">Mon CV adapté</TabsTrigger>
+                <TabsTrigger value="apply" variant="section" className="h-(--app-control-height) px-4 max-sm:justify-center">Candidature</TabsTrigger>
               </TabsList>
             </StickyPageHeader>
 
@@ -949,15 +956,15 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
             <TabsContent value="offer" className="space-y-4">
               <Card variant="app">
                 <CardHeader className="gap-4">
-                  <CardTitle className="text-xl font-semibold leading-7 text-app-text-strong">
+                  <CardTitle className="text-lg font-semibold leading-7 text-app-text-strong">
                     Résumé du poste
                   </CardTitle>
                   {job.job_posting_summary ? (
-                    <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle">
+                    <p className="max-w-[70ch] text-base leading-6 text-app-text-subtle">
                       {job.job_posting_summary}
                     </p>
                   ) : (
-                    <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-muted">
+                    <p className="max-w-[70ch] text-base leading-6 text-app-text-muted">
                       Lance l’analyse pour obtenir un résumé structuré de l’offre.
                     </p>
                   )}
@@ -967,7 +974,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               <div className="grid gap-4 md:grid-cols-2">
                 <Card variant="app">
                   <CardHeader className="gap-4">
-                    <CardTitle className="text-xl font-semibold leading-7 text-app-text-strong">
+                    <CardTitle className="text-lg font-semibold leading-7 text-app-text-strong">
                       Missions
                     </CardTitle>
                   </CardHeader>
@@ -976,7 +983,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       missions.map((mission) => (
                         <div
                           key={mission}
-                          className="flex items-start gap-4 text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-subtle"
+                          className="flex items-start gap-4 text-base leading-6 text-app-text-subtle"
                         >
                           <span aria-hidden className="shrink-0">
                             →
@@ -985,7 +992,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                         </div>
                       ))
                     ) : (
-                      <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-muted">
+                      <p className="text-base leading-6 text-app-text-muted">
                         Missions non structurées — voir le résumé ou l’offre originale.
                       </p>
                     )}
@@ -993,13 +1000,13 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 </Card>
                 <Card variant="app">
                   <CardHeader className="gap-4">
-                    <CardTitle className="text-xl font-semibold leading-7 text-app-text-strong">
+                    <CardTitle className="text-lg font-semibold leading-7 text-app-text-strong">
                       Compétences recherchées
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-wrap gap-2">
                     {skills.hard.length === 0 ? (
-                      <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-muted">
+                      <p className="text-base leading-6 text-app-text-muted">
                         Aucune compétence structurée — les mots-clés ATS ci-dessous
                         complètent la lecture.
                       </p>
@@ -1007,7 +1014,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       skills.hard.map((skill) => (
                         <span
                           key={skill}
-                          className="inline-flex h-8 items-center rounded-app-control bg-app-success-surface px-2 text-base font-medium leading-6 tracking-[-0.02em] text-app-success"
+                          className="inline-flex h-7 items-center rounded-app-control border border-app-border bg-app-control px-2 text-sm font-medium leading-5 tracking-[-0.02em] text-app-text-subtle"
                         >
                           {skill}
                         </span>
@@ -1020,7 +1027,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               {cvOptimize && ((cvOptimize.keywords_report?.present?.length || 0) + (cvOptimize.keywords_report?.to_confirm?.length || 0)) > 0 ? (
                 <Card variant="app">
                   <CardHeader className="gap-2">
-                    <CardTitle className="text-xl font-semibold leading-7 text-app-text-strong">
+                    <CardTitle className="text-lg font-semibold leading-7 text-app-text-strong">
                       Mots-clés de l’offre intégrés
                     </CardTitle>
                     <p className="text-base leading-6 text-app-text-subtle">
@@ -1031,7 +1038,9 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                     {cvOptimize.keywords_report.present?.map((k, idx) => (
                       <div key={`p-${idx}`} className="flex items-center justify-between gap-4 rounded-app-control border border-app-border px-3 py-2">
                         <span className="text-base">{k.term}</span>
-                        <Badge variant="outline">{k.status.replace("_", " ")}</Badge>
+                        <Badge variant="outline">
+                          {KEYWORD_STATUS_LABELS[k.status] ?? k.status.replace(/_/g, " ")}
+                        </Badge>
                       </div>
                     ))}
                     {cvOptimize.keywords_report.to_confirm?.map((k, idx) => (
@@ -1045,12 +1054,12 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               ) : null}
 
               <section className="space-y-4">
-                <h2 className="text-[22px] font-semibold leading-7 text-app-text">
+                <h2 className="text-lg font-semibold leading-7 text-app-text">
                   Mots-clés ATS
                 </h2>
                 <div className="rounded-app-surface border border-app-border bg-app-surface p-4">
                   {keywordRows.length === 0 ? (
-                    <p className="text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-muted">
+                    <p className="text-base leading-6 text-app-text-muted">
                       Analyse l’offre pour extraire les mots-clés ATS.
                     </p>
                   ) : (
@@ -1078,7 +1087,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                             className="border-app-border hover:bg-transparent"
                           >
                             <TableCell className="px-0 py-3 align-middle">
-                              <span className="inline-flex h-8 items-center rounded-app-control bg-app-success-surface px-2 text-base font-medium leading-6 tracking-[-0.02em] text-app-success">
+                              <span className="inline-flex h-7 items-center rounded-app-control border border-app-border bg-app-control px-2 text-sm font-medium leading-5 tracking-[-0.02em] text-app-text-subtle">
                                 {row.keyword}
                               </span>
                             </TableCell>
@@ -1116,14 +1125,14 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               </section>
 
               <details className="group rounded-app-surface border border-app-border bg-app-surface p-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium leading-6 tracking-[-0.02em] text-app-text-strong [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base leading-6 text-app-text-strong [&::-webkit-details-marker]:hidden">
                   Afficher l’offre originale
                   <ChevronDown
                     className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180"
                     aria-hidden
                   />
                 </summary>
-                <pre className="mt-4 max-h-[420px] overflow-auto whitespace-pre-wrap text-base leading-6 text-app-text-subtle">
+                <pre className="mt-4 max-h-[420px] max-w-[80ch] overflow-auto whitespace-pre-wrap text-base leading-6 text-app-text-subtle">
                   {(job.description || job.summary || "").trim() ||
                     "Aucun texte brut importé."}
                 </pre>
@@ -1147,7 +1156,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       </p>
                     ) : null}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     <Button
                       variant="outline"
                       size="sm"
@@ -1169,7 +1178,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                     </Button>
                     <Button size="sm" onClick={handleApplySelected} disabled={cvOptApplying || selectedOptIds.size === 0}>
                       {cvOptApplying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Appliquer {selectedOptIds.size} sélectionnée(s)
+                      Appliquer {selectedOptIds.size} modification{selectedOptIds.size > 1 ? "s" : ""}
                     </Button>
                     <Button variant="outline" size="sm" onClick={handleRestoreCv} disabled={cvOptRestoring}>
                       <RotateCcw className="mr-2 h-4 w-4" />
@@ -1215,7 +1224,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                 ) : null}
                 <CardContent className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-border/70 p-4">
-                    <p className="text-base uppercase text-muted-foreground">Score actuel</p>
+                    <p className="text-sm font-medium text-muted-foreground">Score actuel</p>
                     <p
                       className={cn(
                         "mt-1 text-3xl font-bold",
@@ -1228,7 +1237,7 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                     </p>
                   </div>
                   <div className="rounded-xl border border-border/70 p-4">
-                    <p className="text-base uppercase text-muted-foreground">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Estimation après modifications (indicative, sans gain garanti)
                     </p>
                     <p className={cn("mt-1 text-3xl font-bold tabular-nums", potentialScore !== null && potentialScore === job.match_score ? "text-muted-foreground" : "text-emerald-400")}>
@@ -1551,11 +1560,15 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
               <Card>
                 <CardHeader>
                   <CardTitle>Statut de la candidature</CardTitle>
-                  <p className="text-base text-muted-foreground">
-                    Suis l’avancement de cette offre dans ton pipeline.
+                  <p className="max-w-[70ch] text-base text-muted-foreground">
+                    Aucun envoi automatique : tu envoies depuis le site ou ton
+                    messagerie, puis tu mets à jour le statut ici.
                   </p>
                 </CardHeader>
                 <CardContent className="flex flex-wrap items-center gap-3">
+                  <Label htmlFor="application-status" className="text-sm text-app-text-label">
+                    Statut
+                  </Label>
                   <Select
                     value={job.status}
                     onValueChange={(value) => {
@@ -1563,8 +1576,14 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       void updateJob({ status: value as JobStatus })
                     }}
                   >
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
+                    <SelectTrigger
+                      id="application-status"
+                      variant="control"
+                      className="w-56"
+                    >
+                      <SelectValue>
+                        {(value) => jobStatusLabel(value as JobStatus)}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {JOB_STATUSES.map((status) => (
@@ -1574,189 +1593,160 @@ export function JobDetailLabPage({ jobId }: JobDetailLabPageProps) {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Badge
-                    className={getStatusColor(job.status)}
-                    variant="secondary"
-                  >
-                    {jobStatusLabel(job.status)}
-                  </Badge>
                 </CardContent>
               </Card>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Lettre de motivation
-                    </CardTitle>
-                    <p className="text-base text-muted-foreground">
-                      Prépare ta lettre, relis-la et copie-la avant de l’envoyer toi-même. JobTracker n’envoie pas la candidature.
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" aria-hidden />
+                    Lettre de motivation
+                  </CardTitle>
+                  <p className="max-w-[70ch] text-base text-muted-foreground">
+                    Prépare ta lettre, relis-la et copie-la avant de l’envoyer
+                    toi-même. JobTracker n’envoie pas la candidature.
+                  </p>
+                  {job.cover_letter_angle_briefing ? (
+                    <p className="max-w-[70ch] whitespace-pre-wrap text-base text-muted-foreground">
+                      {job.cover_letter_angle_briefing}
                     </p>
-                    {job.cover_letter_angle_briefing ? (
-                      <p className="text-base text-muted-foreground whitespace-pre-wrap">
-                        {job.cover_letter_angle_briefing}
-                      </p>
-                    ) : job.cover_letter_angle ? (
-                      <p className="text-base text-muted-foreground">
-                        Angle suggéré : {job.cover_letter_angle}
-                      </p>
-                    ) : null}
-                  </CardHeader>
-                  <CardContent className="space-y-3">
+                  ) : job.cover_letter_angle ? (
+                    <p className="max-w-[70ch] text-base text-muted-foreground">
+                      Angle suggéré : {job.cover_letter_angle}
+                    </p>
+                  ) : null}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {!job.cover_letter ? (
                     <Button
                       onClick={() => void handleGenerateCoverLetter()}
                       disabled={generating}
                     >
                       {generating ? (
                         <>
-                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                          Génération…
+                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden />
+                          Préparation…
                         </>
                       ) : (
-                        job.cover_letter ? "Régénérer la lettre" : "Préparer une lettre"
+                        "Préparer une lettre"
                       )}
                     </Button>
-                    {coverLetterError ? (
-                      <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
-                        <p>La lettre n’a pas pu être générée. Le brouillon existant est conservé.</p>
-                        <p className="mt-1 text-muted-foreground">{coverLetterError}</p>
-                        <Button className="mt-2" size="sm" variant="outline" onClick={() => void handleGenerateCoverLetter()} disabled={generating}>Réessayer</Button>
-                      </div>
-                    ) : null}
-                    {job.cover_letter ? <p role="status" className="text-sm text-muted-foreground">Brouillon enregistré — relis-le avant de le copier ou de l’envoyer.</p> : null}
-                    {job.cover_letter_subject ? (
-                      <p className="text-sm text-muted-foreground">
-                        Objet :{" "}
-                        <span className="text-foreground">
-                          {job.cover_letter_subject}
-                        </span>
-                      </p>
-                    ) : null}
-                    {job.cover_letter ? (
-                      <>
-                        <Textarea
-                          aria-label="Lettre de motivation"
-                          value={job.cover_letter}
-                          onChange={(e) =>
-                            setJob((prev) =>
-                              prev ? { ...prev, cover_letter: e.target.value } : prev
-                            )
+                  ) : null}
+                  {coverLetterError ? (
+                    <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                      <p>La lettre n’a pas pu être générée. Le brouillon existant est conservé.</p>
+                      <p className="mt-1 text-muted-foreground">{coverLetterError}</p>
+                      <Button className="mt-2" size="sm" variant="outline" onClick={() => void handleGenerateCoverLetter()} disabled={generating}>Réessayer</Button>
+                    </div>
+                  ) : null}
+                  {job.cover_letter ? <p role="status" className="text-sm text-muted-foreground">Brouillon enregistré — relis-le avant de le copier ou de l’envoyer.</p> : null}
+                  {job.cover_letter_subject ? (
+                    <p className="text-sm text-muted-foreground">
+                      Objet :{" "}
+                      <span className="text-foreground">
+                        {job.cover_letter_subject}
+                      </span>
+                    </p>
+                  ) : null}
+                  {job.cover_letter ? (
+                    <div className="max-w-[80ch] space-y-3">
+                      <Textarea
+                        aria-label="Lettre de motivation"
+                        value={job.cover_letter}
+                        onChange={(e) =>
+                          setJob((prev) =>
+                            prev ? { ...prev, cover_letter: e.target.value } : prev
+                          )
+                        }
+                        onBlur={() => {
+                          if (job.cover_letter) {
+                            void updateJob({ cover_letter: job.cover_letter })
                           }
-                          onBlur={() => {
-                            if (job.cover_letter) {
-                              void updateJob({ cover_letter: job.cover_letter })
-                            }
-                          }}
-                          className="min-h-40"
-                        />
-                        {job.cover_letter_coach_notes &&
-                        job.cover_letter_coach_notes.length > 0 ? (
-                          <ul className="space-y-1.5 text-sm text-muted-foreground">
-                            {job.cover_letter_coach_notes.map((note, i) => (
-                              <li key={`lab-coach-${i}`} className="flex gap-2">
-                                <span
-                                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/40"
-                                  aria-hidden
-                                />
-                                <span>{note}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCoverOpen(true)}
-                        >
-                          Relire, modifier et copier
+                        }}
+                        className="min-h-40"
+                      />
+                      {job.cover_letter_coach_notes &&
+                      job.cover_letter_coach_notes.length > 0 ? (
+                        <ul className="space-y-1.5 text-sm text-muted-foreground">
+                          {job.cover_letter_coach_notes.map((note, i) => (
+                            <li key={`lab-coach-${i}`} className="flex gap-2">
+                              <span
+                                className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/40"
+                                aria-hidden
+                              />
+                              <span>{note}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      <div className="flex flex-wrap items-center gap-2 border-t border-app-border pt-3">
+                        <Button onClick={() => setCoverOpen(true)}>
+                          Relire et copier
                         </Button>
                         <Button
                           type="button"
-                          size="sm"
-                          variant="secondary"
-                          disabled={job.status === "applied"}
-                          onClick={() => {
-                            if (window.confirm("As-tu envoyé cette candidature toi-même ?")) void updateJob({ status: "applied" })
-                          }}
+                          variant="outline"
+                          onClick={() => void handleGenerateCoverLetter()}
+                          disabled={generating}
                         >
-                          {job.status === "applied" ? "Candidature marquée envoyée" : "J’ai envoyé ma candidature"}
+                          {generating ? (
+                            <>
+                              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden />
+                              Régénération…
+                            </>
+                          ) : (
+                            "Régénérer"
+                          )}
                         </Button>
-                      </>
-                    ) : null}
-                  </CardContent>
-                </Card>
-
-                <Card className="opacity-90">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Message LinkedIn
-                    </CardTitle>
-                    <p className="text-base text-muted-foreground">
-                      Génère un message court destiné au recruteur ou hiring manager.
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <Button disabled variant="outline">
-                      Bientôt — API à brancher
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="opacity-90">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Email de candidature
-                    </CardTitle>
-                    <p className="text-base text-muted-foreground">
-                      Génère un email adapté à cette candidature.
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <Button disabled variant="outline">
-                      Bientôt — API à brancher
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {job.status === "interview" ? (
-                  <Card className="opacity-90">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Mic className="h-4 w-4" />
-                        Préparer mon entretien
-                      </CardTitle>
-                      <p className="text-base text-muted-foreground">
-                        Prépare un pitch de 30 à 60 secondes à partir de ton CV et de cette offre.
-                      </p>
-                    </CardHeader>
-                    <CardContent>
-                      <Button disabled variant="outline">Bientôt — API à brancher</Button>
-                    </CardContent>
-                  </Card>
-                ) : null}
-              </div>
-
-              <Card className="opacity-90">
-                <CardHeader>
-                  <CardTitle>Questions de candidature</CardTitle>
-                  <p className="text-base text-muted-foreground">
-                    Réponses guidées aux questions fréquentes — génération à brancher.
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-2 text-base text-muted-foreground">
-                  <p>• Pourquoi souhaitez-vous rejoindre l’entreprise ?</p>
-                  <p>• Pourquoi êtes-vous adapté à ce poste ?</p>
-                  <p>• Décrivez une expérience pertinente.</p>
-                  <Button disabled variant="outline" className="mt-2">
-                    Bientôt — API à brancher
-                  </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="sm:ml-auto"
+                          disabled={job.status === "applied"}
+                          onClick={() => setSentDialogOpen(true)}
+                        >
+                          <CircleCheck className="mr-1.5 h-4 w-4" aria-hidden />
+                          {job.status === "applied"
+                            ? "Candidature marquée envoyée"
+                            : "J’ai envoyé ma candidature"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
+
+          <Dialog
+            open={sentDialogOpen}
+            onOpenChange={setSentDialogOpen}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Marquer comme envoyée ?</DialogTitle>
+                <DialogDescription>
+                  Confirme seulement si tu as envoyé ta candidature toi-même,
+                  depuis le site de l’entreprise ou ta messagerie. JobTracker ne
+                  peut pas vérifier l’envoi.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSentDialogOpen(false)}>
+                  Annuler
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSentDialogOpen(false)
+                    void updateJob({ status: "applied" })
+                    toast.success("Candidature marquée envoyée")
+                  }}
+                >
+                  Oui, j’ai envoyé
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <Dialog
             open={pendingTab !== null || pendingBack || pendingRefresh}
